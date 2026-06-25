@@ -1,7 +1,17 @@
-﻿---
+---
 import '../styles/global.css'
 export interface Props { title?: string }
 const { title = 'Protege Colitas' } = Astro.props
+const path = Astro.url?.pathname ?? '/'
+
+const navItems = [
+  { href: '/',            label: 'Inicio',   icon: '🏠' },
+  { href: '/reportar',    label: 'Reportar',  icon: '🐾' },
+  { href: '/insumos',     label: 'Insumos',   icon: '📦' },
+  { href: '/veterinarios',label: 'Vets',      icon: '🩺' },
+  { href: '/acopio',      label: 'Acopio',    icon: '🏠' },
+  { href: '/noticias',    label: 'Noticias',  icon: '📢' },
+]
 ---
 <!DOCTYPE html>
 <html lang="es">
@@ -10,5 +20,85 @@ const { title = 'Protege Colitas' } = Astro.props
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{title}</title>
 </head>
-<body><slot /></body>
+<body>
+  <slot />
+
+  <nav class="bottom-nav" role="navigation" aria-label="Navegación principal">
+    {navItems.map((item) => {
+      const isActive = item.href === '/'
+        ? path === '/'
+        : path.startsWith(item.href)
+      return (
+        <a
+          href={item.href}
+          class={`nav-item${isActive ? ' nav-active' : ''}`}
+          aria-current={isActive ? 'page' : undefined}
+          aria-label={item.label}
+        >
+          <span class="nav-icon" aria-hidden="true">{item.icon}</span>
+          <span class="nav-label">{item.label}</span>
+        </a>
+      )
+    })}
+  </nav>
+</body>
 </html>
+
+<style>
+.bottom-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  display: flex;
+  background: var(--blanco);
+  border-top: 1px solid var(--border);
+  z-index: 100;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px 4px 10px;
+  text-decoration: none;
+  color: var(--gris-txt);
+  min-height: 56px;
+  transition: color .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nav-item:hover { color: var(--marron); }
+
+.nav-active {
+  color: var(--amarillo);
+  font-weight: 700;
+}
+
+.nav-icon { font-size: 20px; line-height: 1; }
+
+.nav-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  text-align: center;
+  letter-spacing: .01em;
+}
+
+.nav-active .nav-label { font-weight: 700; }
+
+@media (min-width: 640px) {
+  .bottom-nav {
+    max-width: 640px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    border-radius: 20px 20px 0 0;
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+}
+</style>
