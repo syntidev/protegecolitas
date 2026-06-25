@@ -1,0 +1,979 @@
+---
+import Base from '../layouts/Base.astro'
+---
+<Base title="Reportar mascota — Protege Colitas">
+
+<!-- ── SCREEN 1: Selector de tipo ── -->
+<div id="s1" class="screen s1-active">
+  <header class="rpt-header">
+    <a href="/" class="back-link" aria-label="Volver al inicio">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12 4L6 10l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+    <span class="rpt-brand">Protege Colitas</span>
+  </header>
+
+  <div class="s1-body">
+    <p class="s1-eyebrow">¿Qué pasó?</p>
+    <h1 class="s1-title">Cuéntanos<br /><em>qué necesitas.</em></h1>
+
+    <div class="type-cards">
+      <button class="type-card card-perdido" data-tipo="perdido" aria-label="Perdí a mi mascota">
+        <span class="card-icon">🐾</span>
+        <span class="card-label">Perdí a mi<br /><strong>mascota</strong></span>
+        <span class="card-hint">La vi por última vez antes del sismo</span>
+      </button>
+
+      <button class="type-card card-encontrado" data-tipo="encontrado" aria-label="Encontré una mascota">
+        <span class="card-icon">📍</span>
+        <span class="card-label">Encontré una<br /><strong>mascota</strong></span>
+        <span class="card-hint">La tengo o la vi en mi zona</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SCREEN 2: Formulario ── -->
+<div id="s2" class="screen" aria-hidden="true">
+  <header class="rpt-header">
+    <button class="back-btn" id="backToS1" aria-label="Volver">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12 4L6 10l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <span class="rpt-brand" id="s2-title">Reporte</span>
+  </header>
+
+  <form id="reportForm" class="rpt-form" novalidate>
+    <input type="hidden" id="tipoField" name="tipo" value="" />
+
+    <!-- Fotos -->
+    <div class="field-group">
+      <label class="field-label">
+        Fotos
+        <span class="field-req">*</span>
+        <span class="field-note">Máximo 3, desde tu galería o cámara</span>
+      </label>
+      <div class="photo-zone" id="photoZone">
+        <button type="button" class="photo-add" id="photoAddBtn" aria-label="Agregar foto">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3.5" stroke="currentColor" stroke-width="1.8"/><path d="M9 5l1.5-2h3L15 5" stroke="currentColor" stroke-width="1.8"/></svg>
+          <span>Agregar foto</span>
+        </button>
+        <div class="photo-previews" id="photoPreviews"></div>
+      </div>
+      <input type="file" id="photoInput" accept="image/*" multiple style="display:none" aria-hidden="true" />
+      <p class="field-error" id="err-foto" role="alert"></p>
+    </div>
+
+    <!-- Nombre (solo perdido) -->
+    <div class="field-group perdido-only">
+      <label class="field-label" for="nombre">
+        Nombre de tu mascota
+        <span class="field-req">*</span>
+      </label>
+      <input type="text" id="nombre" name="nombre" class="rpt-input" placeholder="Ej: Luna, Coco, Max…" autocomplete="off" />
+      <p class="field-error" id="err-nombre" role="alert"></p>
+    </div>
+
+    <!-- Especie -->
+    <div class="field-group">
+      <label class="field-label">
+        Especie
+        <span class="field-req">*</span>
+      </label>
+      <div class="chip-group" id="especieGroup" role="radiogroup" aria-label="Especie">
+        <button type="button" class="chip" data-field="especie" data-value="Perro">🐕 Perro</button>
+        <button type="button" class="chip" data-field="especie" data-value="Gato">🐱 Gato</button>
+        <button type="button" class="chip" data-field="especie" data-value="Ave">🐦 Ave</button>
+        <button type="button" class="chip" data-field="especie" data-value="Otro">🐾 Otro</button>
+      </div>
+      <input type="hidden" id="especie" name="especie" value="" />
+      <p class="field-error" id="err-especie" role="alert"></p>
+    </div>
+
+    <!-- Color y descripción -->
+    <div class="field-group">
+      <label class="field-label" for="color">
+        Color
+        <span class="field-req">*</span>
+      </label>
+      <input type="text" id="color" name="color" class="rpt-input" placeholder="Ej: marrón con manchas blancas" autocomplete="off" />
+      <p class="field-error" id="err-color" role="alert"></p>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="descripcion">
+        Descripción
+        <span class="field-req">*</span>
+      </label>
+      <textarea id="descripcion" name="descripcion" class="rpt-textarea" rows="3" placeholder="Ej: Labrador de 3 años, collar azul, muy tranquilo…"></textarea>
+      <p class="field-error" id="err-descripcion" role="alert"></p>
+    </div>
+
+    <!-- Tamaño (solo perdido) -->
+    <div class="field-group perdido-only">
+      <label class="field-label">Tamaño</label>
+      <div class="chip-group" role="radiogroup" aria-label="Tamaño">
+        <button type="button" class="chip" data-field="tamanio" data-value="pequeño">Pequeño</button>
+        <button type="button" class="chip" data-field="tamanio" data-value="mediano">Mediano</button>
+        <button type="button" class="chip" data-field="tamanio" data-value="grande">Grande</button>
+      </div>
+      <input type="hidden" id="tamanio" name="tamanio" value="" />
+    </div>
+
+    <!-- Estado (solo encontrado) -->
+    <div class="field-group encontrado-only" style="display:none">
+      <label class="field-label">
+        ¿Cómo está?
+        <span class="field-req">*</span>
+      </label>
+      <div class="chip-group" role="radiogroup" aria-label="Estado">
+        <button type="button" class="chip chip-verde" data-field="estado" data-value="Bien">Bien 😊</button>
+        <button type="button" class="chip chip-amarillo" data-field="estado" data-value="Herido leve">Herido leve 🤕</button>
+        <button type="button" class="chip chip-rojo" data-field="estado" data-value="Crítico">Crítico ⚠️</button>
+      </div>
+      <input type="hidden" id="estado" name="estado" value="" />
+      <p class="field-error" id="err-estado" role="alert"></p>
+    </div>
+
+    <!-- Zona -->
+    <div class="field-group">
+      <label class="field-label" for="zona">
+        Zona o sector
+        <span class="field-req">*</span>
+      </label>
+      <input type="text" id="zona" name="zona" class="rpt-input" placeholder="Ej: Porlamar, sector Las Margaritas" autocomplete="off" />
+      <p class="field-error" id="err-zona" role="alert"></p>
+    </div>
+
+    <!-- Señas particulares (solo perdido) -->
+    <div class="field-group perdido-only">
+      <label class="field-label" for="senias">
+        Señas particulares
+        <span class="field-note">Opcional</span>
+      </label>
+      <textarea id="senias" name="senias" class="rpt-textarea" rows="2" placeholder="Cicatrices, collar, chip, comportamiento…"></textarea>
+    </div>
+
+    <!-- Tu nombre -->
+    <div class="field-group">
+      <label class="field-label" for="contacto_nombre">
+        Tu nombre
+        <span class="field-req">*</span>
+      </label>
+      <input type="text" id="contacto_nombre" name="contacto_nombre" class="rpt-input" placeholder="¿Cómo te llamamos?" autocomplete="given-name" />
+      <p class="field-error" id="err-contacto_nombre" role="alert"></p>
+    </div>
+
+    <!-- WhatsApp -->
+    <div class="field-group">
+      <label class="field-label" for="whatsapp">
+        Tu WhatsApp
+        <span class="field-req">*</span>
+        <span class="field-note">04XX-XXXXXXX</span>
+      </label>
+      <div class="wa-input-wrap">
+        <span class="wa-prefix">🇻🇪</span>
+        <input type="tel" id="whatsapp" name="whatsapp" class="rpt-input wa-input" placeholder="04141234567" maxlength="11" autocomplete="tel" inputmode="numeric" />
+        <span class="wa-status" id="waStatus" aria-live="polite"></span>
+      </div>
+      <p class="field-error" id="err-whatsapp" role="alert"></p>
+    </div>
+
+    <div class="submit-wrap">
+      <button type="submit" class="btn-submit" id="btnSubmit">
+        <span id="btnLabel">Enviar reporte</span>
+        <span id="btnSpinner" class="spinner" aria-hidden="true" style="display:none"></span>
+      </button>
+      <p class="submit-note" id="spinnerMsg" style="display:none">Estamos guardando tu reporte…</p>
+    </div>
+
+    <p class="field-error form-error" id="formError" role="alert"></p>
+  </form>
+</div>
+
+<!-- ── SCREEN 3: Confirmación ── -->
+<div id="s3" class="screen" aria-hidden="true">
+  <div class="s3-body">
+    <div class="s3-icon">🐾</div>
+    <h2 class="s3-title">¡Lo recibimos!</h2>
+    <p class="s3-msg">Tu reporte fue recibido.<br />Lo revisamos pronto y lo publicamos.</p>
+    <p class="s3-sub">Si tienes urgencia, contáctanos directo por WhatsApp.</p>
+    <a href="https://wa.me/584242042786?text=Hola%2C%20acabo%20de%20enviar%20un%20reporte%20en%20Protege%20Colitas" class="btn-wa" target="_blank" rel="noopener">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.119.553 4.107 1.516 5.836L.057 23.447a.5.5 0 00.611.612l5.638-1.471A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.891 0-3.666-.5-5.197-1.373l-.371-.22-3.847 1.003 1.022-3.737-.242-.384A9.942 9.942 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+      Escribir al centro de coordinación
+    </a>
+    <a href="/" class="btn-home">Volver al inicio</a>
+  </div>
+</div>
+
+</Base>
+
+<style>
+/* ─── Layout de pantallas ─── */
+.screen {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transform: translateX(24px);
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  background: var(--gris-bg);
+  pointer-events: none;
+  transition: opacity .28s ease, transform .28s ease;
+  z-index: 10;
+}
+.s1-active,
+.screen.visible {
+  opacity: 1;
+  transform: translateX(0);
+  position: relative;
+  pointer-events: auto;
+}
+.screen.exit {
+  opacity: 0;
+  transform: translateX(-24px);
+}
+
+/* ─── Header compartido ─── */
+.rpt-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--blanco);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.back-link,
+.back-btn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: none;
+  background: var(--gris-bg);
+  color: var(--marron);
+  cursor: pointer;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.rpt-brand {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--marron);
+}
+
+/* ─── Screen 1: Selector ─── */
+.s1-body {
+  flex: 1;
+  padding: 32px 20px 40px;
+  display: flex;
+  flex-direction: column;
+}
+.s1-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--gris-txt);
+  margin-bottom: 10px;
+}
+.s1-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: clamp(30px, 8vw, 42px);
+  line-height: 1.05;
+  color: var(--marron);
+  margin-bottom: 32px;
+}
+.s1-title em {
+  font-style: normal;
+  color: var(--amarillo);
+}
+.type-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+}
+.type-card {
+  flex: 1;
+  min-height: 160px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 24px 22px;
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+  transition: transform .12s ease, box-shadow .12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.type-card:active {
+  transform: scale(.97);
+}
+.card-perdido {
+  background: var(--marron);
+  box-shadow: 0 4px 20px rgba(107,58,42,.22);
+}
+.card-encontrado {
+  background: var(--amarillo);
+  box-shadow: 0 4px 20px rgba(245,193,7,.28);
+}
+.card-icon {
+  font-size: 44px;
+  line-height: 1;
+  margin-bottom: 14px;
+  display: block;
+}
+.card-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.3;
+  display: block;
+  margin-bottom: 6px;
+}
+.card-perdido .card-label { color: rgba(255,255,255,.8); }
+.card-perdido .card-label strong { color: #fff; font-weight: 700; }
+.card-encontrado .card-label { color: rgba(107,58,42,.75); }
+.card-encontrado .card-label strong { color: var(--marron); font-weight: 700; }
+.card-hint {
+  font-size: 12px;
+  font-weight: 500;
+  display: block;
+}
+.card-perdido .card-hint { color: rgba(255,255,255,.5); }
+.card-encontrado .card-hint { color: rgba(107,58,42,.5); }
+
+/* ─── Screen 2: Formulario ─── */
+.rpt-form {
+  padding: 24px 16px 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+}
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--marron);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.field-req {
+  color: var(--rojo);
+  font-size: 14px;
+  line-height: 1;
+}
+.field-note {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--gris-txt);
+  margin-left: 2px;
+}
+.rpt-input,
+.rpt-textarea {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: var(--blanco);
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  color: var(--negro, #1A1A1A);
+  outline: none;
+  transition: border-color .15s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.rpt-input:focus,
+.rpt-textarea:focus {
+  border-color: var(--marron);
+}
+.rpt-input.error,
+.rpt-textarea.error {
+  border-color: var(--rojo);
+}
+.rpt-textarea { resize: vertical; min-height: 80px; }
+
+/* ─── Chips ─── */
+.chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip {
+  height: 44px;
+  padding: 0 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 22px;
+  background: var(--blanco);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--marron);
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+.chip:hover { border-color: var(--marron); }
+.chip.selected {
+  background: var(--marron);
+  border-color: var(--marron);
+  color: #fff;
+}
+.chip-verde.selected { background: var(--verde); border-color: var(--verde); }
+.chip-amarillo.selected { background: #d97706; border-color: #d97706; }
+.chip-rojo.selected { background: var(--rojo); border-color: var(--rojo); }
+
+/* ─── Fotos ─── */
+.photo-zone {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.photo-add {
+  width: 88px;
+  height: 88px;
+  border: 1.5px dashed var(--border);
+  border-radius: 12px;
+  background: var(--blanco);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  color: var(--gris-txt);
+  font-size: 11px;
+  font-weight: 600;
+  transition: border-color .15s, color .15s;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.photo-add:hover { border-color: var(--marron); color: var(--marron); }
+.photo-previews { display: flex; gap: 10px; flex-wrap: wrap; }
+.photo-thumb {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.photo-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(0,0,0,.55);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+}
+
+/* ─── WhatsApp input ─── */
+.wa-input-wrap {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: var(--blanco);
+  overflow: hidden;
+  transition: border-color .15s;
+}
+.wa-input-wrap:focus-within { border-color: var(--marron); }
+.wa-input-wrap.valid { border-color: var(--verde); }
+.wa-input-wrap.invalid { border-color: var(--rojo); }
+.wa-prefix {
+  padding: 0 10px 0 14px;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.wa-input {
+  flex: 1;
+  border: none;
+  border-radius: 0;
+  padding: 13px 0;
+  background: transparent;
+}
+.wa-input:focus { border: none; }
+.wa-status {
+  padding: 0 12px;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+/* ─── Submit ─── */
+.submit-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.btn-submit {
+  width: 100%;
+  height: 54px;
+  background: var(--marron);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: opacity .15s, transform .1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-submit:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+.btn-submit:active:not(:disabled) { transform: scale(.98); }
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid rgba(255,255,255,.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.submit-note {
+  font-size: 13px;
+  color: var(--gris-txt);
+  text-align: center;
+}
+.field-error {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--rojo);
+  min-height: 16px;
+}
+.form-error {
+  font-size: 13px;
+  text-align: center;
+  padding: 10px;
+  background: #fef2f2;
+  border-radius: 10px;
+}
+
+/* ─── Screen 3: Confirmación ─── */
+.s3-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 24px 80px;
+}
+.s3-icon {
+  font-size: 72px;
+  margin-bottom: 24px;
+  animation: pop .4s ease;
+}
+@keyframes pop {
+  0% { transform: scale(.5); opacity: 0; }
+  70% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.s3-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 32px;
+  color: var(--marron);
+  margin-bottom: 14px;
+}
+.s3-msg {
+  font-size: 16px;
+  color: var(--marron);
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+.s3-sub {
+  font-size: 13px;
+  color: var(--gris-txt);
+  margin-bottom: 32px;
+}
+.btn-wa {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 320px;
+  height: 52px;
+  background: #25D366;
+  color: #fff;
+  border-radius: 14px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 14px;
+  transition: opacity .15s;
+}
+.btn-wa:hover { opacity: .9; }
+.btn-home {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gris-txt);
+  text-decoration: none;
+  padding: 10px;
+}
+.btn-home:hover { color: var(--marron); }
+
+/* ─── Responsive ─── */
+@media (min-width: 600px) {
+  .type-cards { flex-direction: row; }
+  .type-card { min-height: 260px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .screen { transition: none; }
+  .s3-icon { animation: none; }
+  .spinner { animation: none; }
+}
+</style>
+
+<script>
+(function () {
+  /* ── Estado ── */
+  const compressedFiles = []; // { file: File, dataUrl: string }[]
+  let selectedTipo = '';
+
+  /* ── Referencias DOM ── */
+  const s1 = document.getElementById('s1');
+  const s2 = document.getElementById('s2');
+  const s3 = document.getElementById('s3');
+  const typeCards = document.querySelectorAll('.type-card');
+  const backBtn = document.getElementById('backToS1');
+  const s2Title = document.getElementById('s2-title');
+  const tipoField = document.getElementById('tipoField');
+  const photoInput = document.getElementById('photoInput');
+  const photoAddBtn = document.getElementById('photoAddBtn');
+  const photoPreviews = document.getElementById('photoPreviews');
+  const waInput = document.getElementById('whatsapp');
+  const waWrap = waInput.closest('.wa-input-wrap');
+  const waStatus = document.getElementById('waStatus');
+  const form = document.getElementById('reportForm');
+  const btnSubmit = document.getElementById('btnSubmit');
+  const btnLabel = document.getElementById('btnLabel');
+  const btnSpinner = document.getElementById('btnSpinner');
+  const spinnerMsg = document.getElementById('spinnerMsg');
+  const formError = document.getElementById('formError');
+
+  const WA_RE = /^04[0-9]{2}[0-9]{7}$/;
+
+  /* ── Transiciones entre pantallas ── */
+  function showScreen(next) {
+    const screens = [s1, s2, s3];
+    screens.forEach(sc => {
+      if (sc === next) return;
+      if (!sc.classList.contains('s1-active') && !sc.classList.contains('visible')) return;
+      sc.classList.add('exit');
+      sc.setAttribute('aria-hidden', 'true');
+      setTimeout(() => {
+        sc.classList.remove('visible', 's1-active', 'exit');
+      }, 300);
+    });
+    setTimeout(() => {
+      next.classList.add('visible');
+      next.removeAttribute('aria-hidden');
+      next.scrollTop = 0;
+    }, next === s1 ? 0 : 80);
+  }
+
+  /* ── Selector de tipo ── */
+  typeCards.forEach(card => {
+    card.addEventListener('click', () => {
+      selectedTipo = card.dataset.tipo;
+      tipoField.value = selectedTipo;
+
+      if (selectedTipo === 'perdido') {
+        s2Title.textContent = 'Perdí a mi mascota';
+        document.querySelectorAll('.perdido-only').forEach(el => el.style.removeProperty('display'));
+        document.querySelectorAll('.encontrado-only').forEach(el => el.style.display = 'none');
+      } else {
+        s2Title.textContent = 'Encontré una mascota';
+        document.querySelectorAll('.perdido-only').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.encontrado-only').forEach(el => el.style.removeProperty('display'));
+      }
+      showScreen(s2);
+    });
+  });
+
+  backBtn.addEventListener('click', () => showScreen(s1));
+
+  /* ── Chips ── */
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const field = chip.dataset.field;
+      const group = chip.closest('.chip-group');
+      group.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+      chip.classList.add('selected');
+      const hidden = document.getElementById(field);
+      if (hidden) hidden.value = chip.dataset.value;
+      // limpiar error
+      const err = document.getElementById('err-' + field);
+      if (err) err.textContent = '';
+    });
+  });
+
+  /* ── Fotos ── */
+  photoAddBtn.addEventListener('click', () => {
+    if (compressedFiles.length >= 3) return;
+    photoInput.click();
+  });
+
+  photoInput.addEventListener('change', async () => {
+    const files = Array.from(photoInput.files || []);
+    for (const file of files) {
+      if (compressedFiles.length >= 3) break;
+      if (!file.type.startsWith('image/')) continue;
+      const dataUrl = await compressImage(file, 900, 0.82);
+      compressedFiles.push({ file, dataUrl });
+    }
+    renderPreviews();
+    photoInput.value = '';
+    clearError('foto');
+  });
+
+  function renderPreviews() {
+    photoPreviews.innerHTML = '';
+    compressedFiles.forEach((item, i) => {
+      const thumb = document.createElement('div');
+      thumb.className = 'photo-thumb';
+      const img = document.createElement('img');
+      img.src = item.dataUrl;
+      img.alt = 'Foto ' + (i + 1);
+      const rm = document.createElement('button');
+      rm.type = 'button';
+      rm.className = 'photo-remove';
+      rm.textContent = '×';
+      rm.setAttribute('aria-label', 'Eliminar foto ' + (i + 1));
+      rm.addEventListener('click', () => {
+        compressedFiles.splice(i, 1);
+        renderPreviews();
+      });
+      thumb.appendChild(img);
+      thumb.appendChild(rm);
+      photoPreviews.appendChild(thumb);
+    });
+    // Ocultar botón agregar si ya hay 3
+    photoAddBtn.style.display = compressedFiles.length >= 3 ? 'none' : '';
+  }
+
+  function compressImage(file, maxPx, quality) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let w = img.width, h = img.height;
+          if (w > maxPx || h > maxPx) {
+            if (w >= h) { h = Math.round(h * maxPx / w); w = maxPx; }
+            else { w = Math.round(w * maxPx / h); h = maxPx; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /* ── Validación WhatsApp en tiempo real ── */
+  waInput.addEventListener('input', () => {
+    const val = waInput.value.replace(/\D/g, '').slice(0, 11);
+    waInput.value = val;
+    if (val.length === 0) {
+      waWrap.classList.remove('valid', 'invalid');
+      waStatus.textContent = '';
+    } else if (WA_RE.test(val)) {
+      waWrap.classList.remove('invalid');
+      waWrap.classList.add('valid');
+      waStatus.textContent = '✓';
+      clearError('whatsapp');
+    } else {
+      waWrap.classList.remove('valid');
+      waWrap.classList.add('invalid');
+      waStatus.textContent = '';
+    }
+  });
+
+  /* ── Helpers de error ── */
+  function setError(field, msg) {
+    const el = document.getElementById('err-' + field);
+    const input = document.getElementById(field) || document.querySelector('[name="' + field + '"]');
+    if (el) el.textContent = msg;
+    if (input && (input.tagName === 'INPUT' || input.tagName === 'TEXTAREA')) {
+      input.classList.add('error');
+    }
+  }
+  function clearError(field) {
+    const el = document.getElementById('err-' + field);
+    const input = document.getElementById(field);
+    if (el) el.textContent = '';
+    if (input) input.classList.remove('error');
+  }
+
+  /* ── Validación del formulario ── */
+  function validate() {
+    let ok = true;
+
+    if (compressedFiles.length === 0) {
+      setError('foto', 'Agrega al menos una foto'); ok = false;
+    }
+
+    const especie = document.getElementById('especie').value;
+    if (!especie) { setError('especie', 'Selecciona la especie'); ok = false; }
+
+    const color = document.getElementById('color').value.trim();
+    if (!color) { setError('color', 'Describe el color'); ok = false; }
+
+    const desc = document.getElementById('descripcion').value.trim();
+    if (!desc) { setError('descripcion', 'Agrega una descripción'); ok = false; }
+
+    const zona = document.getElementById('zona').value.trim();
+    if (zona.length < 5) { setError('zona', 'Escribe la zona (mínimo 5 caracteres)'); ok = false; }
+
+    const nombreContacto = document.getElementById('contacto_nombre').value.trim();
+    if (!nombreContacto) { setError('contacto_nombre', '¿Cómo te llamamos?'); ok = false; }
+
+    const wa = document.getElementById('whatsapp').value.trim();
+    if (!WA_RE.test(wa)) { setError('whatsapp', 'Número venezolano requerido: 04XX + 7 dígitos'); ok = false; }
+
+    if (selectedTipo === 'perdido') {
+      const nombre = document.getElementById('nombre').value.trim();
+      if (!nombre) { setError('nombre', '¿Cómo se llama?'); ok = false; }
+    }
+
+    if (selectedTipo === 'encontrado') {
+      const estado = document.getElementById('estado').value;
+      if (!estado) { setError('estado', '¿Cómo está la mascota?'); ok = false; }
+    }
+
+    return ok;
+  }
+
+  /* ── Envío ── */
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    formError.textContent = '';
+
+    // limpiar todos los errores antes de validar
+    ['foto','especie','color','descripcion','zona','contacto_nombre','whatsapp','nombre','estado'].forEach(clearError);
+
+    if (!validate()) {
+      // scroll al primer error
+      const firstErr = form.querySelector('.field-error:not(:empty)');
+      if (firstErr) firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    // Estado de carga
+    btnSubmit.disabled = true;
+    btnLabel.style.display = 'none';
+    btnSpinner.style.display = '';
+    spinnerMsg.style.display = '';
+
+    const payload = {
+      tipo: selectedTipo,
+      especie: document.getElementById('especie').value,
+      color: document.getElementById('color').value.trim(),
+      descripcion: document.getElementById('descripcion').value.trim(),
+      zona: document.getElementById('zona').value.trim(),
+      whatsapp: document.getElementById('whatsapp').value.trim(),
+      contacto_nombre: document.getElementById('contacto_nombre').value.trim(),
+    };
+
+    if (selectedTipo === 'perdido') {
+      payload.nombre = document.getElementById('nombre').value.trim();
+      const tam = document.getElementById('tamanio').value;
+      if (tam) payload.tamanio = tam;
+      const senias = document.getElementById('senias').value.trim();
+      if (senias) payload.senias = senias;
+    }
+    if (selectedTipo === 'encontrado') {
+      payload.estado = document.getElementById('estado').value;
+    }
+
+    try {
+      const res = await fetch('/api/reportar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Ocurrió un error. Intenta de nuevo.');
+      }
+
+      showScreen(s3);
+    } catch (err) {
+      formError.textContent = err.message || 'Algo salió mal. Intenta de nuevo.';
+      btnSubmit.disabled = false;
+      btnLabel.style.display = '';
+      btnSpinner.style.display = 'none';
+      spinnerMsg.style.display = 'none';
+    }
+  });
+
+  /* ── Limpiar errores al tipear ── */
+  ['nombre','color','descripcion','zona','contacto_nombre'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => clearError(id));
+  });
+
+  /* ── Pre-selección por querystring ── */
+  const params = new URLSearchParams(window.location.search);
+  const tipoParam = params.get('tipo');
+  if (tipoParam === 'perdido' || tipoParam === 'encontrado') {
+    const card = document.querySelector('[data-tipo="' + tipoParam + '"]');
+    if (card) card.click();
+  }
+})();
+</script>
