@@ -1,0 +1,46 @@
+﻿---
+export interface Props { id:string; nombre:string; especie:string; descripcion:string; zona:string; status:string; foto_url?:string; whatsapp?:string }
+const { id, nombre, especie, descripcion, zona, status, foto_url, whatsapp } = Astro.props
+const labels: Record<string,string> = { perdido:'Perdido', encontrado:'Encontrado', urgente:'Urgente', reunido:'Reunido' }
+const emoji = especie==='Gato'?'ðŸˆ':especie==='Ave'?'ðŸ¦':'ðŸ•'
+const wa = whatsapp ? `https://wa.me/${whatsapp.replace(/\D/g,'')}` : 'https://wa.me/584242042786'
+---
+<div class={`pet-card ${status}`}>
+  <div class="pet-img">
+    {foto_url ? <img src={foto_url} alt={nombre} loading="lazy" /> : <span class="emoji">{emoji}</span>}
+    <span class={`badge badge-${status}`}>{labels[status]??status}</span>
+  </div>
+  <div class="pet-body">
+    <div class="pet-name">{nombre||'Sin nombre'}</div>
+    <div class="pet-meta">{especie} - {descripcion}</div>
+    <div class="pet-zona">ðŸ“ {zona}</div>
+    <div class="pet-actions">
+      <a href={wa} target="_blank" class="btn-xs bx-wa">WhatsApp</a>
+      <a href={`/mascota/${id}`} class="btn-xs bx-ver">Ver ficha</a>
+    </div>
+  </div>
+</div>
+<style>
+.pet-card { background:var(--blanco); border-radius:14px; overflow:hidden; border:1px solid var(--border); position:relative; }
+.pet-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; }
+.pet-card.perdido::before    { background:var(--rojo); }
+.pet-card.encontrado::before { background:var(--verde); }
+.pet-card.urgente::before    { background:var(--amarillo); }
+.pet-card.reunido::before    { background:var(--azul); }
+.pet-img { width:100%; aspect-ratio:1/1; background:#F3EDE4; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+.pet-img img { width:100%; height:100%; object-fit:cover; }
+.emoji { font-size:52px; }
+.badge { position:absolute; top:8px; right:8px; font-size:9px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:20px; }
+.badge-perdido { background:var(--rojo); color:#fff; }
+.badge-encontrado { background:var(--verde); color:#fff; }
+.badge-urgente { background:var(--amarillo); color:#000; }
+.badge-reunido { background:var(--azul); color:#fff; }
+.pet-body { padding:10px 12px 12px 16px; }
+.pet-name { font-family:'Syne',sans-serif; font-size:15px; font-weight:700; margin-bottom:2px; }
+.pet-meta { font-size:11px; color:var(--gris-txt); margin-bottom:4px; }
+.pet-zona { font-size:11px; color:var(--azul); font-weight:600; margin-bottom:8px; }
+.pet-actions { display:flex; gap:6px; }
+.btn-xs { flex:1; padding:7px 6px; border-radius:7px; font-size:11px; font-weight:700; text-align:center; text-decoration:none; }
+.bx-wa { background:#25D366; color:#fff; }
+.bx-ver { background:var(--gris-bg); color:var(--marron); border:1px solid var(--border); }
+</style>
