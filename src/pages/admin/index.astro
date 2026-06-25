@@ -1,0 +1,559 @@
+---
+import { createClient } from '@supabase/supabase-js'
+import { createHmac, timingSafeEqual } from 'crypto'
+import * as dotenv from 'dotenv'
+import { resolve } from 'path'
+import '../../styles/global.css'
+
+dotenv.config({ path: resolve(process.cwd(), '.env') })
+
+const ADMIN_EMAIL  = 'protegecolitas@gmail.com'
+const ADMIN_PASS   = process.env.ADMIN_PASSWORD ?? ''
+const COOKIE_MS    = 8 * 60 * 60 * 1000
+const COOKIE_AGE   = 8 * 60 * 60
+
+const db = createClient(
+  process.env.PUBLIC_SUPABASE_URL    ?? '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.PUBLIC_SUPABASE_ANON_KEY ?? '',
+  { auth: { persistSession: false } }
+)
+
+function sign(s: string): string {
+  return createHmac('sha256', ADMIN_PASS).update(s).digest('hex')
+}
+
+function validSession(raw: string): boolean {
+  try {
+    const parts = decodeURIComponent(raw).split('|')
+    if (parts.length !== 3) return false
+    const [email, exp, sig] = parts
+    if (Date.now() > Number(exp)) return false
+    const expected = sign(`${email}|${exp}`)
+    return timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))
+  } catch { return false }
+}
+
+function getCookie(header: string, name: string): string | null {
+  return header.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`))?.[1] ?? null
+}
+
+const cookies  = Astro.request.headers.get('cookie') ?? ''
+const ck       = getCookie(cookies, 'admin_session')
+const isAuth   = !!ck && validSession(ck)
+const isSecure = Astro.url.protocol === 'https:'
+let loginError = ''
+
+if (Astro.request.method === 'POST') {
+  const form   = await Astro.request.formData()
+  const action = form.get('action')?.toString()
+
+  // ── Login ──────────────────────────────────────────────────────────────
+  if (action === 'login') {
+    const email = form.get('email')?.toString().trim() ?? ''
+    const pass  = form.get('password')?.toString() ?? ''
+    if (!ADMIN_PASS || email !== ADMIN_EMAIL || pass !== ADMIN_PASS) {
+      loginError = 'Email o contraseña incorrectos'
+    } else {
+      const exp     = Date.now() + COOKIE_MS
+      const payload = `${email}|${exp}`
+      const val     = encodeURIComponent(`${payload}|${sign(payload)}`)
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location: '/admin',
+          'Set-Cookie': `admin_session=${val}; HttpOnly; Path=/; SameSite=Strict; Max-Age=${COOKIE_AGE}${isSecure ? '; Secure' : ''}`
+        }
+      })
+    }
+  }
+
+  // ── Logout ─────────────────────────────────────────────────────────────
+  if (action === 'logout') {
+    return new Response(null, {
+      status: 302,
+      headers: { Location: '/admin', 'Set-Cookie': 'admin_session=; HttpOnly; Path=/; Max-Age=0' }
+    })
+  }
+
+  // ── Acciones protegidas (requieren sesión) ─────────────────────────────
+  if (!isAuth) {
+    return new Response(JSON.stringify({ ok: false, error: 'No autorizado' }), {
+      status: 401, headers: { 'Content-Type': 'application/json' }
+    })
+  }
+
+  if (action === 'aprobar') {
+    const id = form.get('id')?.toString() ?? ''
+    const { error } = await db.from('mascotas')
+      .update({ status: 'publicado', moderado_at: new Date().toISOString() })
+      .eq('id', id)
+    return new Response(JSON.stringify({ ok: !error, error: error?.message }), {
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+
+  if (action === 'rechazar') {
+    const id = form.get('id')?.toString() ?? ''
+    const { error } = await db.from('mascotas')
+      .update({ status: 'descartado', moderado_at: new Date().toISOString() })
+      .eq('id', id)
+    return new Response(JSON.stringify({ ok: !error, error: error?.message }), {
+      headers: { 'Content-Type': 'application/json' }
+    })
+  }
+
+  if (action === 'insumo') {
+    const id = form.get('id')?.toString() ?? ''
+    const q  = parseInt(form.get('cantidad')?.toString() ?? '0', 10)
+    if (id && !isNaN(q)) {
+      await db.from('necesidades')
+        .update({ cantidad_recibida: q, updated_at: new Date().toISOString() })
+        .eq('id', id)
+    }
+    return new Response(null, { status: 302, headers: { Location: '/admin' } })
+  }
+
+  if (action === 'feed') {
+    const tipo   = form.get('tipo')?.toString() ?? 'info'
+    const titulo = form.get('titulo')?.toString().trim() ?? ''
+    const cuerpo = form.get('cuerpo')?.toString().trim() ?? ''
+    if (titulo && cuerpo) {
+      await db.from('feed').insert({ tipo, titulo, cuerpo, published_at: new Date().toISOString() })
+    }
+    return new Response(null, { status: 302, headers: { Location: '/admin' } })
+  }
+}
+
+// ── Data fetching (solo si autenticado) ───────────────────────────────────
+type Mascota  = { id: string; nombre: string|null; especie: string; zona: string; whatsapp: string; descripcion: string|null; color: string|null; tamanio: string|null; tipo: string|null; foto_url: string|null; created_at: string }
+type Necesidad = { id: string; item: string; cantidad_requerida: number; cantidad_recibida: number; prioridad: string }
+
+let pendientes: Mascota[]   = []
+let necesidades: Necesidad[] = []
+let stats = { pendientes: 0, publicadas: 0, reunidas: 0, vets: 0 }
+
+if (isAuth) {
+  const [mp, mn, sp, spb, sr, sv] = await Promise.all([
+    db.from('mascotas').select('id,nombre,especie,zona,whatsapp,descripcion,color,tamanio,tipo,foto_url,created_at').eq('status','pendiente').order('created_at',{ascending:true}),
+    db.from('necesidades').select('*').order('prioridad'),
+    db.from('mascotas').select('*',{count:'exact',head:true}).eq('status','pendiente'),
+    db.from('mascotas').select('*',{count:'exact',head:true}).eq('status','publicado'),
+    db.from('mascotas').select('*',{count:'exact',head:true}).eq('status','reunido'),
+    db.from('vets').select('*',{count:'exact',head:true}),
+  ])
+  pendientes  = (mp.data  ?? []) as Mascota[]
+  necesidades = (mn.data  ?? []) as Necesidad[]
+  stats = { pendientes: sp.count ?? 0, publicadas: spb.count ?? 0, reunidas: sr.count ?? 0, vets: sv.count ?? 0 }
+}
+---
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Protege Colitas</title>
+</head>
+<body>
+
+{!isAuth ? (
+  <div class="login-wrap">
+    <div class="login-box">
+      <h1>Protege Colitas</h1>
+      <p class="login-sub">Panel de moderación</p>
+      {loginError && <p class="error-msg" role="alert">{loginError}</p>}
+      <form method="POST" autocomplete="off">
+        <input type="hidden" name="action" value="login" />
+        <label>
+          Email
+          <input type="email" name="email" required placeholder="protegecolitas@gmail.com" />
+        </label>
+        <label>
+          Contraseña
+          <input type="password" name="password" required autofocus />
+        </label>
+        <button type="submit">Entrar</button>
+      </form>
+    </div>
+  </div>
+) : (
+  <div class="panel">
+
+    <header class="panel-header">
+      <span class="panel-title">🐾 Protege Colitas — Admin</span>
+      <form method="POST">
+        <input type="hidden" name="action" value="logout" />
+        <button type="submit" class="btn-logout">Cerrar sesión</button>
+      </form>
+    </header>
+
+    <div class="stats-row">
+      <div class="stat stat-warn">
+        <strong id="stat-pendientes">{stats.pendientes}</strong>
+        <span>Pendientes</span>
+      </div>
+      <div class="stat stat-ok">
+        <strong>{stats.publicadas}</strong>
+        <span>Publicadas</span>
+      </div>
+      <div class="stat stat-green">
+        <strong>{stats.reunidas}</strong>
+        <span>Reunidas</span>
+      </div>
+      <div class="stat stat-blue">
+        <strong>{stats.vets}</strong>
+        <span>Vets</span>
+      </div>
+    </div>
+
+    <section class="sec">
+      <h2 class="sec-title">Pendientes de moderación <span class="badge">{pendientes.length}</span></h2>
+
+      {pendientes.length === 0
+        ? <p class="empty">No hay mascotas pendientes ✓</p>
+        : <div id="lista-pendientes">
+            {pendientes.map(m => (
+              <article class="card" id={`card-${m.id}`}>
+                {m.foto_url && (
+                  <img src={m.foto_url} alt={m.nombre ?? 'Sin nombre'} loading="lazy" class="card-foto" />
+                )}
+                <div class="card-body">
+                  <p class="card-title">
+                    {m.nombre ?? 'Sin nombre'}
+                    <span class="tag">{m.especie}</span>
+                    {m.tipo && <span class="tag tag-tipo">{m.tipo}</span>}
+                  </p>
+                  <p class="card-meta">
+                    📍 {m.zona}
+                    {m.color   && ` · ${m.color}`}
+                    {m.tamanio && ` · ${m.tamanio}`}
+                  </p>
+                  {m.descripcion && <p class="card-desc">{m.descripcion}</p>}
+                  <p class="card-date">{new Date(m.created_at).toLocaleString('es-VE')}</p>
+                </div>
+                <div class="card-actions">
+                  <button class="btn-aprobar" data-id={m.id}>✓ Aprobar</button>
+                  <button class="btn-rechazar" data-id={m.id}>✗ Rechazar</button>
+                  <a class="btn-wa" href={`https://wa.me/58${m.whatsapp.slice(1)}`} target="_blank" rel="noreferrer">💬 WA</a>
+                </div>
+              </article>
+            ))}
+          </div>
+      }
+    </section>
+
+    <section class="sec">
+      <h2 class="sec-title">Insumos</h2>
+      {necesidades.length === 0
+        ? <p class="empty">No hay insumos registrados</p>
+        : necesidades.map(n => (
+            <form method="POST" class="insumo-row">
+              <input type="hidden" name="action" value="insumo" />
+              <input type="hidden" name="id"     value={n.id}   />
+              <span class="insumo-item">{n.item}</span>
+              <span class={`prio prio-${n.prioridad}`}>{n.prioridad}</span>
+              <input type="number" name="cantidad" value={n.cantidad_recibida}
+                     min="0" max={n.cantidad_requerida * 10} class="insumo-n" aria-label={`Cantidad de ${n.item}`} />
+              <span class="insumo-de">/ {n.cantidad_requerida}</span>
+              <button type="submit" class="btn-save">Guardar</button>
+            </form>
+          ))
+      }
+    </section>
+
+    <section class="sec">
+      <h2 class="sec-title">Publicar en feed</h2>
+      <form method="POST" class="feed-form">
+        <input type="hidden" name="action" value="feed" />
+        <select name="tipo" aria-label="Tipo de publicación">
+          <option value="info">ℹ️ Info</option>
+          <option value="alerta">🔴 Alerta</option>
+          <option value="rescate">🐾 Rescate</option>
+          <option value="buenas">✅ Buenas noticias</option>
+        </select>
+        <input type="text" name="titulo" placeholder="Título" required maxlength="150" />
+        <textarea name="cuerpo" placeholder="Texto de la publicación..." required rows="3"></textarea>
+        <button type="submit" class="btn-primary">Publicar</button>
+      </form>
+    </section>
+
+  </div>
+)}
+
+</body>
+</html>
+
+<style>
+  /* ── Login ────────────────────────────────────────────────────────────── */
+  .login-wrap {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    background: var(--gris-bg);
+    padding: 1rem;
+  }
+  .login-box {
+    background: var(--blanco);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    width: min(100%, 360px);
+  }
+  .login-box h1 {
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.5rem;
+    color: var(--marron);
+    font-weight: 900;
+  }
+  .login-sub { font-size: .875rem; color: var(--gris-txt); margin-bottom: 1.5rem; }
+  .error-msg {
+    background: #FEE2E2;
+    color: var(--rojo);
+    border-radius: 8px;
+    padding: .75rem 1rem;
+    font-size: .875rem;
+    margin-bottom: 1rem;
+  }
+  .login-box form  { display: flex; flex-direction: column; gap: .75rem; }
+  .login-box label { display: flex; flex-direction: column; gap: .25rem; font-size: .8rem; font-weight: 600; color: var(--marron); }
+
+  /* ── Inputs ──────────────────────────────────────────────────────────── */
+  input[type="email"],
+  input[type="password"],
+  input[type="text"],
+  input[type="number"],
+  textarea, select {
+    width: 100%;
+    padding: .625rem .875rem;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: .9375rem;
+    background: var(--blanco);
+    color: var(--negro);
+  }
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--amarillo);
+  }
+  textarea { resize: vertical; }
+
+  /* ── Botones base ─────────────────────────────────────────────────────── */
+  button {
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: .875rem;
+    min-height: 44px;
+    padding: .5rem 1rem;
+    transition: filter .1s;
+  }
+  button:hover   { filter: brightness(.9); }
+  button:active  { filter: brightness(.8); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+
+  .login-box button[type="submit"],
+  .btn-primary {
+    background: var(--amarillo);
+    color: var(--marron);
+    width: 100%;
+    font-size: 1rem;
+  }
+
+  /* ── Panel layout ─────────────────────────────────────────────────────── */
+  .panel { max-width: 700px; margin: 0 auto; padding: .75rem 1rem 4rem; }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: .75rem 0 1rem;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 1.25rem;
+  }
+  .panel-title {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    color: var(--marron);
+    font-size: 1.1rem;
+  }
+  .btn-logout {
+    background: transparent;
+    border: 1.5px solid var(--border);
+    color: var(--gris-txt);
+    font-size: .8rem;
+    min-height: 36px;
+    padding: .25rem .875rem;
+  }
+  .btn-logout:hover { border-color: var(--rojo); color: var(--rojo); filter: none; }
+
+  /* ── Stats ───────────────────────────────────────────────────────────── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: .625rem;
+    margin-bottom: 1.75rem;
+  }
+  .stat {
+    background: var(--blanco);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: .75rem .5rem;
+    text-align: center;
+  }
+  .stat strong { display: block; font-size: 1.625rem; line-height: 1; font-family: 'Nunito', sans-serif; font-weight: 900; }
+  .stat span   { font-size: .65rem; color: var(--gris-txt); text-transform: uppercase; letter-spacing: .05em; }
+  .stat-warn strong { color: var(--naranja); }
+  .stat-ok    strong { color: var(--azul); }
+  .stat-green strong { color: var(--verde); }
+  .stat-blue  strong { color: var(--azul); }
+
+  /* ── Secciones ────────────────────────────────────────────────────────── */
+  .sec { margin-bottom: 2rem; }
+  .sec-title {
+    font-size: .9375rem;
+    font-weight: 700;
+    color: var(--marron);
+    padding-bottom: .5rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+  }
+  .badge {
+    background: var(--amarillo);
+    color: var(--marron);
+    border-radius: 99px;
+    padding: .1rem .5rem;
+    font-size: .7rem;
+    font-weight: 700;
+  }
+  .empty { color: var(--gris-txt); font-size: .875rem; padding: 1rem 0; }
+
+  /* ── Tarjetas de mascota ─────────────────────────────────────────────── */
+  .card {
+    background: var(--blanco);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: .75rem;
+  }
+  .card-foto { display: block; width: 100%; max-height: 220px; object-fit: cover; }
+  .card-body { padding: .875rem 1rem .625rem; }
+  .card-title { font-weight: 700; color: var(--marron); font-size: .9375rem; margin-bottom: .25rem; }
+  .tag {
+    display: inline-block;
+    padding: .1rem .45rem;
+    border-radius: 4px;
+    background: var(--gris-bg);
+    color: var(--gris-txt);
+    font-size: .7rem;
+    font-weight: 600;
+    margin-left: .35rem;
+    vertical-align: middle;
+  }
+  .tag-tipo { background: #FEF3C7; color: #92400E; }
+  .card-meta  { font-size: .8rem; color: var(--gris-txt); margin-bottom: .25rem; }
+  .card-desc  { font-size: .875rem; color: var(--negro); margin-top: .25rem; }
+  .card-date  { font-size: .72rem; color: var(--gris-txt); margin-top: .375rem; }
+  .card-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: .5rem;
+    padding: .625rem 1rem .875rem;
+    border-top: 1px solid var(--gris-bg);
+  }
+  .btn-aprobar  { background: var(--verde);  color: #fff; }
+  .btn-rechazar { background: var(--rojo);   color: #fff; }
+  .btn-wa {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .25rem;
+    padding: .5rem .75rem;
+    background: #25D366;
+    color: #fff;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: .8rem;
+    font-weight: 700;
+    min-height: 44px;
+    white-space: nowrap;
+  }
+
+  /* ── Insumos ──────────────────────────────────────────────────────────── */
+  .insumo-row {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .625rem 0;
+    border-bottom: 1px solid var(--gris-bg);
+    flex-wrap: wrap;
+  }
+  .insumo-item { flex: 1; min-width: 120px; font-size: .875rem; font-weight: 600; color: var(--marron); }
+  .prio { font-size: .7rem; padding: .2rem .5rem; border-radius: 4px; font-weight: 600; white-space: nowrap; }
+  .prio-critico { background: #FEE2E2; color: #991B1B; }
+  .prio-urgente { background: #FEF3C7; color: #92400E; }
+  .prio-cubierto { background: #DCFCE7; color: #166534; }
+  .insumo-n    { width: 70px; flex: none; text-align: center; padding: .375rem .5rem; }
+  .insumo-de   { font-size: .75rem; color: var(--gris-txt); }
+  .btn-save    { background: var(--amarillo); color: var(--marron); padding: .35rem .75rem; min-height: 36px; font-size: .8rem; }
+
+  /* ── Feed ─────────────────────────────────────────────────────────────── */
+  .feed-form { display: flex; flex-direction: column; gap: .75rem; }
+
+  /* ── Responsive ───────────────────────────────────────────────────────── */
+  @media (max-width: 480px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .card-actions { grid-template-columns: 1fr 1fr; }
+    .card-actions .btn-wa { grid-column: span 2; }
+    .insumo-row { gap: .375rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card { transition: none; }
+  }
+</style>
+
+<script>
+  async function moderar(id, accion) {
+    const card = document.getElementById('card-' + id)
+    if (!card) return
+    const btns = card.querySelectorAll('button')
+    btns.forEach(b => (b.disabled = true))
+    const fd = new FormData()
+    fd.append('action', accion)
+    fd.append('id', id)
+    let json = null
+    try {
+      const res = await fetch('/admin', { method: 'POST', body: fd })
+      json = await res.json()
+    } catch {
+      btns.forEach(b => (b.disabled = false))
+      alert('Error de red — verifica tu conexión')
+      return
+    }
+    if (!json || !json.ok) {
+      btns.forEach(b => (b.disabled = false))
+      alert('Error: ' + (json && json.error ? json.error : 'desconocido'))
+      return
+    }
+    card.style.transition = 'opacity .2s, transform .2s'
+    card.style.opacity = '0'
+    card.style.transform = 'translateX(16px)'
+    setTimeout(function () {
+      card.remove()
+      const counter = document.getElementById('stat-pendientes')
+      if (counter) counter.textContent = String(Math.max(0, parseInt(counter.textContent || '0', 10) - 1))
+    }, 200)
+  }
+
+  document.querySelectorAll('.btn-aprobar').forEach(function (btn) {
+    btn.addEventListener('click', function () { moderar(btn.dataset.id, 'aprobar') })
+  })
+  document.querySelectorAll('.btn-rechazar').forEach(function (btn) {
+    btn.addEventListener('click', function () { moderar(btn.dataset.id, 'rechazar') })
+  })
+</script>
