@@ -1,16 +1,25 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@800;900&family=Inter:wght@400;500;600;700&display=swap');
+
 :root {
-  --amarillo:     #F5C107;
-  --marron:       #6B3A2A;
-  --blanco:       #FFFFFF;
-  --negro:        #1A1A1A;
-  --gris-bg:      #F9F6F0;
-  --gris-txt:     #6B7280;
-  --rojo:         #DC2626;
-  --verde:        #16A34A;
-  --azul:         #2563EB;
-  --border:       #E5DDD0;
+  --amarillo:  #F5C107;
+  --marron:    #6B3A2A;
+  --blanco:    #FFFFFF;
+  --negro:     #1A1A1A;
+  --gris-bg:   #F9F6F0;
+  --gris-txt:  #6B7280;
+  --rojo:      #DC2626;
+  --verde:     #16A34A;
+  --azul:      #2563EB;
+  --naranja:   #EA580C;
+  --border:    #E5DDD0;
 }
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
-body { font-family: 'Inter', sans-serif; background: var(--gris-bg); color: var(--negro); font-size: 15px; line-height: 1.6; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--gris-bg);
+  color: var(--negro);
+  font-size: 15px;
+  line-height: 1.6;
+}

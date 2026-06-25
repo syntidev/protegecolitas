@@ -1,77 +1,1070 @@
-﻿---
+---
 import Base from '../layouts/Base.astro'
-import Ribbon from '../components/Ribbon.astro'
-import PetCard from '../components/PetCard.astro'
 import { supabase } from '../lib/supabase'
 
-const { data: mascotas } = await supabase
-  .from('mascotas').select('*')
-  .in('status', ['perdido','encontrado','urgente'])
-  .order('created_at', { ascending: false }).limit(12)
+// ── KPIs ──────────────────────────────────────────────────────────────────────
+const [
+  { count: totalReportadas },
+  { count: totalEncontradas },
+  { count: totalReunidas },
+  { count: totalVets },
+] = await Promise.all([
+  supabase.from('mascotas').select('*', { count: 'exact', head: true }),
+  supabase.from('mascotas').select('*', { count: 'exact', head: true }).eq('tipo', 'encontrado'),
+  supabase.from('mascotas').select('*', { count: 'exact', head: true }).eq('status', 'reunido'),
+  supabase.from('vets').select('*', { count: 'exact', head: true }),
+])
 
-const { count: perdidos }    = await supabase.from('mascotas').select('*',{count:'exact',head:true}).eq('status','perdido')
-const { count: encontrados } = await supabase.from('mascotas').select('*',{count:'exact',head:true}).eq('status','encontrado')
-const { count: reunidos }    = await supabase.from('mascotas').select('*',{count:'exact',head:true}).eq('status','reunido')
+const diasActivos = Math.max(1, Math.floor(
+  (Date.now() - new Date('2026-06-25').getTime()) / 86_400_000
+))
+
+const ahoraStr = new Date().toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })
+
+// ── Actividad ─────────────────────────────────────────────────────────────────
+const { data: actividad } = await supabase
+  .from('feed')
+  .select('id, titulo, tipo, published_at')
+  .neq('tipo', 'voluntario')
+  .order('published_at', { ascending: false })
+  .limit(5)
+
+// ── Mascotas ──────────────────────────────────────────────────────────────────
+const { data: encontradas } = await supabase
+  .from('mascotas')
+  .select('id, nombre, especie, zona, foto_url, whatsapp, created_at')
+  .eq('tipo', 'encontrado')
+  .eq('status', 'publicado')
+  .order('created_at', { ascending: false })
+  .limit(8)
+
+const { data: perdidas } = await supabase
+  .from('mascotas')
+  .select('id, nombre, especie, zona, foto_url, whatsapp, created_at')
+  .eq('tipo', 'perdido')
+  .eq('status', 'publicado')
+  .order('created_at', { ascending: false })
+  .limit(8)
+
+// ── Necesidades ───────────────────────────────────────────────────────────────
+const { data: necesidades } = await supabase
+  .from('necesidades')
+  .select('id, item, cantidad_requerida, cantidad_recibida, prioridad')
+  .order('prioridad', { ascending: true })
+  .limit(3)
+
+// ── Vets ──────────────────────────────────────────────────────────────────────
+const { data: vets } = await supabase
+  .from('vets')
+  .select('id, nombre, zona, servicios, gratuito, whatsapp')
+  .order('created_at', { ascending: false })
+  .limit(3)
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function tiempoRel(d: string): string {
+  const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000)
+  if (s < 60)     return 'Ahora'
+  if (s < 3600)   return `Hace ${Math.floor(s / 60)}m`
+  if (s < 86400)  return `Hace ${Math.floor(s / 3600)}h`
+  if (s < 172800) return 'Ayer'
+  return new Date(d).toLocaleDateString('es-VE', { day: 'numeric', month: 'short' })
+}
+
+function getPct(rec: number, req: number): number {
+  return !req ? 0 : Math.min(100, Math.round((rec / req) * 100))
+}
+
+function needPrioridad(rec: number, req: number, campo: string): 'critico' | 'urgente' | 'cubierto' {
+  const p = getPct(rec, req)
+  if (campo === 'cubierto' || p >= 100) return 'cubierto'
+  if (campo === 'critico'  || p < 30)  return 'critico'
+  return 'urgente'
+}
+
+const FEED_META: Record<string, { label: string; color: string; bg: string; icon: string }> = {
+  alerta:  { label: 'Alerta',    color: '#DC2626', bg: '#fef2f2', icon: 'warning-octagon' },
+  rescate: { label: 'Rescate',   color: '#2563EB', bg: '#eff6ff', icon: 'first-aid-kit'   },
+  buenas:  { label: '¡Buenas!',  color: '#16A34A', bg: '#f0fdf4', icon: 'check-circle'    },
+  info:    { label: 'Info',      color: '#6B7280', bg: '#f9fafb', icon: 'info'             },
+}
+
+const KPIs = [
+  { label: 'Reportadas',   value: totalReportadas  ?? 0, icon: 'paw-print',     color: 'var(--marron)'  },
+  { label: 'Encontradas',  value: totalEncontradas ?? 0, icon: 'map-pin',       color: 'var(--azul)'    },
+  { label: 'Reunidas',     value: totalReunidas    ?? 0, icon: 'heart',         color: 'var(--verde)'   },
+  { label: 'Veterinarios', value: totalVets        ?? 0, icon: 'stethoscope',   color: 'var(--azul)'    },
+  { label: 'Centros',      value: 1,                     icon: 'buildings',     color: 'var(--naranja)' },
+  { label: 'Días activos', value: diasActivos,            icon: 'calendar-check',color: 'var(--amarillo)'},
+]
+
+const ACCIONES = [
+  { href: '/reportar?tipo=perdido',   titulo: 'Perdí mi mascota',    sub: 'La vi por última vez antes del sismo', icon: 'paw-print',   accentBg: '#fff0f0', accentColor: '#DC2626', btnBg: '#DC2626', btnColor: '#fff', btnLabel: 'Reportar pérdida' },
+  { href: '/reportar?tipo=encontrado',titulo: 'Encontré una mascota',sub: 'La tengo o la vi en mi zona',          icon: 'map-pin',     accentBg: '#f0fdf4', accentColor: '#16A34A', btnBg: '#16A34A', btnColor: '#fff', btnLabel: 'Reportar hallazgo' },
+  { href: '/veterinarios',            titulo: 'Soy veterinario',     sub: 'Quiero ofrecer atención voluntaria',   icon: 'stethoscope', accentBg: '#eff6ff', accentColor: '#2563EB', btnBg: '#2563EB', btnColor: '#fff', btnLabel: 'Registrarme' },
+  { href: '/insumos',                 titulo: 'Quiero donar',        sub: 'Insumos, alimentos, medicamentos',     icon: 'heart',       accentBg: '#fff7ed', accentColor: '#EA580C', btnBg: '#EA580C', btnColor: '#fff', btnLabel: 'Ver necesidades' },
+]
+
+function especieIcon(especie: string): string {
+  if (especie === 'Gato') return 'cat'
+  if (especie === 'Ave')  return 'bird'
+  return 'dog'
+}
 ---
-<Base>
-  <Ribbon />
-  <section class="hero">
-    <img src="/logo.png" alt="Protege Colitas" class="logo-img" onerror="this.style.display='none'" />
-    <p class="eyebrow">Emergencia Nacional - Terremoto Venezuela</p>
-    <h1 class="headline">Cada colita<br />tiene <em>familia.</em></h1>
-    <p class="sub">Reporta mascotas <strong>perdidas o encontradas</strong> durante el terremoto.</p>
-    <div class="counters">
-      <div class="counter"><span class="num red">{perdidos??0}</span><span class="label">Perdidos</span></div>
-      <div class="counter"><span class="num blue">{encontrados??0}</span><span class="label">Encontrados</span></div>
-      <div class="counter"><span class="num green">{reunidos??0}</span><span class="label">Reunidos</span></div>
+
+<Base title="Protege Colitas — Centro de Emergencia Animal">
+
+<!-- ═══ 1. HEADER ═══════════════════════════════════════════════════════════ -->
+<header class="site-header">
+  <div class="header-inner">
+    <div class="header-brand">
+      <img src="/logo.png" alt="" class="header-logo" onerror="this.style.display='none'" aria-hidden="true" />
+      <div>
+        <div class="header-name">Protege Colitas</div>
+        <div class="header-sub">Centro de Emergencia Animal</div>
+      </div>
     </div>
-    <div class="ctas">
-      <a href="/reportar?tipo=perdido" class="cta cta-danger">Perdi a mi mascota</a>
-      <a href="/reportar?tipo=encontrado" class="cta cta-outline">Encontre una mascota</a>
+
+    <div class="header-search" role="search">
+      <i class="ph-bold ph-magnifying-glass search-icon" aria-hidden="true"></i>
+      <input
+        type="search"
+        placeholder="Buscar mascota o zona…"
+        class="search-input"
+        aria-label="Buscar mascota o zona"
+        disabled
+        title="Búsqueda próximamente"
+      />
+    </div>
+
+    <div class="header-status">
+      <span class="badge-emergencia">
+        <span class="pulse-dot" aria-hidden="true"></span>
+        Emergencia activa
+      </span>
+      <span class="header-date">Desde 25 jun 2026</span>
+    </div>
+  </div>
+
+  <!-- Mobile badge row -->
+  <div class="header-mobile-status">
+    <span class="badge-emergencia">
+      <span class="pulse-dot" aria-hidden="true"></span>
+      Emergencia activa · Desde 25 jun 2026
+    </span>
+  </div>
+</header>
+
+<!-- ═══ 2. BARRA DE ESTADO ═══════════════════════════════════════════════════ -->
+<div class="status-bar" role="status" aria-live="polite">
+  <div class="status-inner">
+    <span class="status-text">
+      <i class="ph-bold ph-map-pin" aria-hidden="true"></i>
+      Operativo en: Caracas · Miranda · Aragua · Carabobo · Lara
+    </span>
+    <span class="status-time">Actualizado {ahoraStr}</span>
+  </div>
+</div>
+
+<!-- ═══ 3. KPIs ══════════════════════════════════════════════════════════════ -->
+<section class="kpi-section" aria-label="Indicadores en tiempo real">
+  <div class="kpi-grid">
+    {KPIs.map(k => (
+      <div class="kpi-card">
+        <i class={`ph-bold ph-${k.icon} kpi-icon`} style={`color: ${k.color}`} aria-hidden="true"></i>
+        <span class="kpi-num" style={`color: ${k.color}`}>{k.value.toLocaleString('es-VE')}</span>
+        <span class="kpi-label">{k.label}</span>
+      </div>
+    ))}
+  </div>
+</section>
+
+<!-- ═══ 4. ACCIONES RÁPIDAS ══════════════════════════════════════════════════ -->
+<section class="actions-section" aria-label="Acciones principales">
+  <h2 class="section-title">¿Qué necesitas?</h2>
+  <div class="actions-grid">
+    {ACCIONES.map(a => (
+      <a href={a.href} class="action-card" style={`--accent-bg: ${a.accentBg}; --accent-color: ${a.accentColor}; --btn-bg: ${a.btnBg}; --btn-color: ${a.btnColor};`}>
+        <div class="action-icon-wrap">
+          <i class={`ph-bold ph-${a.icon} action-icon`} aria-hidden="true"></i>
+        </div>
+        <div class="action-body">
+          <span class="action-titulo">{a.titulo}</span>
+          <span class="action-sub">{a.sub}</span>
+        </div>
+        <span class="action-btn">{a.btnLabel}</span>
+      </a>
+    ))}
+  </div>
+</section>
+
+<!-- ═══ 5. ACTIVIDAD EN VIVO ═════════════════════════════════════════════════ -->
+<section class="feed-section" aria-label="Actividad reciente">
+  <div class="section-head">
+    <h2 class="section-title">Actividad en vivo</h2>
+    <a href="/noticias" class="ver-todos">
+      Ver todo
+      <i class="ph-bold ph-arrow-right" aria-hidden="true"></i>
+    </a>
+  </div>
+
+  {actividad && actividad.length > 0 ? (
+    <ul class="feed-list" role="list">
+      {actividad.map(n => {
+        const meta = FEED_META[n.tipo] ?? FEED_META['info']
+        return (
+          <li class="feed-item">
+            <div class="feed-icon-wrap" style={`background: ${meta.bg}; color: ${meta.color};`}>
+              <i class={`ph-bold ph-${meta.icon}`} aria-hidden="true"></i>
+            </div>
+            <div class="feed-body">
+              <span class="feed-titulo">{n.titulo}</span>
+              {n.published_at && (
+                <span class="feed-time">{tiempoRel(n.published_at)}</span>
+              )}
+            </div>
+            <span class="feed-badge" style={`color: ${meta.color}; background: ${meta.bg};`}>
+              {meta.label}
+            </span>
+          </li>
+        )
+      })}
+    </ul>
+  ) : (
+    <div class="empty-inline">
+      <i class="ph-bold ph-megaphone empty-icon" aria-hidden="true"></i>
+      <span>Pronto publicaremos actualizaciones.</span>
+    </div>
+  )}
+</section>
+
+<!-- ═══ 6. MASCOTAS ENCONTRADAS ══════════════════════════════════════════════ -->
+<section class="pets-section" aria-label="Mascotas encontradas recientemente">
+  <div class="section-head">
+    <h2 class="section-title">Encontradas recientemente</h2>
+    <a href="/mascotas?status=encontrado" class="ver-todos">
+      Ver todas
+      <i class="ph-bold ph-arrow-right" aria-hidden="true"></i>
+    </a>
+  </div>
+
+  {encontradas && encontradas.length > 0 ? (
+    <div class="pets-scroll" role="list" aria-label="Mascotas encontradas">
+      {encontradas.map(m => {
+        const wa = m.whatsapp
+          ? `https://wa.me/58${m.whatsapp.slice(1)}?text=${encodeURIComponent(`Hola, vi a ${m.nombre || 'esta mascota'} en Protege Colitas`)}`
+          : 'https://wa.me/584242042786'
+        return (
+          <div class="pet-card" role="listitem">
+            <div class="pet-photo">
+              {m.foto_url
+                ? <img src={m.foto_url} alt={m.nombre || 'Mascota encontrada'} loading="lazy" />
+                : <i class={`ph-bold ph-${especieIcon(m.especie)}`} aria-label={m.especie} style="font-size:36px; color: var(--gris-txt);"></i>
+              }
+              <span class="pet-badge-found">Encontrada</span>
+            </div>
+            <div class="pet-info">
+              <span class="pet-name">{m.nombre || 'Sin nombre'}</span>
+              <span class="pet-zona">
+                <i class="ph-bold ph-map-pin" aria-hidden="true"></i>
+                {m.zona}
+              </span>
+              {m.created_at && <span class="pet-time">{tiempoRel(m.created_at)}</span>}
+            </div>
+            <a href={wa} class="pet-wa" target="_blank" rel="noopener noreferrer" aria-label={`Contactar por WhatsApp sobre ${m.nombre || 'esta mascota'}`}>
+              <i class="ph-bold ph-whatsapp-logo" aria-hidden="true"></i>
+              Contactar
+            </a>
+          </div>
+        )
+      })}
+    </div>
+  ) : (
+    <div class="empty-inline">
+      <i class="ph-bold ph-paw-print empty-icon" aria-hidden="true"></i>
+      <span>Aún no hay mascotas encontradas publicadas.</span>
+    </div>
+  )}
+</section>
+
+<!-- ═══ 7. MASCOTAS PERDIDAS ═════════════════════════════════════════════════ -->
+<section class="pets-section" aria-label="Mascotas perdidas recientemente">
+  <div class="section-head">
+    <h2 class="section-title">Perdidas recientemente</h2>
+    <a href="/mascotas?status=perdido" class="ver-todos">
+      Ver todas
+      <i class="ph-bold ph-arrow-right" aria-hidden="true"></i>
+    </a>
+  </div>
+
+  {perdidas && perdidas.length > 0 ? (
+    <div class="pets-scroll" role="list" aria-label="Mascotas perdidas">
+      {perdidas.map(m => {
+        const wa = m.whatsapp
+          ? `https://wa.me/58${m.whatsapp.slice(1)}?text=${encodeURIComponent(`Hola, creo que vi a ${m.nombre || 'tu mascota'} en Protege Colitas`)}`
+          : 'https://wa.me/584242042786'
+        return (
+          <div class="pet-card pet-card-lost" role="listitem">
+            <div class="pet-photo">
+              {m.foto_url
+                ? <img src={m.foto_url} alt={m.nombre || 'Mascota perdida'} loading="lazy" />
+                : <i class={`ph-bold ph-${especieIcon(m.especie)}`} aria-label={m.especie} style="font-size:36px; color: var(--gris-txt);"></i>
+              }
+              <span class="pet-badge-lost">Perdida</span>
+            </div>
+            <div class="pet-info">
+              <span class="pet-name">{m.nombre || 'Sin nombre'}</span>
+              <span class="pet-zona">
+                <i class="ph-bold ph-map-pin" aria-hidden="true"></i>
+                {m.zona}
+              </span>
+              {m.created_at && <span class="pet-time">{tiempoRel(m.created_at)}</span>}
+            </div>
+            <a href={wa} class="pet-wa pet-wa-lost" target="_blank" rel="noopener noreferrer" aria-label={`Contactar por WhatsApp sobre ${m.nombre || 'esta mascota'}`}>
+              <i class="ph-bold ph-whatsapp-logo" aria-hidden="true"></i>
+              Contactar
+            </a>
+          </div>
+        )
+      })}
+    </div>
+  ) : (
+    <div class="empty-inline">
+      <i class="ph-bold ph-paw-print empty-icon" aria-hidden="true"></i>
+      <span>Aún no hay mascotas perdidas publicadas.</span>
+    </div>
+  )}
+</section>
+
+<!-- ═══ 8. NECESIDADES URGENTES ══════════════════════════════════════════════ -->
+{necesidades && necesidades.length > 0 && (
+  <section class="needs-section" aria-label="Necesidades urgentes">
+    <div class="section-head">
+      <h2 class="section-title">Lo que más necesitamos</h2>
+      <a href="/insumos" class="ver-todos">
+        Ver todo
+        <i class="ph-bold ph-arrow-right" aria-hidden="true"></i>
+      </a>
+    </div>
+    <div class="needs-grid">
+      {necesidades.map(n => {
+        const pct = getPct(n.cantidad_recibida ?? 0, n.cantidad_requerida)
+        const pri = needPrioridad(n.cantidad_recibida ?? 0, n.cantidad_requerida, n.prioridad)
+        return (
+          <div class={`need-card need-${pri}`}>
+            <div class="need-top">
+              <span class="need-item">{n.item}</span>
+              <span class={`need-pct need-pct-${pri}`}>{pct}%</span>
+            </div>
+            <div class="need-track">
+              <div
+                class={`need-fill need-fill-${pri}`}
+                style={`width:${pct}%`}
+                role="progressbar"
+                aria-valuenow={pct}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label={`${n.item}: ${pct}% cubierto`}
+              ></div>
+            </div>
+            <a
+              href={`https://wa.me/584242042786?text=${encodeURIComponent(`Quiero donar ${n.item}`)}`}
+              class="need-cta"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <i class="ph-bold ph-whatsapp-logo" aria-hidden="true"></i>
+              Donar esto
+            </a>
+          </div>
+        )
+      })}
     </div>
   </section>
-  <main class="main">
-    <div class="sec-head">
-      <h2 class="sec-title">Ultimos Reportes</h2>
-      <a href="/mascotas" class="ver-todos">Ver todos</a>
+)}
+
+<!-- ═══ 9. VETERINARIOS ══════════════════════════════════════════════════════ -->
+{vets && vets.length > 0 && (
+  <section class="vets-section" aria-label="Veterinarios voluntarios">
+    <div class="section-head">
+      <h2 class="section-title">Veterinarios disponibles</h2>
+      <a href="/veterinarios" class="ver-todos">
+        Ver todos
+        <i class="ph-bold ph-arrow-right" aria-hidden="true"></i>
+      </a>
     </div>
-    <div class="pet-grid">
-      {mascotas?.map(m => (
-        <PetCard id={m.id} nombre={m.nombre} especie={m.especie} descripcion={m.descripcion} zona={m.zona} status={m.status} foto_url={m.foto_url} whatsapp={m.whatsapp} />
-      ))}
+    <div class="vets-list">
+      {vets.map(v => {
+        const waNum = v.whatsapp?.replace(/\D/g, '')
+        const waLink = waNum
+          ? `https://wa.me/58${waNum.slice(1)}?text=${encodeURIComponent(`Hola ${v.nombre}, vi tu info en Protege Colitas`)}`
+          : null
+        return (
+          <div class="vet-row">
+            <div class="vet-avatar" aria-hidden="true">
+              <i class="ph-bold ph-stethoscope"></i>
+            </div>
+            <div class="vet-info">
+              <div class="vet-name-row">
+                <span class="vet-name">{v.nombre}</span>
+                {v.gratuito && <span class="vet-free-badge">Gratuito</span>}
+              </div>
+              <span class="vet-zona">
+                <i class="ph-bold ph-map-pin" aria-hidden="true"></i>
+                {v.zona}
+              </span>
+              {v.servicios && <span class="vet-servicios">{v.servicios}</span>}
+            </div>
+            {waLink && (
+              <a href={waLink} class="vet-wa" target="_blank" rel="noopener noreferrer" aria-label={`WhatsApp de ${v.nombre}`}>
+                <i class="ph-bold ph-whatsapp-logo" aria-hidden="true"></i>
+              </a>
+            )}
+          </div>
+        )
+      })}
     </div>
-  </main>
-  <a href="https://wa.me/584242042786" class="wa-pill" target="_blank">WhatsApp 04242042786</a>
-  <a href="/reportar" class="fab">ðŸ¾</a>
-  <footer class="footer">
-    <strong>Protege Colitas</strong> - protegecolitas.org<br />
-    <span>#MascotasPerdidasVenezuela #TerremotoVE</span>
-  </footer>
+  </section>
+)}
+
+<!-- ═══ 10. BANNER EMOCIONAL ═════════════════════════════════════════════════ -->
+<section class="banner-section" aria-label="Comparte la iniciativa">
+  <div class="banner-inner">
+    <i class="ph-bold ph-paw-print banner-icon" aria-hidden="true"></i>
+    <blockquote class="banner-quote">
+      "Cada publicación puede<br />significar un reencuentro."
+    </blockquote>
+    <a
+      href={`https://wa.me/?text=${encodeURIComponent('Ayuda a reunir mascotas perdidas en Venezuela → protegecolitas.org #MascotasPerdidasVenezuela')}`}
+      class="banner-share"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <i class="ph-bold ph-share-network" aria-hidden="true"></i>
+      Compartir en WhatsApp
+    </a>
+  </div>
+</section>
+
+<!-- ═══ 11. FOOTER ════════════════════════════════════════════════════════════ -->
+<footer class="site-footer" role="contentinfo">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <img src="/logo.png" alt="Protege Colitas" class="footer-logo" onerror="this.style.display='none'" />
+      <div>
+        <div class="footer-name">Protege Colitas</div>
+        <div class="footer-domain">protegecolitas.org</div>
+      </div>
+    </div>
+
+    <div class="footer-social">
+      <a href="https://wa.me/584242042786" class="social-link" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">
+        <i class="ph-bold ph-whatsapp-logo" aria-hidden="true"></i>
+      </a>
+      <a href="https://instagram.com/protegecolitas" class="social-link" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+        <i class="ph-bold ph-instagram-logo" aria-hidden="true"></i>
+      </a>
+      <a href="https://facebook.com/protegecolitas" class="social-link" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+        <i class="ph-bold ph-facebook-logo" aria-hidden="true"></i>
+      </a>
+    </div>
+
+    <nav class="footer-nav" aria-label="Páginas del sitio">
+      <a href="/reportar">Reportar</a>
+      <a href="/insumos">Insumos</a>
+      <a href="/veterinarios">Vets</a>
+      <a href="/acopio">Acopio</a>
+      <a href="/noticias">Noticias</a>
+    </nav>
+
+    <a href="mailto:protegecolitas@gmail.com" class="footer-email">
+      <i class="ph-bold ph-envelope" aria-hidden="true"></i>
+      protegecolitas@gmail.com
+    </a>
+
+    <p class="footer-copy">&copy; 2026 Protege Colitas · #MascotasPerdidasVenezuela</p>
+  </div>
+</footer>
+
 </Base>
+
 <style>
-.hero { padding:36px 20px 40px; text-align:center; background:var(--blanco); border-bottom:3px solid var(--amarillo); }
-.logo-img { width:100px; height:100px; object-fit:contain; margin-bottom:16px; }
-.eyebrow { font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--rojo); margin-bottom:14px; }
-.headline { font-family:'Syne',sans-serif; font-size:clamp(34px,9vw,52px); font-weight:800; line-height:1.0; color:var(--marron); margin-bottom:10px; }
-.headline em { font-style:normal; color:var(--amarillo); }
-.sub { font-size:14px; color:var(--gris-txt); margin-bottom:28px; max-width:320px; margin-left:auto; margin-right:auto; }
-.counters { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--border); border:1px solid var(--border); border-radius:16px; overflow:hidden; margin-bottom:24px; }
-.counter { background:var(--blanco); padding:18px 8px; display:flex; flex-direction:column; align-items:center; gap:4px; }
-.num { font-family:'Syne',sans-serif; font-size:36px; font-weight:800; line-height:1; }
-.num.red{color:var(--rojo);} .num.blue{color:var(--azul);} .num.green{color:var(--verde);}
-.label { font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--gris-txt); }
-.ctas { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-.cta { padding:14px 10px; border-radius:12px; font-weight:700; font-size:13px; text-decoration:none; text-align:center; transition:transform .12s; }
-.cta-danger  { background:var(--rojo);   color:#fff; }
-.cta-outline { background:var(--marron); color:#fff; }
-.main { padding:20px 16px 100px; }
-.sec-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
-.sec-title { font-family:'Syne',sans-serif; font-size:20px; font-weight:800; color:var(--marron); }
-.ver-todos { font-size:13px; font-weight:700; color:var(--azul); text-decoration:none; }
-.pet-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
-@media(min-width:480px){.pet-grid{grid-template-columns:repeat(3,1fr);}}
-.wa-pill { position:fixed; bottom:30px; right:90px; background:#25D366; color:#fff; font-size:12px; font-weight:700; padding:10px 16px; border-radius:30px; text-decoration:none; z-index:500; }
-.fab { position:fixed; bottom:24px; right:20px; width:58px; height:58px; background:var(--rojo); border-radius:50%; font-size:26px; text-decoration:none; display:flex; align-items:center; justify-content:center; z-index:500; }
-.footer { background:var(--marron); color:rgba(255,255,255,.7); text-align:center; padding:24px 16px; font-size:12px; }
-.footer strong { color:var(--amarillo); font-family:'Syne',sans-serif; font-size:15px; }
+/* ═══ HEADER ══════════════════════════════════════════════════════════════════ */
+.site-header {
+  background: var(--blanco);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.header-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.header-logo { width: 36px; height: 36px; object-fit: contain; }
+.header-name {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 16px;
+  color: var(--marron);
+  line-height: 1.1;
+}
+.header-sub {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--gris-txt);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.header-search {
+  flex: 1;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  background: var(--gris-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 12px;
+  height: 38px;
+}
+.search-icon { color: var(--gris-txt); font-size: 16px; }
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--negro);
+  outline: none;
+}
+.search-input::placeholder { color: var(--gris-txt); }
+.header-status {
+  display: none;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.header-date { font-size: 11px; color: var(--gris-txt); font-weight: 500; }
+.badge-emergencia {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  background: #f0fdf4;
+  color: var(--verde);
+  border: 1px solid #bbf7d0;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.pulse-dot {
+  width: 7px; height: 7px;
+  background: var(--verde);
+  border-radius: 50%;
+  animation: pulse 1.6s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: .5; transform: scale(.8); }
+}
+.header-mobile-status {
+  display: flex;
+  justify-content: center;
+  padding: 0 16px 10px;
+}
+@media (min-width: 600px) {
+  .header-search  { display: flex; }
+  .header-status  { display: flex; }
+  .header-mobile-status { display: none; }
+}
+
+/* ═══ BARRA DE ESTADO ═════════════════════════════════════════════════════════ */
+.status-bar { background: var(--marron); }
+.status-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+  flex-wrap: wrap;
+}
+.status-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255,255,255,.9);
+}
+.status-text i { font-size: 14px; color: var(--amarillo); }
+.status-time { font-size: 11px; color: rgba(255,255,255,.55); flex-shrink: 0; }
+
+/* ═══ KPIs ════════════════════════════════════════════════════════════════════ */
+.kpi-section { padding: 20px 16px; background: var(--blanco); border-bottom: 1px solid var(--border); }
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.kpi-card {
+  background: var(--blanco);
+  padding: 14px 8px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+.kpi-icon { font-size: 20px; margin-bottom: 2px; }
+.kpi-num {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 28px;
+  line-height: 1;
+}
+.kpi-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--gris-txt);
+  line-height: 1.2;
+  text-align: center;
+}
+@media (min-width: 600px) {
+  .kpi-grid { grid-template-columns: repeat(6, 1fr); }
+  .kpi-num  { font-size: 36px; }
+  .kpi-icon { font-size: 24px; }
+}
+
+/* ═══ ACCIONES RÁPIDAS ════════════════════════════════════════════════════════ */
+.actions-section { padding: 24px 16px; }
+.actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  max-width: 800px;
+}
+.action-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 14px;
+  background: var(--blanco);
+  border: 1.5px solid var(--border);
+  border-radius: 18px;
+  text-decoration: none;
+  transition: box-shadow .15s, transform .1s;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 160px;
+}
+.action-card:hover { box-shadow: 0 6px 20px rgba(107,58,42,.1); }
+.action-card:active { transform: scale(.98); }
+.action-icon-wrap {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: var(--accent-bg);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.action-icon { font-size: 22px; color: var(--accent-color); }
+.action-body { flex: 1; }
+.action-titulo {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--marron);
+  margin-bottom: 3px;
+  line-height: 1.2;
+}
+.action-sub {
+  display: block;
+  font-size: 11px;
+  color: var(--gris-txt);
+  line-height: 1.4;
+}
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: var(--btn-bg);
+  color: var(--btn-color);
+  font-size: 12px;
+  font-weight: 700;
+  min-height: 36px;
+  text-align: center;
+}
+@media (min-width: 600px) {
+  .actions-grid { grid-template-columns: repeat(4, 1fr); }
+  .action-card  { min-height: 180px; }
+}
+
+/* ═══ SHARED SECTION STYLES ══════════════════════════════════════════════════ */
+.section-title {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--marron);
+  line-height: 1.2;
+}
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  gap: 8px;
+}
+.ver-todos {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--azul);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.ver-todos i { font-size: 14px; }
+.empty-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 16px;
+  background: var(--blanco);
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  font-size: 14px;
+  color: var(--gris-txt);
+}
+.empty-icon { font-size: 22px; color: var(--border); }
+
+/* ═══ FEED ════════════════════════════════════════════════════════════════════ */
+.feed-section { padding: 0 16px 24px; }
+.feed-list { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.feed-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--blanco);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+.feed-icon-wrap {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.feed-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.feed-titulo {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--marron);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.feed-time { font-size: 11px; color: var(--gris-txt); }
+.feed-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ═══ PET CAROUSELS ══════════════════════════════════════════════════════════ */
+.pets-section { padding: 0 0 24px; }
+.pets-section .section-head { padding: 0 16px; }
+.pets-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 4px 16px 8px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.pets-scroll::-webkit-scrollbar { display: none; }
+.pet-card {
+  flex-shrink: 0;
+  width: 150px;
+  background: var(--blanco);
+  border-radius: 16px;
+  border: 1.5px solid var(--border);
+  overflow: hidden;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+}
+.pet-photo {
+  height: 120px;
+  background: var(--gris-bg);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.pet-photo img { width: 100%; height: 100%; object-fit: cover; }
+.pet-badge-found, .pet-badge-lost {
+  position: absolute;
+  top: 7px; right: 7px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.pet-badge-found { background: var(--verde); color: #fff; }
+.pet-badge-lost  { background: var(--rojo);  color: #fff; }
+.pet-info {
+  padding: 10px 10px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+.pet-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--marron);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pet-zona {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--gris-txt);
+}
+.pet-zona i { font-size: 11px; color: var(--azul); }
+.pet-time { font-size: 10px; color: var(--gris-txt); }
+.pet-wa, .pet-wa-lost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 10px;
+  margin: 0 8px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  min-height: 36px;
+}
+.pet-wa      { background: #25D366; color: #fff; }
+.pet-wa-lost { background: var(--rojo); color: #fff; }
+
+/* ═══ NECESIDADES ════════════════════════════════════════════════════════════ */
+.needs-section { padding: 0 16px 24px; }
+.needs-grid { display: flex; flex-direction: column; gap: 8px; }
+.need-card {
+  background: var(--blanco);
+  border-radius: 14px;
+  border: 1.5px solid var(--border);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.need-top { display: flex; justify-content: space-between; align-items: center; }
+.need-item { font-size: 14px; font-weight: 700; color: var(--marron); }
+.need-pct { font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 18px; }
+.need-pct-critico  { color: var(--rojo); }
+.need-pct-urgente  { color: #92400e; }
+.need-pct-cubierto { color: var(--verde); }
+.need-track {
+  height: 7px; border-radius: 4px; background: var(--gris-bg); overflow: hidden;
+}
+.need-fill { height: 100%; border-radius: 4px; }
+.need-fill-critico  { background: var(--rojo); }
+.need-fill-urgente  { background: var(--amarillo); }
+.need-fill-cubierto { background: var(--verde); }
+.need-cta {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 14px; border-radius: 10px;
+  background: #25D366; color: #fff;
+  font-size: 13px; font-weight: 700; text-decoration: none;
+  min-height: 36px; align-self: flex-start;
+}
+
+/* ═══ VETERINARIOS ════════════════════════════════════════════════════════════ */
+.vets-section { padding: 0 16px 24px; }
+.vets-list { display: flex; flex-direction: column; gap: 2px; }
+.vet-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  background: var(--blanco);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+.vet-avatar {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: var(--azul);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.vet-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.vet-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.vet-name { font-size: 14px; font-weight: 700; color: var(--marron); }
+.vet-free-badge {
+  display: inline-flex; align-items: center;
+  padding: 2px 7px; border-radius: 20px;
+  font-size: 10px; font-weight: 700;
+  background: #f0fdf4; color: var(--verde);
+}
+.vet-zona {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 12px; color: var(--gris-txt);
+}
+.vet-zona i { font-size: 12px; color: var(--azul); }
+.vet-servicios { font-size: 11px; color: var(--gris-txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vet-wa {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: #25D366;
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+/* ═══ BANNER EMOCIONAL ════════════════════════════════════════════════════════ */
+.banner-section {
+  background: var(--amarillo);
+  padding: 36px 24px;
+  margin: 0 0 24px;
+}
+.banner-inner {
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+.banner-icon { font-size: 40px; color: var(--marron); opacity: .6; }
+.banner-quote {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: clamp(22px, 5vw, 30px);
+  color: var(--marron);
+  line-height: 1.2;
+  font-style: normal;
+  text-wrap: balance;
+}
+.banner-share {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 13px 22px; border-radius: 14px;
+  background: var(--marron); color: var(--amarillo);
+  font-size: 15px; font-weight: 700; text-decoration: none;
+  min-height: 48px;
+  transition: opacity .15s;
+}
+.banner-share:hover { opacity: .9; }
+.banner-share i { font-size: 18px; }
+
+/* ═══ FOOTER ══════════════════════════════════════════════════════════════════ */
+.site-footer {
+  background: var(--marron);
+  color: rgba(255,255,255,.7);
+  padding: 32px 16px calc(80px + env(safe-area-inset-bottom, 0));
+}
+.footer-inner {
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.footer-brand { display: flex; align-items: center; gap: 10px; }
+.footer-logo { width: 36px; height: 36px; object-fit: contain; }
+.footer-name {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  font-size: 18px;
+  color: var(--amarillo);
+}
+.footer-domain { font-size: 12px; color: rgba(255,255,255,.5); }
+.footer-social { display: flex; gap: 10px; }
+.social-link {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.1);
+  color: rgba(255,255,255,.8);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+  text-decoration: none;
+  transition: background .15s;
+}
+.social-link:hover { background: rgba(255,255,255,.2); }
+.footer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+}
+.footer-nav a {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,.7);
+  text-decoration: none;
+}
+.footer-nav a:hover { color: var(--amarillo); }
+.footer-email {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: rgba(255,255,255,.6);
+  text-decoration: none;
+}
+.footer-email i { font-size: 15px; color: var(--amarillo); }
+.footer-email:hover { color: rgba(255,255,255,.9); }
+.footer-copy { font-size: 11px; color: rgba(255,255,255,.35); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-dot { animation: none; }
+}
 </style>

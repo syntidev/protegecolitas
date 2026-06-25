@@ -5,12 +5,12 @@ const { title = 'Protege Colitas' } = Astro.props
 const path = Astro.url?.pathname ?? '/'
 
 const navItems = [
-  { href: '/',            label: 'Inicio',   icon: '🏠' },
-  { href: '/reportar',    label: 'Reportar',  icon: '🐾' },
-  { href: '/insumos',     label: 'Insumos',   icon: '📦' },
-  { href: '/veterinarios',label: 'Vets',      icon: '🩺' },
-  { href: '/acopio',      label: 'Acopio',    icon: '🏠' },
-  { href: '/noticias',    label: 'Noticias',  icon: '📢' },
+  { href: '/',             label: 'Inicio',   icon: 'house' },
+  { href: '/reportar',     label: 'Reportar', icon: 'paw-print' },
+  { href: '/insumos',      label: 'Insumos',  icon: 'package' },
+  { href: '/veterinarios', label: 'Vets',     icon: 'stethoscope' },
+  { href: '/acopio',       label: 'Acopio',   icon: 'buildings' },
+  { href: '/noticias',     label: 'Noticias', icon: 'megaphone' },
 ]
 ---
 <!DOCTYPE html>
@@ -19,15 +19,14 @@ const navItems = [
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{title}</title>
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1/src/index.js" type="module" integrity="sha384-cPFV+/abYd3INVFHPmSKpBmcnH+Q+bTZW7dv/EiuShUNPkHyFmRF8PsL7Ibfvunk" crossorigin="anonymous"></script>
 </head>
 <body>
   <slot />
 
   <nav class="bottom-nav" role="navigation" aria-label="Navegación principal">
     {navItems.map((item) => {
-      const isActive = item.href === '/'
-        ? path === '/'
-        : path.startsWith(item.href)
+      const isActive = item.href === '/' ? path === '/' : path.startsWith(item.href)
       return (
         <a
           href={item.href}
@@ -35,7 +34,7 @@ const navItems = [
           aria-current={isActive ? 'page' : undefined}
           aria-label={item.label}
         >
-          <span class="nav-icon" aria-hidden="true">{item.icon}</span>
+          <i class={`ph-bold ph-${item.icon} nav-icon`} aria-hidden="true"></i>
           <span class="nav-label">{item.label}</span>
         </a>
       )
@@ -54,7 +53,6 @@ const navItems = [
   z-index: 100;
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
-
 .nav-item {
   flex: 1;
   display: flex;
@@ -69,25 +67,16 @@ const navItems = [
   transition: color .15s;
   -webkit-tap-highlight-color: transparent;
 }
-
 .nav-item:hover { color: var(--marron); }
-
-.nav-active {
-  color: var(--amarillo);
-  font-weight: 700;
-}
-
-.nav-icon { font-size: 20px; line-height: 1; }
-
+.nav-active { color: var(--amarillo); }
+.nav-icon { font-size: 20px; line-height: 1; display: block; }
 .nav-label {
   font-family: 'Inter', sans-serif;
   font-size: 10px;
   font-weight: 600;
   line-height: 1;
   text-align: center;
-  letter-spacing: .01em;
 }
-
 .nav-active .nav-label { font-weight: 700; }
 
 @media (min-width: 640px) {
