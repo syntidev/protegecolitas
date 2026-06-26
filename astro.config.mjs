@@ -10,6 +10,6 @@ export default defineConfig({
     mode: 'standalone'
   }),
   security: {
-    checkOrigin: true
+    checkOrigin: false
   }
 });
