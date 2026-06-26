@@ -2,6 +2,10 @@
 import Base from '../layouts/Base.astro'
 import { supabaseAdmin } from '../lib/supabase'
 
+const PAGE_SIZE = 12
+const page   = Math.max(1, parseInt(Astro.url.searchParams.get('page') ?? '1', 10))
+const offset = (page - 1) * PAGE_SIZE
+
 const especie = Astro.url.searchParams.get('especie') ?? ''
 const zona    = Astro.url.searchParams.get('zona') ?? ''
 const q       = Astro.url.searchParams.get('q') ?? ''
@@ -11,7 +15,7 @@ let query = supabaseAdmin
   .select('id, nombre, especie, descripcion, color, zona, tipo, foto_url, whatsapp, created_at')
   .eq('status', 'publicado')
   .order('created_at', { ascending: false })
-  .limit(24)
+  .range(offset, offset + PAGE_SIZE - 1)
 
 if (especie) query = query.eq('especie', especie)
 if (zona)    query = query.ilike('zona', `%${zona}%`)
@@ -20,7 +24,19 @@ if (q) {
   query = query.or(`nombre.ilike.%${safe}%,descripcion.ilike.%${safe}%,zona.ilike.%${safe}%`)
 }
 
-const { data: mascotas, error } = await query
+let countQuery = supabaseAdmin
+  .from('mascotas')
+  .select('*', { count: 'exact', head: true })
+  .eq('status', 'publicado')
+if (especie) countQuery = countQuery.eq('especie', especie)
+if (zona)    countQuery = countQuery.ilike('zona', `%${zona}%`)
+if (q) {
+  const safe = q.replace(/[,()\.:*\\]/g, ' ').trim().slice(0, 100)
+  countQuery = countQuery.or(`nombre.ilike.%${safe}%,descripcion.ilike.%${safe}%,zona.ilike.%${safe}%`)
+}
+
+const [{ data: mascotas, error }, { count }] = await Promise.all([query, countQuery])
+const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE)
 
 const ESPECIES = ['Perro', 'Gato', 'Ave', 'Otro'] as const
 
@@ -30,6 +46,16 @@ function chipUrl(esp: string) {
   if (zona) p.set('zona', zona)
   if (q)    p.set('q', q)
   const s = p.toString()
+  return `/mascotas${s ? '?' + s : ''}`
+}
+
+function pageUrl(p: number) {
+  const params = new URLSearchParams()
+  if (especie) params.set('especie', especie)
+  if (zona)    params.set('zona', zona)
+  if (q)       params.set('q', q)
+  if (p > 1)   params.set('page', String(p))
+  const s = params.toString()
   return `/mascotas${s ? '?' + s : ''}`
 }
 
@@ -138,6 +164,20 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
           <a href="/reportar" class="btn-reportar">Sé el primero en reportar</a>
         </div>
       ) : null}
+
+      {totalPages > 1 && (
+        <nav class="pagination" aria-label="Páginas de mascotas">
+          {page > 1
+            ? <a href={pageUrl(page - 1)} class="page-btn">← Anterior</a>
+            : <span class="page-btn page-btn--disabled" aria-disabled="true">← Anterior</span>
+          }
+          <span class="page-info">Página {page} de {totalPages}</span>
+          {page < totalPages
+            ? <a href={pageUrl(page + 1)} class="page-btn">Siguiente →</a>
+            : <span class="page-btn page-btn--disabled" aria-disabled="true">Siguiente →</span>
+          }
+        </nav>
+      )}
 
     </div>
   </div>
@@ -473,6 +513,45 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
   transition: opacity var(--transition);
 }
 .btn-reportar:hover { opacity: 0.85; }
+
+/* ─── Paginación ─── */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 32px;
+  padding-bottom: 16px;
+  flex-wrap: wrap;
+}
+.page-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 20px;
+  background: var(--marron);
+  color: #fff;
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  min-height: 44px;
+  transition: opacity var(--transition);
+  white-space: nowrap;
+}
+.page-btn:hover { opacity: 0.85; }
+.page-btn--disabled {
+  background: rgba(61,28,2,0.12);
+  color: rgba(61,28,2,0.35);
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.page-info {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--marron);
+}
 
 /* ─── Accessibility ─── */
 @media (prefers-reduced-motion: reduce) {

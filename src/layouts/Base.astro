@@ -1,9 +1,19 @@
 ---
 import '../styles/global.css'
-export interface Props { title?: string }
-const { title = 'Protege Colitas' } = Astro.props
+export interface Props {
+  title?: string
+  ogTitle?: string
+  ogDescription?: string
+  ogImage?: string
+  ogUrl?: string
+}
+const { title = 'Protege Colitas', ogTitle, ogDescription, ogImage, ogUrl } = Astro.props
 const path = Astro.url?.pathname ?? '/'
 const active = (href: string) => href === '/' ? path === '/' : path.startsWith(href)
+const _ogTitle = ogTitle ?? 'Protege Colitas · Emergencia Venezuela 2026'
+const _ogDesc  = ogDescription ?? 'Reporta mascotas perdidas o encontradas tras el terremoto. Juntos los reunimos.'
+const _ogImg   = ogImage ?? 'https://protegecolitas.org/banner.png'
+const _ogUrl   = ogUrl ?? 'https://protegecolitas.org'
 ---
 <!DOCTYPE html>
 <html lang="es">
@@ -11,6 +21,13 @@ const active = (href: string) => href === '/' ? path === '/' : path.startsWith(h
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{title}</title>
+  <meta property="og:title" content={_ogTitle} />
+  <meta property="og:description" content={_ogDesc} />
+  <meta property="og:image" content={_ogImg} />
+  <meta property="og:url" content={_ogUrl} />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="description" content={_ogDesc} />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -44,6 +61,13 @@ const active = (href: string) => href === '/' ? path === '/' : path.startsWith(h
   <div id="main-content" tabindex="-1">
     <slot />
   </div>
+
+  <footer class="site-footer">
+    🐾 Protege Colitas · Centro de Emergencia Animal · Venezuela 2026<br>
+    <a href="https://synti.dev" target="_blank" rel="noopener" class="footer-link">
+      Desarrollado por SyntiDev como servicio social · synti.dev
+    </a>
+  </footer>
 
   <!-- Bottom nav — mobile only -->
   <nav class="bottom-nav" aria-label="Secciones">
@@ -81,7 +105,7 @@ const active = (href: string) => href === '/' ? path === '/' : path.startsWith(h
 
 <style>
   /* Body offsets */
-  body { padding-top: 60px; padding-bottom: 68px; }
+  body { padding-top: 60px; padding-bottom: 140px; }
   @media (min-width: 640px) { body { padding-bottom: 0; } }
 
   /* Skip link */
@@ -205,6 +229,23 @@ const active = (href: string) => href === '/' ? path === '/' : path.startsWith(h
     transform: scale(1.08);
     box-shadow: 0 -2px 8px rgba(0,0,0,0.2), 0 6px 24px rgba(245,166,35,0.6);
   }
+
+  /* Footer */
+  .site-footer {
+    text-align: center;
+    padding: 20px 16px 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    line-height: 1.7;
+    color: #6B7280;
+    border-top: 1px solid #E5E7EB;
+  }
+  .footer-link {
+    color: var(--amarillo);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .footer-link:hover { text-decoration: underline; }
 
   @media (prefers-reduced-motion: reduce) {
     .skip-link, .top-nav__brand, .top-link, .top-cta, .bnav-item, .bnav-cta { transition: none; }
