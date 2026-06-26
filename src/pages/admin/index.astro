@@ -343,7 +343,7 @@ if (isAuth) {
     <nav class="tabs-nav" role="tablist" aria-label="Secciones del panel">
       <button class="tab active" data-tab="pendientes" role="tab" aria-selected="true">
         Mascotas pendientes
-        {pendientes.length > 0 && <span class="tab-count">{pendientes.length}</span>}
+        <span class={`tab-badge${pendientes.length === 0 ? ' zero' : ''}`}>{pendientes.length}</span>
       </button>
       <button class="tab" data-tab="publicadas" role="tab" aria-selected="false">Publicadas</button>
       <button class="tab" data-tab="vets" role="tab" aria-selected="false">Veterinarios</button>
@@ -356,7 +356,11 @@ if (isAuth) {
     <div id="tab-pendientes" class="tab-pane active">
       {pendientes.length === 0
         ? <p class="empty-msg">No hay mascotas pendientes ✓</p>
-        : <div class="table-wrap">
+        : <Fragment>
+            <div class="admin-search-bar">
+              <input type="text" id="searchPendientes" placeholder="Buscar por nombre, zona, especie..." class="admin-search-input" />
+            </div>
+            <div class="table-wrap">
             <table id="tbl-pendientes">
               <thead>
                 <tr>
@@ -364,9 +368,9 @@ if (isAuth) {
                   <th>Zona</th><th>WA</th><th>Hace</th><th>Acciones</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody id="tablaPendientes">
                 {pendientes.map(m => (
-                  <tr id={`row-${m.id}`}>
+                  <tr id={`row-${m.id}`} class="pendiente-row">
                     <td class="td-photo">
                       {m.foto_url
                         ? <a href={m.foto_url} target="_blank" rel="noreferrer">
@@ -417,6 +421,7 @@ if (isAuth) {
               </tbody>
             </table>
           </div>
+          </Fragment>
       }
     </div>
 
@@ -425,6 +430,9 @@ if (isAuth) {
       {publicadas.length > 0 && (
         <Fragment>
           <h3 class="sub-title">Publicadas ({publicadas.length})</h3>
+          <div class="admin-search-bar">
+            <input type="text" id="searchPublicadas" placeholder="Buscar por nombre, zona, especie..." class="admin-search-input" />
+          </div>
           <div class="table-wrap">
             <table id="tbl-publicadas">
               <thead>
@@ -433,9 +441,11 @@ if (isAuth) {
                   <th>Zona</th><th>WA</th><th>Hace</th><th>Acciones</th>
                 </tr>
               </thead>
-              <tbody>
-                {publicadas.map(m => (
-                  <tr id={`row-${m.id}`}>
+              <tbody id="tablaPublicadas">
+                {publicadas.map((m) => {
+                  const diasPub = Math.floor((Date.now() - new Date(m.created_at).getTime()) / 86400000)
+                  return (
+                  <tr id={`row-${m.id}`} class="mascota-row">
                     <td class="td-photo">
                       {m.foto_url
                         ? <a href={m.foto_url} target="_blank" rel="noreferrer">
@@ -464,7 +474,9 @@ if (isAuth) {
                         : <span>—</span>
                       }
                     </td>
-                    <td class="td-time">{rel(m.created_at)}</td>
+                    <td class={`td-time${diasPub >= 3 ? ' td-urgente' : ''}`} title={diasPub >= 3 ? `Lleva ${diasPub} días sin resolver` : ''}>
+                      {rel(m.created_at)}
+                    </td>
                     <td class="td-actions">
                       <button class="btn btn-azul" data-action="reunir" data-id={m.id} data-row={`row-${m.id}`}>✓ Reunida</button>
                       <button class="btn btn-outline btn-icon btn-edit-mascota"
@@ -482,7 +494,8 @@ if (isAuth) {
                       <button class="btn btn-rojo btn-icon" data-action="eliminar_mascota" data-id={m.id} data-row={`row-${m.id}`} data-confirm="¿Eliminar mascota?">✕</button>
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -563,7 +576,11 @@ if (isAuth) {
       </div>
       {vets.length === 0
         ? <p class="empty-msg mt-sm">No hay veterinarios registrados aún</p>
-        : <div class="table-wrap mt">
+        : <Fragment>
+            <div class="admin-search-bar">
+              <input type="text" id="searchVets" placeholder="Buscar veterinario por nombre o zona..." class="admin-search-input" />
+            </div>
+            <div class="table-wrap mt">
             <table>
               <thead>
                 <tr>
@@ -571,9 +588,9 @@ if (isAuth) {
                   <th>Servicios</th><th>Horario</th><th>Hace</th><th>Acciones</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody id="tablaVets">
                 {vets.map(v => (
-                  <tr id={`row-${v.id}`}>
+                  <tr id={`row-${v.id}`} class="vet-row">
                     <td class="td-name">{v.nombre}</td>
                     <td class="td-zona">{v.zona}</td>
                     <td>
@@ -603,6 +620,7 @@ if (isAuth) {
               </tbody>
             </table>
           </div>
+          </Fragment>
       }
     </div>
 
@@ -1040,9 +1058,20 @@ if (isAuth) {
   }
   .tab:hover { color: var(--texto); }
   .tab.active { color: var(--azul); border-bottom-color: var(--azul); }
-  .tab-count {
-    background: var(--naranja); color: #fff;
-    border-radius: 999px; padding: .1rem .4rem; font-size: .65rem;
+  .tab-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 22px; height: 22px; border-radius: 11px;
+    font-size: 11px; font-weight: 700;
+    background: #EF4444; color: white;
+    animation: pulse-badge 2s infinite;
+  }
+  @keyframes pulse-badge {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .8; transform: scale(1.1); }
+  }
+  .tab-badge.zero { background: #22C55E; animation: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .tab-badge { animation: none; }
   }
 
   /* ── Tab panes ────────────────────────────────────────────────────── */
@@ -1255,6 +1284,20 @@ if (isAuth) {
     .tab { padding: .625rem .75rem; font-size: .75rem; }
     .feed-row { flex-direction: column; }
   }
+
+  /* ── Admin search bar ────────────────────────────────────── */
+  .admin-search-bar { margin-bottom: .75rem; }
+  .admin-search-input {
+    width: 100%; padding: 10px 14px;
+    background: #1f2937; border: 1px solid #374151;
+    color: #fff; border-radius: 8px; font-size: .875rem;
+    font-family: inherit; outline: none; transition: border-color .15s;
+  }
+  .admin-search-input:focus { border-color: #F5A623; }
+  .admin-search-input::placeholder { color: #6B7280; }
+
+  /* ── Urgente (días sin resolver) ─────────────────────────── */
+  .td-urgente { color: #EF4444 !important; font-weight: 700; }
 
   /* ── Edit Modal ──────────────────────────────────────────── */
   .modal-overlay {
@@ -1495,7 +1538,6 @@ if (isAuth) {
   }
 
   if (modalClose) modalClose.addEventListener('click', closeModal)
-  if (modal) modal.addEventListener('click', function(e) { if (e.target === modal) closeModal() })
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape' && modal && modal.style.display !== 'none') closeModal()
   })
@@ -1580,4 +1622,19 @@ if (isAuth) {
   handleModalForm(formMascota)
   handleModalForm(formVet)
   handleModalForm(formInsumo)
+
+  // ── Search filters (tiempo real, sin reload)
+  function setupSearch(inputId, tbodyId, rowClass) {
+    var inp = document.getElementById(inputId)
+    if (!inp) return
+    inp.addEventListener('input', function() {
+      var q = this.value.toLowerCase()
+      document.querySelectorAll('#' + tbodyId + ' tr.' + rowClass).forEach(function(row) {
+        row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none'
+      })
+    })
+  }
+  setupSearch('searchPendientes', 'tablaPendientes', 'pendiente-row')
+  setupSearch('searchPublicadas', 'tablaPublicadas', 'mascota-row')
+  setupSearch('searchVets',       'tablaVets',       'vet-row')
 </script>
