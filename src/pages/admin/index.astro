@@ -160,6 +160,15 @@ if (Astro.request.method === 'POST') {
     return J(!error, error?.message)
   }
   if (action === 'editar_mascota') {
+    const id = getId()
+    const fotoNueva = form.get('foto_nueva') as File | null
+    const fotoUpdate: { foto_url?: string } = {}
+    if (fotoNueva && fotoNueva.size > 0) {
+      const path = `${id}/foto_1.jpg`
+      await supabaseAdmin.storage.from('mascotas').upload(path, await fotoNueva.arrayBuffer(), { contentType: 'image/jpeg', upsert: true })
+      const { data: urlData } = supabaseAdmin.storage.from('mascotas').getPublicUrl(path)
+      if (urlData.publicUrl) fotoUpdate.foto_url = urlData.publicUrl
+    }
     const { error } = await supabaseAdmin.from('mascotas').update({
       nombre:     form.get('nombre')?.toString().trim()     || null,
       especie:    form.get('especie')?.toString()            ?? '',
@@ -168,8 +177,8 @@ if (Astro.request.method === 'POST') {
       color:      form.get('color')?.toString().trim()       || null,
       descripcion:form.get('descripcion')?.toString().trim() || null,
       whatsapp:   form.get('whatsapp')?.toString().trim()    ?? '',
-      foto_url:   form.get('foto_url')?.toString().trim()    || null,
-    }).eq('id', getId())
+      ...fotoUpdate,
+    }).eq('id', id)
     return J(!error, error?.message)
   }
   if (action === 'editar_vet') {
@@ -802,7 +811,7 @@ if (isAuth) {
       </div>
 
       <!-- Mascota -->
-      <form id="modal-mascota" class="modal-form" style="display:none">
+      <form id="modal-mascota" class="modal-form" enctype="multipart/form-data" style="display:none">
         <input type="hidden" name="action" value="editar_mascota" />
         <input type="hidden" name="id" id="em-id" />
         <div class="modal-grid">
@@ -839,8 +848,9 @@ if (isAuth) {
             <input type="text" name="whatsapp" id="em-whatsapp" class="modal-input" />
           </label>
           <label class="modal-field modal-field--full">
-            <span class="modal-lbl">URL Foto</span>
-            <input type="text" name="foto_url" id="em-fotourl" class="modal-input" placeholder="https://…" />
+            <span class="modal-lbl">Foto de la mascota</span>
+            <input type="file" name="foto_nueva" id="em-fotonueva" accept="image/*" class="upload-input" />
+            <small class="modal-hint">Solo si quieres cambiar la foto actual</small>
           </label>
           <label class="modal-field modal-field--full">
             <span class="modal-lbl">Descripción</span>
@@ -1291,6 +1301,7 @@ if (isAuth) {
   .modal-input:focus { outline: none; border-color: #F5A623; }
   .modal-input option { background: #0f1117; }
   .modal-textarea { resize: vertical; min-height: 76px; }
+  .modal-hint { font-size: .7rem; color: #94A3B8; margin-top: 2px; }
   .modal-actions { display: flex; gap: .5rem; margin-top: .125rem; }
 
   @media (max-width: 480px) {
@@ -1500,7 +1511,7 @@ if (isAuth) {
       document.getElementById('em-zona').value        = btn.dataset.zona      || ''
       document.getElementById('em-color').value       = btn.dataset.color     || ''
       document.getElementById('em-whatsapp').value    = btn.dataset.whatsapp  || ''
-      document.getElementById('em-fotourl').value     = btn.dataset.fotourl   || ''
+
       document.getElementById('em-descripcion').value = btn.dataset.descripcion || ''
       var selEsp = document.getElementById('em-especie')
       var selTip = document.getElementById('em-tipo')

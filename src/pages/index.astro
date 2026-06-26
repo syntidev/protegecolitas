@@ -249,10 +249,13 @@ function feedDate(iso: string | null): { day: string; mon: string } {
       font-size: 22px; color: var(--marron);
     }
     .section-link {
-      font-size: 14px; font-weight: 600; color: var(--amarillo);
-      text-decoration: none;
+      font-size: 13px; font-weight: 600; color: var(--marron);
+      text-decoration: none; border: 1.5px solid var(--marron);
+      padding: 5px 12px; border-radius: 20px;
+      transition: background 0.15s, color 0.15s;
+      white-space: nowrap;
     }
-    .section-link:hover { text-decoration: underline; }
+    .section-link:hover { background: var(--marron); color: var(--blanco); }
 
     /* ── MASCOTAS LIST ── */
     .mascotas-list { display: flex; flex-direction: column; }
@@ -538,13 +541,13 @@ function feedDate(iso: string | null): { day: string; mon: string } {
       <p class="hero-sub">Reportá y buscá mascotas perdidas tras el terremoto.<br />Juntos los reunimos.</p>
       <div class="hero-type-cards">
         <a href="/reportar?tipo=perdido" class="type-card type-card-perdido">
-          <span class="type-card-icon" aria-hidden="true"><svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="12" cy="8" rx="4" ry="5" fill="#F5A623"/><ellipse cx="28" cy="8" rx="4" ry="5" fill="#F5A623"/><ellipse cx="6" cy="18" rx="3" ry="4" fill="#F5A623"/><ellipse cx="34" cy="18" rx="3" ry="4" fill="#F5A623"/><ellipse cx="20" cy="28" rx="10" ry="9" fill="#F5A623"/></svg></span>
+          <span class="type-card-icon" aria-hidden="true"><svg width="40" height="40" viewBox="0 0 40 40" fill="none"><ellipse cx="10" cy="8" rx="4" ry="5" fill="#3D1C02" opacity="0.85"/><ellipse cx="22" cy="6" rx="4" ry="5" fill="#3D1C02" opacity="0.85"/><ellipse cx="33" cy="10" rx="3.5" ry="4.5" fill="#3D1C02" opacity="0.85"/><ellipse cx="5" cy="19" rx="3" ry="4" fill="#3D1C02" opacity="0.85"/><ellipse cx="19" cy="28" rx="11" ry="10" fill="#3D1C02"/></svg></span>
           <span class="type-card-title">Perdí a mi mascota</span>
           <span class="type-card-sub">Reportá en segundos</span>
           <span class="type-card-btn">Reportar →</span>
         </a>
         <a href="/reportar?tipo=encontrado" class="type-card type-card-encontrado">
-          <span class="type-card-icon" aria-hidden="true">📍</span>
+          <span class="type-card-icon" aria-hidden="true"><svg width="40" height="40" viewBox="0 0 40 40" fill="none"><path d="M20 4C14.477 4 10 8.477 10 14c0 8 10 22 10 22s10-14 10-22c0-5.523-4.477-10-10-10z" fill="#16A34A"/><circle cx="20" cy="14" r="4" fill="white"/></svg></span>
           <span class="type-card-title">Encontré una mascota</span>
           <span class="type-card-sub">Ayudá a reunirla</span>
           <span class="type-card-btn">Reportar →</span>

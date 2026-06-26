@@ -233,13 +233,15 @@ const _ogUrl   = ogUrl ?? 'https://protegecolitas.org'
   /* Footer */
   .site-footer {
     text-align: center;
-    padding: 20px 16px 8px;
+    padding: 20px 16px;
     font-family: 'Inter', sans-serif;
     font-size: 12px;
     line-height: 1.7;
     color: #6B7280;
     border-top: 1px solid #E5E7EB;
+    margin-bottom: 70px;
   }
+  @media (min-width: 640px) { .site-footer { margin-bottom: 0; } }
   .footer-link {
     color: var(--amarillo);
     text-decoration: none;
