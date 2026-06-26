@@ -317,13 +317,18 @@ if (isAuth) {
               <tbody>
                 {pendientes.map(m => (
                   <tr id={`row-${m.id}`}>
-                    <td>
+                    <td class="td-photo">
                       {m.foto_url
-                        ? <img src={m.foto_url} alt="" class="thumb" loading="lazy" />
-                        : <span class="thumb-empty">🐾</span>
+                        ? <a href={m.foto_url} target="_blank" rel="noreferrer">
+                            <img src={m.foto_url} alt="" class="thumb" loading="lazy" />
+                          </a>
+                        : <div class="thumb-empty">🐾</div>
                       }
                     </td>
-                    <td class="td-name">{m.nombre ?? 'Sin nombre'}</td>
+                    <td class="td-name">
+                      <span>{m.nombre ?? 'Sin nombre'}</span>
+                      <a href={`/mascota/${m.id}`} target="_blank" class="ficha-link">Ver ficha →</a>
+                    </td>
                     <td>{m.especie}</td>
                     <td>
                       {m.tipo === 'perdido'
@@ -363,19 +368,24 @@ if (isAuth) {
               <thead>
                 <tr>
                   <th>Foto</th><th>Nombre</th><th>Animal</th><th>Tipo</th>
-                  <th>Zona</th><th>Hace</th><th>Acciones</th>
+                  <th>Zona</th><th>WA</th><th>Hace</th><th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {publicadas.map(m => (
                   <tr id={`row-${m.id}`}>
-                    <td>
+                    <td class="td-photo">
                       {m.foto_url
-                        ? <img src={m.foto_url} alt="" class="thumb" loading="lazy" />
-                        : <span class="thumb-empty">🐾</span>
+                        ? <a href={m.foto_url} target="_blank" rel="noreferrer">
+                            <img src={m.foto_url} alt="" class="thumb" loading="lazy" />
+                          </a>
+                        : <div class="thumb-empty">🐾</div>
                       }
                     </td>
-                    <td class="td-name">{m.nombre ?? 'Sin nombre'}</td>
+                    <td class="td-name">
+                      <span>{m.nombre ?? 'Sin nombre'}</span>
+                      <a href={`/mascota/${m.id}`} target="_blank" class="ficha-link">Ver ficha →</a>
+                    </td>
                     <td>{m.especie}</td>
                     <td>
                       {m.tipo === 'perdido'
@@ -386,6 +396,12 @@ if (isAuth) {
                       }
                     </td>
                     <td class="td-zona">{m.zona}</td>
+                    <td>
+                      {m.whatsapp
+                        ? <a href={`https://wa.me/58${m.whatsapp.slice(1)}`} class="link-wa" target="_blank" rel="noreferrer">💬</a>
+                        : <span>—</span>
+                      }
+                    </td>
                     <td class="td-time">{rel(m.created_at)}</td>
                     <td class="td-actions">
                       <button class="btn btn-azul" data-action="reunir" data-id={m.id} data-row={`row-${m.id}`}>✓ Reunida</button>
@@ -411,13 +427,18 @@ if (isAuth) {
               <tbody>
                 {reunidas.map(m => (
                   <tr id={`row-${m.id}`}>
-                    <td>
+                    <td class="td-photo">
                       {m.foto_url
-                        ? <img src={m.foto_url} alt="" class="thumb" loading="lazy" />
-                        : <span class="thumb-empty">🐾</span>
+                        ? <a href={m.foto_url} target="_blank" rel="noreferrer">
+                            <img src={m.foto_url} alt="" class="thumb" loading="lazy" />
+                          </a>
+                        : <div class="thumb-empty">🐾</div>
                       }
                     </td>
-                    <td class="td-name">{m.nombre ?? 'Sin nombre'}</td>
+                    <td class="td-name">
+                      <span>{m.nombre ?? 'Sin nombre'}</span>
+                      <a href={`/mascota/${m.id}`} target="_blank" class="ficha-link">Ver ficha →</a>
+                    </td>
                     <td>{m.especie}</td>
                     <td class="td-zona">{m.zona}</td>
                     <td class="td-time">{m.moderado_at ? rel(m.moderado_at) : '—'}</td>
@@ -442,13 +463,28 @@ if (isAuth) {
         <h4 class="form-section-title">Registrar veterinario</h4>
         <form id="form-nuevo-vet" class="nuevo-form">
           <div class="nuevo-form-grid">
-            <input type="text" name="nombre" placeholder="Nombre *" required class="feed-input" />
-            <input type="text" name="zona" placeholder="Zona *" required class="feed-input" />
-            <input type="tel" name="whatsapp" placeholder="WhatsApp 04XX... *" required class="feed-input" />
-            <input type="text" name="servicios" placeholder="Servicios (opcional)" class="feed-input" />
-            <input type="text" name="horario" placeholder="Horario (opcional)" class="feed-input" />
+            <label class="form-field">
+              <span class="form-lbl">Nombre *</span>
+              <input type="text" name="nombre" required class="feed-input" />
+            </label>
+            <label class="form-field">
+              <span class="form-lbl">Zona *</span>
+              <input type="text" name="zona" required class="feed-input" />
+            </label>
+            <label class="form-field">
+              <span class="form-lbl">WhatsApp 04XX... *</span>
+              <input type="tel" name="whatsapp" required class="feed-input" />
+            </label>
+            <label class="form-field">
+              <span class="form-lbl">Servicios (opcional)</span>
+              <input type="text" name="servicios" class="feed-input" />
+            </label>
+            <label class="form-field">
+              <span class="form-lbl">Horario (opcional)</span>
+              <input type="text" name="horario" class="feed-input" />
+            </label>
           </div>
-          <button type="submit" class="btn btn-verde" style="margin-top:.625rem">+ Registrar vet</button>
+          <button type="submit" class="btn-submit" style="margin-top:.75rem">+ Registrar vet</button>
         </form>
       </div>
       {vets.length === 0
@@ -491,17 +527,26 @@ if (isAuth) {
     <div id="tab-feed" class="tab-pane">
       <form id="form-feed" class="feed-form">
         <div class="feed-row">
-          <select name="tipo" class="feed-select">
-            <option value="info">ℹ️ Info</option>
-            <option value="alerta">🔴 Alerta</option>
-            <option value="rescate">🐾 Rescate</option>
-            <option value="buenas">✅ Buenas noticias</option>
-            <option value="voluntario">🙌 Voluntarios</option>
-          </select>
-          <input type="text" name="titulo" placeholder="Título *" required maxlength="150" class="feed-input" />
+          <label class="form-field" style="flex:0 0 auto;min-width:140px">
+            <span class="form-lbl">Tipo</span>
+            <select name="tipo" class="feed-select">
+              <option value="info">ℹ️ Info</option>
+              <option value="alerta">🔴 Alerta</option>
+              <option value="rescate">🐾 Rescate</option>
+              <option value="buenas">✅ Buenas noticias</option>
+              <option value="voluntario">🙌 Voluntarios</option>
+            </select>
+          </label>
+          <label class="form-field">
+            <span class="form-lbl">Título *</span>
+            <input type="text" name="titulo" required maxlength="150" class="feed-input" />
+          </label>
         </div>
-        <textarea name="cuerpo" placeholder="Texto *" required rows="3" class="feed-textarea"></textarea>
-        <button type="submit" class="btn btn-azul">Publicar en feed</button>
+        <label class="form-field" style="width:100%">
+          <span class="form-lbl">Texto *</span>
+          <textarea name="cuerpo" required rows="3" class="feed-textarea"></textarea>
+        </label>
+        <button type="submit" class="btn-submit">Publicar en feed</button>
       </form>
 
       {feedItems.length > 0 && (
@@ -553,15 +598,24 @@ if (isAuth) {
         <h4 class="form-section-title">Agregar insumo</h4>
         <form id="form-nuevo-insumo" class="nuevo-form">
           <div class="nuevo-form-grid">
-            <input type="text" name="item" placeholder="Nombre del insumo *" required class="feed-input" />
-            <input type="number" name="cantidad_requerida" placeholder="Cantidad req. *" min="1" required class="insumo-input insumo-input-lg" />
-            <select name="prioridad" class="feed-select">
-              <option value="critico">🔴 Crítico</option>
-              <option value="urgente" selected>🟡 Urgente</option>
-              <option value="cubierto">🟢 Cubierto</option>
-            </select>
+            <label class="form-field">
+              <span class="form-lbl">Nombre del insumo *</span>
+              <input type="text" name="item" required class="feed-input" />
+            </label>
+            <label class="form-field" style="flex:0 0 120px;min-width:auto">
+              <span class="form-lbl">Cantidad req. *</span>
+              <input type="number" name="cantidad_requerida" min="1" required class="feed-input" />
+            </label>
+            <label class="form-field" style="flex:0 0 140px;min-width:auto">
+              <span class="form-lbl">Prioridad</span>
+              <select name="prioridad" class="feed-select">
+                <option value="critico">🔴 Crítico</option>
+                <option value="urgente" selected>🟡 Urgente</option>
+                <option value="cubierto">🟢 Cubierto</option>
+              </select>
+            </label>
           </div>
-          <button type="submit" class="btn btn-verde" style="margin-top:.625rem">+ Agregar insumo</button>
+          <button type="submit" class="btn-submit" style="margin-top:.75rem">+ Agregar insumo</button>
         </form>
       </div>
     </div>
@@ -571,9 +625,18 @@ if (isAuth) {
       <h4 class="form-section-title" style="margin-bottom:.75rem">Nuevo banner</h4>
       <form id="form-banner" class="nuevo-form" enctype="multipart/form-data">
         <div class="nuevo-form-grid">
-          <input type="text" name="titulo" placeholder="Título *" required class="feed-input" />
-          <input type="text" name="descripcion" placeholder="Descripción (opcional)" class="feed-input" />
-          <input type="text" name="link" placeholder="Link (opcional)" class="feed-input" />
+          <label class="form-field">
+            <span class="form-lbl">Título *</span>
+            <input type="text" name="titulo" required class="feed-input" />
+          </label>
+          <label class="form-field">
+            <span class="form-lbl">Descripción (opcional)</span>
+            <input type="text" name="descripcion" class="feed-input" />
+          </label>
+          <label class="form-field">
+            <span class="form-lbl">Link (opcional)</span>
+            <input type="text" name="link" class="feed-input" />
+          </label>
         </div>
         <div class="banner-uploads">
           <label class="upload-label">
@@ -589,7 +652,7 @@ if (isAuth) {
           <input type="checkbox" name="activo" id="banner-activo" checked />
           <label for="banner-activo" style="font-size:.8rem;color:var(--gris)">Activar inmediatamente</label>
         </div>
-        <button type="submit" class="btn btn-azul" style="margin-top:.625rem">+ Publicar banner</button>
+        <button type="submit" class="btn-submit" style="margin-top:.75rem">+ Publicar banner</button>
       </form>
 
       {banners.length > 0 && (
@@ -764,16 +827,22 @@ if (isAuth) {
     border-bottom: 1px solid var(--border);
     background: var(--bg); white-space: nowrap;
   }
-  td { padding: .5rem .75rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
   tr:nth-child(even) td { background: var(--surface); }
   tr:hover td { background: rgba(59,130,246,.05); }
 
-  .thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; display: block; }
-  .thumb-empty {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 40px; height: 40px; font-size: 1.2rem;
+  .td-photo { width: 84px; padding: 8px 10px; }
+  .thumb {
+    width: 72px; height: 72px; object-fit: cover; border-radius: 8px;
+    display: block; cursor: zoom-in; transition: opacity .15s;
   }
-  .td-name     { font-weight: 600; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .thumb:hover { opacity: .85; }
+  .thumb-empty {
+    display: flex; align-items: center; justify-content: center;
+    width: 72px; height: 72px; border-radius: 8px;
+    background: #1f2937; font-size: 1.75rem; flex-shrink: 0;
+  }
+  td { padding: .5rem .75rem; border-bottom: 1px solid var(--border); vertical-align: middle; min-height: 88px; }
+  .td-name     { font-weight: 600; max-width: 140px; }
   .td-zona     { max-width: 100px; color: var(--gris); font-size: .75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .td-time     { color: var(--gris); font-size: .72rem; white-space: nowrap; }
   .td-gris     { color: var(--gris); }
@@ -828,14 +897,40 @@ if (isAuth) {
   .feed-form { display: flex; flex-direction: column; gap: .625rem; max-width: 640px; }
   .feed-row  { display: flex; gap: .5rem; }
   .feed-select, .feed-input, .feed-textarea {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 6px; color: var(--texto);
-    padding: .5rem .75rem; font-size: .875rem; font-family: inherit;
+    background: #1f2937; border: 1px solid #374151;
+    border-radius: 8px; color: #fff;
+    padding: 10px 12px; font-size: .875rem; font-family: inherit;
   }
   .feed-select { flex-shrink: 0; }
   .feed-input  { flex: 1; }
   .feed-textarea { resize: vertical; width: 100%; }
-  .feed-select:focus, .feed-input:focus, .feed-textarea:focus { outline: none; border-color: var(--azul); }
+  .feed-select:focus, .feed-input:focus, .feed-textarea:focus { outline: none; border-color: #F5A623; }
+  .feed-select option { background: #1f2937; }
+
+  /* Label encima de cada campo */
+  .form-field { display: flex; flex-direction: column; gap: .3rem; flex: 1; min-width: 160px; }
+  .form-field .form-lbl {
+    font-size: .7rem; font-weight: 700; color: #94A3B8;
+    text-transform: uppercase; letter-spacing: .05em;
+  }
+  .form-field .feed-input,
+  .form-field .feed-select { width: 100%; }
+
+  /* "Ver ficha" link en celdas */
+  .ficha-link {
+    display: block; margin-top: 3px;
+    color: #F5A623; font-size: .72rem; font-weight: 600; text-decoration: none;
+  }
+  .ficha-link:hover { text-decoration: underline; }
+
+  /* Botón submit amarillo */
+  .btn-submit {
+    background: #F5A623; color: #3D1C02; font-weight: 700;
+    border: none; border-radius: 6px;
+    padding: .45rem .875rem; font-size: .8rem; font-family: inherit;
+    cursor: pointer; min-height: 36px; transition: opacity .15s;
+  }
+  .btn-submit:hover { opacity: .85; }
 
   /* ── Insumos ──────────────────────────────────────────────────────── */
   .insumos-list { display: flex; flex-direction: column; gap: .25rem; max-width: 520px; }
