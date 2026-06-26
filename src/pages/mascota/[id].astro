@@ -8,7 +8,7 @@ if (!id) return Astro.redirect('/mascotas')
 
 const { data: m } = await supabaseAdmin
   .from('mascotas')
-  .select('id, nombre, especie, descripcion, color, tamanio, zona, tipo, status, foto_url, foto_url_2, foto_url_3, whatsapp, created_at, latitud, longitud')
+  .select('id, nombre, especie, descripcion, color, tamanio, zona, tipo, status, foto_url, foto_url_2, foto_url_3, whatsapp, contacto_nombre, senias, created_at, latitud, longitud')
   .eq('id', id)
   .eq('status', 'publicado')
   .maybeSingle()
@@ -99,6 +99,18 @@ const mapsHref = (m.latitud && m.longitud)
             <dd class="data-val">{m.color}</dd>
           </div>
         )}
+        {m.senias && (
+          <div class="data-row">
+            <dt class="data-label">Señas particulares</dt>
+            <dd class="data-val">{m.senias}</dd>
+          </div>
+        )}
+        {m.contacto_nombre && (
+          <div class="data-row">
+            <dt class="data-label">Contacto</dt>
+            <dd class="data-val">{m.contacto_nombre}</dd>
+          </div>
+        )}
         {m.tamanio && (
           <div class="data-row">
             <dt class="data-label">Tamaño</dt>
@@ -106,7 +118,11 @@ const mapsHref = (m.latitud && m.longitud)
           </div>
         )}
         <div class="data-row">
-          <dt class="data-label">Zona</dt>
+            <dt class="data-label">WhatsApp</dt>
+            <dd class="data-val"><a href={"https://wa.me/58" + (m.whatsapp?.slice(1) ?? "")} style="color:#16A34A;font-weight:700">{m.whatsapp}</a></dd>
+          </div>
+          <div class="data-row">
+            <dt class="data-label">Zona</dt>
           <dd class="data-val">{m.zona}</dd>
         </div>
         {mapsHref && (
