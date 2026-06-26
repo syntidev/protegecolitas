@@ -120,9 +120,36 @@ if (Astro.request.method === 'POST') {
     return J(!error, error?.message)
   }
   if (action === 'insumo') {
-    const q = parseInt(form.get('cantidad')?.toString() ?? '0', 10)
-    if (isNaN(q)) return J(false, 'Cantidad inválida')
-    const { error } = await supabaseAdmin.from('necesidades').update({ cantidad_recibida: q, updated_at: new Date().toISOString() }).eq('id', getId())
+    const recibida  = parseInt(form.get('cantidad_recibida')?.toString() ?? '0', 10)
+    const requerida = parseInt(form.get('cantidad_requerida')?.toString() ?? '1', 10)
+    if (isNaN(recibida) || isNaN(requerida)) return J(false, 'Cantidades inválidas')
+    const { error } = await supabaseAdmin.from('necesidades').update({
+      cantidad_recibida: recibida,
+      cantidad_requerida: requerida,
+      updated_at: new Date().toISOString()
+    }).eq('id', getId())
+    return J(!error, error?.message)
+  }
+  if (action === 'nuevo_insumo') {
+    const item      = form.get('item')?.toString().trim() ?? ''
+    const requerida = parseInt(form.get('cantidad_requerida')?.toString() ?? '0', 10)
+    const prioridad = form.get('prioridad')?.toString() ?? 'urgente'
+    if (!item || isNaN(requerida) || requerida < 1) return J(false, 'Datos inválidos')
+    const { error } = await supabaseAdmin.from('necesidades').insert({
+      item, cantidad_requerida: requerida, cantidad_recibida: 0, prioridad
+    })
+    return J(!error, error?.message)
+  }
+  if (action === 'nuevo_vet') {
+    const nombre    = form.get('nombre')?.toString().trim() ?? ''
+    const zona      = form.get('zona')?.toString().trim() ?? ''
+    const whatsapp  = form.get('whatsapp')?.toString().trim() ?? ''
+    const servicios = form.get('servicios')?.toString().trim() || null
+    const horario   = form.get('horario')?.toString().trim() || null
+    if (!nombre || !zona || !whatsapp) return J(false, 'Faltan datos requeridos')
+    const { error } = await supabaseAdmin.from('vets').insert({
+      nombre, zona, whatsapp, servicios, horario, gratuito: true
+    })
     return J(!error, error?.message)
   }
   if (action === 'banner') {
@@ -250,7 +277,7 @@ if (isAuth) {
             <table>
               <thead>
                 <tr>
-                  <th>Foto</th><th>Nombre</th><th>Especie</th><th>Tipo</th>
+                  <th>Foto</th><th>Nombre</th><th>Animal</th><th>Tipo</th>
                   <th>Zona</th><th>WA</th><th>Hace</th><th>Acciones</th>
                 </tr>
               </thead>
@@ -302,7 +329,7 @@ if (isAuth) {
             <table>
               <thead>
                 <tr>
-                  <th>Foto</th><th>Nombre</th><th>Especie</th><th>Tipo</th>
+                  <th>Foto</th><th>Nombre</th><th>Animal</th><th>Tipo</th>
                   <th>Zona</th><th>Hace</th><th>Acciones</th>
                 </tr>
               </thead>
@@ -345,7 +372,7 @@ if (isAuth) {
             <table>
               <thead>
                 <tr>
-                  <th>Foto</th><th>Nombre</th><th>Especie</th><th>Zona</th><th>Reunida hace</th><th>Eliminar</th>
+                  <th>Foto</th><th>Nombre</th><th>Animal</th><th>Zona</th><th>Reunida hace</th><th>Eliminar</th>
                 </tr>
               </thead>
               <tbody>
@@ -378,9 +405,22 @@ if (isAuth) {
 
     <!-- TAB 3: VETERINARIOS -->
     <div id="tab-vets" class="tab-pane">
+      <div class="nuevo-section">
+        <h4 class="form-section-title">Registrar veterinario</h4>
+        <form id="form-nuevo-vet" class="nuevo-form">
+          <div class="nuevo-form-grid">
+            <input type="text" name="nombre" placeholder="Nombre *" required class="feed-input" />
+            <input type="text" name="zona" placeholder="Zona *" required class="feed-input" />
+            <input type="tel" name="whatsapp" placeholder="WhatsApp 04XX... *" required class="feed-input" />
+            <input type="text" name="servicios" placeholder="Servicios (opcional)" class="feed-input" />
+            <input type="text" name="horario" placeholder="Horario (opcional)" class="feed-input" />
+          </div>
+          <button type="submit" class="btn btn-verde" style="margin-top:.625rem">+ Registrar vet</button>
+        </form>
+      </div>
       {vets.length === 0
-        ? <p class="empty-msg">No hay veterinarios registrados</p>
-        : <div class="table-wrap">
+        ? <p class="empty-msg mt-sm">No hay veterinarios registrados aún</p>
+        : <div class="table-wrap mt">
             <table>
               <thead>
                 <tr>
@@ -465,15 +505,32 @@ if (isAuth) {
               <div class="insumo-row" id={`insumo-${n.id}`}>
                 <span class={`prio-dot prio-${n.prioridad}`}></span>
                 <span class="insumo-name">{n.item}</span>
-                <span class="insumo-progress">{n.cantidad_recibida}/{n.cantidad_requerida}</span>
                 <form class="insumo-form" data-id={n.id}>
-                  <input type="number" name="cantidad" value={n.cantidad_recibida} min="0" max={n.cantidad_requerida * 10} class="insumo-input" aria-label={`Cantidad ${n.item}`} />
-                  <button type="submit" class="btn btn-amarillo btn-sm">✓</button>
+                  <label class="insumo-lbl">Rec.</label>
+                  <input type="number" name="cantidad_recibida" value={n.cantidad_recibida} min="0" max="9999" class="insumo-input" aria-label={`Recibida ${n.item}`} />
+                  <label class="insumo-lbl">Req.</label>
+                  <input type="number" name="cantidad_requerida" value={n.cantidad_requerida} min="1" max="9999" class="insumo-input" aria-label={`Requerida ${n.item}`} />
+                  <button type="submit" class="btn btn-amarillo btn-sm">✓ Guardar</button>
                 </form>
               </div>
             ))}
           </div>
       }
+      <div class="nuevo-section mt-sm">
+        <h4 class="form-section-title">Agregar insumo</h4>
+        <form id="form-nuevo-insumo" class="nuevo-form">
+          <div class="nuevo-form-grid">
+            <input type="text" name="item" placeholder="Nombre del insumo *" required class="feed-input" />
+            <input type="number" name="cantidad_requerida" placeholder="Cantidad req. *" min="1" required class="insumo-input insumo-input-lg" />
+            <select name="prioridad" class="feed-select">
+              <option value="critico">🔴 Crítico</option>
+              <option value="urgente" selected>🟡 Urgente</option>
+              <option value="cubierto">🟢 Cubierto</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-verde" style="margin-top:.625rem">+ Agregar insumo</button>
+        </form>
+      </div>
     </div>
 
   </div>
@@ -695,6 +752,21 @@ if (isAuth) {
   }
   .insumo-input:focus { outline: none; border-color: var(--azul); }
 
+  /* ── Nuevo forms ─────────────────────────────────────────────────── */
+  .nuevo-section { border-top: 1px solid var(--border); padding-top: .875rem; }
+  .form-section-title {
+    font-size: .7rem; font-weight: 700; color: var(--gris);
+    text-transform: uppercase; letter-spacing: .05em; margin-bottom: .5rem;
+  }
+  .nuevo-form { display: flex; flex-direction: column; gap: .5rem; max-width: 640px; }
+  .nuevo-form-grid { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .nuevo-form-grid .feed-input { flex: 1; min-width: 140px; }
+  .insumo-lbl {
+    font-size: .7rem; font-weight: 600; color: var(--gris);
+    white-space: nowrap; align-self: center;
+  }
+  .insumo-input-lg { width: 100px; }
+
   /* ── Responsive ───────────────────────────────────────────────────── */
   @media (max-width: 480px) {
     .hdr { gap: .5rem; }
@@ -790,27 +862,55 @@ if (isAuth) {
     })
   }
 
-  // ── Insumo forms
+  // ── Insumo forms (editar cantidad_recibida Y cantidad_requerida)
   document.querySelectorAll('.insumo-form').forEach(function(form) {
     form.addEventListener('submit', async function(e) {
       e.preventDefault()
-      var id     = form.dataset.id
-      var input  = form.querySelector('input[name="cantidad"]')
-      var cant   = input ? input.value : '0'
-      var btn    = form.querySelector('button')
+      var id       = form.dataset.id
+      var inputRec = form.querySelector('input[name="cantidad_recibida"]')
+      var inputReq = form.querySelector('input[name="cantidad_requerida"]')
+      var cantRec  = inputRec ? inputRec.value : '0'
+      var cantReq  = inputReq ? inputReq.value : '1'
+      var btn      = form.querySelector('button')
       if (btn) btn.disabled = true
-      var ok = await doAction({ action: 'insumo', id: id, cantidad: cant }, null, null)
-      if (ok) {
-        var row  = document.getElementById('insumo-' + id)
-        if (row) {
-          var prog = row.querySelector('.insumo-progress')
-          if (prog) {
-            var parts = prog.textContent.split('/')
-            if (parts.length === 2) prog.textContent = cant + '/' + parts[1].trim()
-          }
-        }
-      }
+      var ok = await doAction({ action: 'insumo', id: id, cantidad_recibida: cantRec, cantidad_requerida: cantReq }, null, null)
       if (btn) btn.disabled = false
     })
   })
+
+  // ── Nuevo insumo
+  var formNuevoInsumo = document.getElementById('form-nuevo-insumo')
+  if (formNuevoInsumo) {
+    formNuevoInsumo.addEventListener('submit', async function(e) {
+      e.preventDefault()
+      var fd  = new FormData(formNuevoInsumo)
+      fd.append('action', 'nuevo_insumo')
+      var btn = formNuevoInsumo.querySelector('button[type="submit"]')
+      if (btn) btn.disabled = true
+      try {
+        var r = await fetch('/admin', { method: 'POST', body: fd })
+        var j = await r.json()
+        if (!j.ok) { alert('Error: ' + (j.error || 'desconocido')); if (btn) btn.disabled = false }
+        else { window.location.reload() }
+      } catch(e) { alert('Error de red'); if (btn) btn.disabled = false }
+    })
+  }
+
+  // ── Nuevo vet
+  var formNuevoVet = document.getElementById('form-nuevo-vet')
+  if (formNuevoVet) {
+    formNuevoVet.addEventListener('submit', async function(e) {
+      e.preventDefault()
+      var fd  = new FormData(formNuevoVet)
+      fd.append('action', 'nuevo_vet')
+      var btn = formNuevoVet.querySelector('button[type="submit"]')
+      if (btn) btn.disabled = true
+      try {
+        var r = await fetch('/admin', { method: 'POST', body: fd })
+        var j = await r.json()
+        if (!j.ok) { alert('Error: ' + (j.error || 'desconocido')); if (btn) btn.disabled = false }
+        else { window.location.reload() }
+      } catch(e) { alert('Error de red'); if (btn) btn.disabled = false }
+    })
+  }
 </script>
