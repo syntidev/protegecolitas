@@ -6,13 +6,12 @@ import { resolve } from 'path'
 
 dotenv.config({ path: resolve(process.cwd(), '.env') })
 
-const ADMIN_EMAIL = 'protegecolitas@gmail.com'
-const ADMIN_PASS  = process.env.ADMIN_PASSWORD ?? ''
-const COOKIE_MS   = 8 * 60 * 60 * 1000
-const COOKIE_AGE  = 8 * 60 * 60
+const SALT      = process.env.ADMIN_SALT ?? 'protegecolitas2026'
+const COOKIE_MS = 8 * 60 * 60 * 1000
+const COOKIE_AGE = 8 * 60 * 60
 
 function sign(s: string): string {
-  return createHmac('sha256', ADMIN_PASS).update(s).digest('hex')
+  return createHmac('sha256', SALT).update(s).digest('hex')
 }
 
 function validSession(raw: string): boolean {
@@ -50,7 +49,15 @@ if (Astro.request.method === 'POST') {
   if (action === 'login') {
     const email = form.get('email')?.toString().trim() ?? ''
     const pass  = form.get('password')?.toString() ?? ''
-    if (!ADMIN_PASS || email !== ADMIN_EMAIL || pass !== ADMIN_PASS) {
+    const hash  = createHmac('sha256', SALT).update(pass).digest('hex')
+    const { data: mod } = await supabaseAdmin
+      .from('moderadores')
+      .select('id, nombre, rol')
+      .eq('email', email)
+      .eq('password_hash', hash)
+      .eq('activo', true)
+      .maybeSingle()
+    if (!mod) {
       loginError = 'Email o contraseña incorrectos'
     } else {
       const exp = Date.now() + COOKIE_MS
