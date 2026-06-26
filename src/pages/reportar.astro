@@ -66,9 +66,9 @@ import Base from '../layouts/Base.astro'
     <div class="field-group perdido-only">
       <label class="field-label" for="nombre">
         Nombre de tu mascota
-        <span class="field-req">*</span>
+        <span class="field-note">(opcional)</span>
       </label>
-      <input type="text" id="nombre" name="nombre" class="rpt-input" placeholder="Ej: Luna, Coco, Max…" autocomplete="off" />
+      <input type="text" id="nombre" name="nombre" class="rpt-input" placeholder="Ej: Luna, Coco (opcional)" autocomplete="off" />
       <p class="field-error" id="err-nombre" role="alert"></p>
     </div>
 
@@ -985,11 +985,6 @@ import Base from '../layouts/Base.astro'
 
     const wa = document.getElementById('whatsapp').value.trim();
     if (!WA_RE.test(wa)) { setError('whatsapp', 'Número venezolano requerido: 04XX + 7 dígitos'); ok = false; }
-
-    if (selectedTipo === 'perdido') {
-      const nombre = document.getElementById('nombre').value.trim();
-      if (!nombre) { setError('nombre', '¿Cómo se llama?'); ok = false; }
-    }
 
     if (selectedTipo === 'encontrado') {
       const estado = document.getElementById('estado').value;

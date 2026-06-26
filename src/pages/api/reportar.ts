@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro'
 import { supabaseAdmin } from '../../lib/supabase'
 
 const ESPECIES = ['Perro', 'Gato', 'Ave', 'Otro'] as const
+const TIPOS   = ['perdido', 'encontrado'] as const
 const WS_REGEX = /^04[0-9]{2}[0-9]{7}$/
 const RATE_LIMIT_MS = 5 * 60 * 1000
 
@@ -72,6 +73,10 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 
   if (!whatsapp || !WS_REGEX.test(whatsapp)) {
     return json({ error: 'WhatsApp venezolano requerido. Formato: 04XX-XXXXXXX (11 dígitos)' }, 400)
+  }
+
+  if (!tipo || !TIPOS.includes(tipo as typeof TIPOS[number])) {
+    return json({ error: 'Tipo requerido. Valores permitidos: perdido, encontrado' }, 400)
   }
 
   const { data, error } = await supabaseAdmin

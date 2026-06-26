@@ -1,11 +1,24 @@
 ---
 import Base from '../layouts/Base.astro'
-import { supabase } from '../lib/supabase'
+import { supabaseAdmin } from '../lib/supabase'
 
-const { data: vets } = await supabase
+const PAGE_SIZE = 12
+const zona = (Astro.url.searchParams.get('zona') ?? '').trim()
+const page = Math.max(1, parseInt(Astro.url.searchParams.get('page') ?? '1', 10))
+const from = (page - 1) * PAGE_SIZE
+const to   = from + PAGE_SIZE - 1
+
+let query = supabaseAdmin
   .from('vets')
-  .select('id, nombre, zona, servicios, horario, whatsapp, gratuito, created_at')
+  .select('id, nombre, zona, servicios, horario, whatsapp, gratuito, created_at', { count: 'exact' })
   .order('created_at', { ascending: false })
+  .range(from, to)
+
+if (zona) query = query.ilike('zona', `%${zona}%`)
+
+const { data: vets, count } = await query
+
+const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE)
 
 const WA_BASE = 'https://wa.me/'
 
@@ -20,6 +33,16 @@ function initials(nombre: string) {
       <h1 class="page-title">Veterinarios <em>voluntarios</em></h1>
       <p class="page-sub">Atención voluntaria durante la emergencia.</p>
     </div>
+
+    <form method="GET" action="/veterinarios" class="filter-form">
+      <input type="text" name="zona" value={zona} placeholder="Filtrar por zona..." class="filter-input" />
+      <button type="submit" class="filter-btn">Filtrar</button>
+      {zona && <a href="/veterinarios" class="filter-clear">✕ Limpiar</a>}
+    </form>
+
+    {(count ?? 0) > 0 && (
+      <p class="vets-counter">{count} veterinarios voluntarios registrados</p>
+    )}
 
     {vets && vets.length > 0 ? (
       <div class="vets-list">
@@ -70,12 +93,26 @@ function initials(nombre: string) {
     ) : (
       <div class="empty-state">
         <div class="empty-icon" aria-hidden="true">🩺</div>
-        <p class="empty-msg">Pronto habrá veterinarios disponibles.</p>
-        <p class="empty-sub">¿Eres vet? Regístrate abajo y te publicamos.</p>
+        {zona
+          ? <p class="empty-msg">No hay veterinarios en "{zona}". <a href="/veterinarios" class="empty-link">Ver todos →</a></p>
+          : <p class="empty-msg"><a href="#registrarte" class="empty-link">Sé el primero en registrarte como veterinario voluntario →</a></p>
+        }
       </div>
     )}
 
-    <section class="register-section">
+    {totalPages > 1 && (
+      <div class="pagination">
+        {page > 1 && (
+          <a href={`/veterinarios?${zona ? `zona=${encodeURIComponent(zona)}&` : ''}page=${page - 1}`} class="page-btn">← Anterior</a>
+        )}
+        <span class="page-info">Página {page} de {totalPages}</span>
+        {page < totalPages && (
+          <a href={`/veterinarios?${zona ? `zona=${encodeURIComponent(zona)}&` : ''}page=${page + 1}`} class="page-btn">Siguiente →</a>
+        )}
+      </div>
+    )}
+
+    <section class="register-section" id="registrarte">
       <h2 class="register-title">¿Eres veterinario/a?</h2>
 
       <div class="form-card">
@@ -505,6 +542,106 @@ function initials(nombre: string) {
 }
 .success-banner strong { display: block; font-size: 15px; color: var(--verde); margin-bottom: 4px; }
 .success-banner p { font-size: 13px; color: #166534; }
+
+/* Filter */
+.filter-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.filter-input {
+  flex: 1;
+  min-width: 160px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--marron);
+  background: rgba(255,255,255,0.85);
+  outline: none;
+  transition: border-color .15s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.filter-input:focus { border-color: var(--amarillo); }
+.filter-btn {
+  padding: 10px 18px;
+  border-radius: 10px;
+  background: var(--marron);
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  min-height: 44px;
+  white-space: nowrap;
+  transition: opacity .15s;
+}
+.filter-btn:hover { opacity: .85; }
+.filter-clear {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--rojo);
+  text-decoration: none;
+  font-weight: 600;
+  padding: 4px 8px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+.filter-clear:hover { text-decoration: underline; }
+
+/* Counter */
+.vets-counter {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--gris-txt);
+  margin-bottom: 14px;
+}
+
+/* Empty state link */
+.empty-link {
+  color: var(--azul);
+  font-weight: 700;
+  text-decoration: none;
+}
+.empty-link:hover { text-decoration: underline; }
+
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px 0;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.page-btn {
+  padding: 10px 18px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.85);
+  border: 1.5px solid var(--border);
+  color: var(--marron);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  transition: border-color .15s, background .15s;
+}
+.page-btn:hover { border-color: var(--marron); background: #fff; }
+.page-info {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--gris-txt);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .spinner { animation: none; }

@@ -30,7 +30,12 @@ const mapsHref = (m.latitud && m.longitud)
   ? `https://www.google.com/maps?q=${m.latitud},${m.longitud}`
   : null
 ---
-<Base title={`${m.nombre ?? 'Mascota'} — Protege Colitas`}>
+<Base
+  title={`${m.nombre ?? 'Mascota'} — Protege Colitas`}
+  ogTitle={`${m.nombre ?? 'Mascota'} · ${m.tipo === 'perdido' ? 'Se busca' : 'Encontrada'} en ${m.zona}`}
+  ogDescription={m.descripcion ?? `${m.especie} ${m.tipo === 'perdido' ? 'perdido' : 'encontrado'} en ${m.zona}. ¿Lo has visto?`}
+  ogImage={m.foto_url ?? 'https://protegecolitas.org/logo.png'}
+>
   <div class="detail-page">
 
     <!-- Back link (non-sticky, top of content) -->
