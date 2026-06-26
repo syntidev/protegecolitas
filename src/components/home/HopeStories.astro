@@ -1,61 +1,54 @@
 ---
-// TODO: conectar con Supabase — historias de mascotas reunidas
-const stories = [
-  {
-    title: 'Max volvió a casa',
-    text: 'Después de dos días perdido tras el terremoto, Max fue encontrado sano y salvo por un vecino que vio su publicación en Protege Colitas.',
-    img: 'https://placedog.net/400/300?id=11',
-    alt: 'Perro Max reunido con su familia',
-    location: 'Caracas',
-  },
-  {
-    title: 'Luna y su familia',
-    text: 'Reunidos en Los Teques gracias a la comunidad. La familia nunca perdió la esperanza y compartió la ficha más de 200 veces.',
-    img: 'https://placekitten.com/400/300',
-    alt: 'Gata Luna reunida con su familia',
-    location: 'Los Teques, Miranda',
-  },
-  {
-    title: 'Rocky está en casa',
-    text: 'La comunidad compartió su historia y Rocky fue encontrado en tiempo récord, a pocas cuadras de donde se perdió.',
-    img: 'https://placedog.net/400/300?id=13',
-    alt: 'Perro Rocky reunido con su familia',
-    location: 'Maracay, Aragua',
-  },
-]
+import { supabase } from '../../lib/supabase'
+
+const { data: mascotas } = await supabase
+  .from('mascotas')
+  .select('id, nombre, especie, descripcion, zona, foto_url')
+  .eq('status', 'reunido')
+  .limit(3)
 ---
 <section aria-labelledby="hope-stories-heading">
   <div class="section-header">
     <h2 id="hope-stories-heading" class="section-title">Historias de reencuentro</h2>
     <a href="/mascotas" class="view-all">Ver todas</a>
   </div>
-  <div class="carousel-container">
-    {stories.map((story) => (
-      <div class="carousel-item story-card">
-        <div class="story-img-wrap">
-          <img src={story.img} alt={story.alt} class="story-img" loading="lazy" />
-          <span class="story-badge">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="#15803d" stroke="none" aria-hidden="true">
-              <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
-            </svg>
-            Reunidos
-          </span>
-        </div>
-        <div class="story-body">
-          <h3 class="story-title">{story.title}</h3>
-          <div class="story-location">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
-              <circle cx="12" cy="10" r="3"/>
-            </svg>
-            <span>{story.location}</span>
+
+  {!mascotas?.length ? (
+    <p class="empty-msg">Los reencuentros vienen. Cada reporte acerca a las familias.</p>
+  ) : (
+    <div class="carousel-container">
+      {mascotas.map((m) => (
+        <div class="carousel-item story-card">
+          <div class="story-img-wrap">
+            {m.foto_url
+              ? <img src={m.foto_url} alt={m.nombre ?? m.especie} class="story-img" loading="lazy" />
+              : <div class="story-img" style="display:flex;align-items:center;justify-content:center;background:var(--arena);font-size:3rem;" aria-hidden="true">🐾</div>
+            }
+            <span class="story-badge">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="#15803d" stroke="none" aria-hidden="true">
+                <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+              </svg>
+              Reunidos
+            </span>
           </div>
-          <p class="story-text">{story.text}</p>
-          <a href="#" class="story-link">Leer historia</a>
+          <div class="story-body">
+            <h3 class="story-title">{m.nombre ?? m.especie ?? 'Mascota reunida'}</h3>
+            <div class="story-location">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+              <span>{m.zona}</span>
+            </div>
+            <p class="story-text">
+              {m.descripcion ?? 'Reunida con su familia gracias a la comunidad de Protege Colitas.'}
+            </p>
+            <a href={`/mascota/${m.id}`} class="story-link">Ver historia</a>
+          </div>
         </div>
-      </div>
-    ))}
-  </div>
+      ))}
+    </div>
+  )}
 </section>
 
 <style>
@@ -78,6 +71,15 @@ const stories = [
   text-decoration: none;
 }
 .view-all:hover { color: var(--accion-hover); }
+
+.empty-msg {
+  font-size: 0.875rem;
+  color: var(--texto-sec);
+  text-align: center;
+  padding: 2rem;
+  background: var(--card);
+  border-radius: 1rem;
+}
 
 .story-card {
   background: var(--card);

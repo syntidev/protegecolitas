@@ -1,93 +1,81 @@
 ---
-// TODO: conectar con Supabase tabla feed
+import { supabase } from '../../lib/supabase'
+
+const { data: notas } = await supabase
+  .from('feed')
+  .select('id, titulo, cuerpo, tipo, published_at')
+  .order('published_at', { ascending: false })
+  .limit(4)
+
+type TipoCfg = { bg: string; stroke: string; pathD: string }
+const TIPO: Record<string, TipoCfg> = {
+  alerta:  { bg: 'var(--rojo-bg,#fee2e2)', stroke: 'var(--rojo)',   pathD: 'M22 12h-4l-3 9L9 3l-3 9H2' },
+  rescate: { bg: 'var(--azul-bg)',          stroke: 'var(--azul)',   pathD: 'M22 12h-4l-3 9L9 3l-3 9H2' },
+  buenas:  { bg: 'var(--verde-bg)',         stroke: 'var(--verde)',  pathD: 'M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z' },
+  info:    { bg: 'var(--arena)',            stroke: 'var(--marron)', pathD: 'M12 2a10 10 0 100 20A10 10 0 0012 2zm0 9v4m0 4h.01' },
+}
+
+function fmtDate(d: string): { day: string; month: string } {
+  const dt = new Date(d)
+  return {
+    day:   dt.getDate().toString(),
+    month: dt.toLocaleDateString('es-VE', { month: 'short' }).toUpperCase().slice(0, 3),
+  }
+}
 ---
 <section aria-labelledby="news-heading">
   <div class="section-header">
     <h2 id="news-heading" class="section-title">Noticias y actualizaciones</h2>
     <a href="/noticias" class="view-all">Ver todas</a>
   </div>
-  <div class="news-list">
 
-    <div class="news-item">
-      <div class="news-date">
-        <span class="date-day">26</span>
-        <span class="date-month">JUN</span>
-      </div>
-      <div class="news-body">
-        <div class="news-icon" style="background: var(--naranja-bg)" aria-hidden="true">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accion)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="7" width="9" height="14"/>
-            <rect x="13" y="3" width="9" height="18"/>
-            <line x1="2" y1="21" x2="22" y2="21"/>
-          </svg>
+  {!notas?.length ? (
+    <div class="news-list">
+      <div class="news-item">
+        <div class="news-date">
+          <span class="date-day">25</span>
+          <span class="date-month">JUN</span>
         </div>
-        <div>
-          <p class="news-title">Nuevo centro de acopio abierto en Guarenas</p>
-          <p class="news-desc">Más capacidad para atender mascotas en la zona central.</p>
-        </div>
-      </div>
-      <span class="news-badge new-badge">Nuevo</span>
-    </div>
-
-    <div class="news-item">
-      <div class="news-date">
-        <span class="date-day">26</span>
-        <span class="date-month">JUN</span>
-      </div>
-      <div class="news-body">
-        <div class="news-icon" style="background: var(--arena)" aria-hidden="true">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--marron)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
-            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-          </svg>
-        </div>
-        <div>
-          <p class="news-title">Llegó donación de alimento y medicinas</p>
-          <p class="news-desc">Gracias a todos los que hicieron posible esta ayuda.</p>
-        </div>
-      </div>
-      <span class="news-badge new-badge">Nuevo</span>
-    </div>
-
-    <div class="news-item">
-      <div class="news-date">
-        <span class="date-day">25</span>
-        <span class="date-month">JUN</span>
-      </div>
-      <div class="news-body">
-        <div class="news-icon" style="background: var(--azul-bg)" aria-hidden="true">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--azul)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-          </svg>
-        </div>
-        <div>
-          <p class="news-title">Se suman 10 nuevos veterinarios voluntarios</p>
-          <p class="news-desc">El equipo sigue creciendo para atender más mascotas.</p>
+        <div class="news-body">
+          <div class="news-icon" style="background: var(--arena)" aria-hidden="true">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--marron)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <div>
+            <p class="news-title">Plataforma Protege Colitas en operación</p>
+            <p class="news-desc">Activa 24 horas después del terremoto del 25 de junio.</p>
+          </div>
         </div>
       </div>
     </div>
-
-    <div class="news-item">
-      <div class="news-date">
-        <span class="date-day">25</span>
-        <span class="date-month">JUN</span>
-      </div>
-      <div class="news-body">
-        <div class="news-icon" style="background: var(--arena)" aria-hidden="true">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--marron)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="8" x2="12" y2="12"/>
-            <line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
-        </div>
-        <div>
-          <p class="news-title">Plataforma Protege Colitas en operación</p>
-          <p class="news-desc">Lanzada 24 horas después del terremoto del 25 de junio.</p>
-        </div>
-      </div>
+  ) : (
+    <div class="news-list">
+      {notas.map((n) => {
+        const cfg = TIPO[n.tipo] ?? TIPO.info
+        const { day, month } = n.published_at ? fmtDate(n.published_at) : { day: '–', month: '–' }
+        return (
+          <div class="news-item">
+            <div class="news-date">
+              <span class="date-day">{day}</span>
+              <span class="date-month">{month}</span>
+            </div>
+            <div class="news-body">
+              <div class="news-icon" style={`background: ${cfg.bg}`} aria-hidden="true">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={cfg.stroke} stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d={cfg.pathD} />
+                </svg>
+              </div>
+              <div>
+                <p class="news-title">{n.titulo}</p>
+                <p class="news-desc">{n.cuerpo}</p>
+              </div>
+            </div>
+          </div>
+        )
+      })}
     </div>
-
-  </div>
+  )}
 </section>
 
 <style>
@@ -177,18 +165,5 @@
   font-size: 0.75rem;
   color: var(--texto-sec);
   margin: 0;
-}
-.news-badge {
-  flex-shrink: 0;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 9999px;
-  align-self: flex-start;
-}
-.new-badge {
-  background: var(--verde-bg);
-  color: var(--verde);
-  border: 1px solid #bbf7d0;
 }
 </style>

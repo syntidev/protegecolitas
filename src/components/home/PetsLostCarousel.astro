@@ -1,40 +1,57 @@
 ---
-// TODO: conectar con Supabase — mascotas con tipo='perdido' y status='publicado'
-const pets = [
-  { name: 'Bobby', city: 'Caracas',     timeAgo: 'Hace 15 min', img: 'https://placedog.net/300/300?id=6',  alt: 'Perro Bobby perdido en Caracas' },
-  { name: 'Nala',  city: 'La California', timeAgo: 'Hace 22 min', img: 'https://placekitten.com/300/301', alt: 'Gata Nala perdida en La California' },
-  { name: 'Thor',  city: 'Petare',      timeAgo: 'Hace 35 min', img: 'https://placedog.net/300/300?id=8',  alt: 'Perro Thor perdido en Petare' },
-  { name: 'Coco',  city: 'Los Teques',  timeAgo: 'Hace 40 min', img: 'https://placedog.net/300/300?id=9',  alt: 'Perro Coco perdido en Los Teques' },
-  { name: 'Kira',  city: 'Guarenas',    timeAgo: 'Hace 52 min', img: 'https://placedog.net/300/300?id=10', alt: 'Perro Kira perdida en Guarenas' },
-]
+import { supabase } from '../../lib/supabase'
+
+const { data: pets } = await supabase
+  .from('mascotas')
+  .select('id, nombre, especie, zona, foto_url, created_at')
+  .eq('tipo', 'perdido')
+  .eq('status', 'publicado')
+  .order('created_at', { ascending: false })
+  .limit(8)
+
+function timeAgo(d: string): string {
+  const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000)
+  if (m < 1) return 'Hace un momento'
+  if (m < 60) return `Hace ${m} min`
+  if (m < 1440) return `Hace ${Math.floor(m / 60)} h`
+  return `Hace ${Math.floor(m / 1440)} días`
+}
 ---
 <section aria-labelledby="pets-lost-heading">
   <div class="carousel-header">
     <h2 id="pets-lost-heading" class="carousel-title">Se buscan activamente</h2>
     <a href="/mascotas" class="view-all">Ver todas</a>
   </div>
-  <div class="carousel-container">
-    {pets.map((pet) => (
-      <div class="carousel-item pet-card">
-        <div class="pet-img-wrap">
-          <img src={pet.img} alt={pet.alt} class="pet-img" loading="lazy" />
-          <span class="pet-badge lost-badge">Perdida</span>
-        </div>
-        <div class="pet-info">
-          <p class="pet-name">{pet.name}</p>
-          <div class="pet-location">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
-              <circle cx="12" cy="10" r="3"/>
-            </svg>
-            <span>{pet.city}</span>
+
+  {!pets?.length ? (
+    <p class="empty-msg">¡Qué buenas noticias! No hay mascotas buscadas ahora mismo.</p>
+  ) : (
+    <div class="carousel-container">
+      {pets.map((pet) => (
+        <div class="carousel-item pet-card">
+          <div class="pet-img-wrap">
+            {pet.foto_url
+              ? <img src={pet.foto_url} alt={pet.nombre ?? pet.especie} class="pet-img" loading="lazy" />
+              : <div class="pet-img" style="display:flex;align-items:center;justify-content:center;background:var(--arena);font-size:2.5rem;" aria-hidden="true">🐾</div>
+            }
+            <span class="pet-badge lost-badge">Perdida</span>
           </div>
-          <p class="pet-time">{pet.timeAgo}</p>
-          <a href="#" class="pet-link">Ver ficha</a>
+          <div class="pet-info">
+            <p class="pet-name">{pet.nombre ?? pet.especie}</p>
+            <div class="pet-location">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+              <span>{pet.zona}</span>
+            </div>
+            <p class="pet-time">{timeAgo(pet.created_at)}</p>
+            <a href={`/mascota/${pet.id}`} class="pet-link">Ver ficha</a>
+          </div>
         </div>
-      </div>
-    ))}
-  </div>
+      ))}
+    </div>
+  )}
 </section>
 
 <style>
@@ -57,6 +74,15 @@ const pets = [
   text-decoration: none;
 }
 .view-all:hover { color: var(--accion-hover); }
+
+.empty-msg {
+  font-size: 0.875rem;
+  color: var(--texto-sec);
+  text-align: center;
+  padding: 2rem;
+  background: var(--card);
+  border-radius: 1rem;
+}
 
 .pet-card {
   background: var(--card);

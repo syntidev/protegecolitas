@@ -1,42 +1,33 @@
 ---
-// TODO: conectar con Supabase tabla necesidades
-const centers = [
-  {
-    name: 'Centro de Acopio Caracas',
-    location: 'Av. Principal Las Mercedes',
-    needs: [
-      { label: 'Alimento seco', pct: 80 },
-      { label: 'Agua',          pct: 65 },
-      { label: 'Antipulgas',    pct: 30 },
-      { label: 'Mantas',        pct: 45 },
-    ],
-  },
-  {
-    name: 'Refugio Patas Seguras',
-    location: 'La California, Miranda',
-    needs: [
-      { label: 'Alimento seco',  pct: 60 },
-      { label: 'Medicinas',      pct: 25 },
-      { label: 'Agua',           pct: 70 },
-      { label: 'Transportadores',pct: 15 },
-    ],
-  },
-  {
-    name: 'Centro de Acopio Miranda',
-    location: 'Los Teques, Miranda',
-    needs: [
-      { label: 'Alimento seco', pct: 40 },
-      { label: 'Mantas',        pct: 20 },
-      { label: 'Medicinas',     pct: 35 },
-      { label: 'Collares',      pct: 50 },
-    ],
-  },
-]
+import { supabase } from '../../lib/supabase'
 
-function barColor(pct: number) {
-  if (pct > 70) return '#34A853'
-  if (pct > 40) return '#F59E0B'
+const { data: necesidades } = await supabase
+  .from('necesidades')
+  .select('id, item, cantidad_requerida, cantidad_recibida, prioridad')
+  .order('prioridad', { ascending: true })
+  .limit(3)
+
+function pct(recibida: number, requerida: number): number {
+  if (!requerida) return 0
+  return Math.min(Math.round((recibida / requerida) * 100), 100)
+}
+
+function barColor(p: number): string {
+  if (p > 70) return '#34A853'
+  if (p > 40) return '#F59E0B'
   return '#E5484D'
+}
+
+function prioLabel(p: string): string {
+  if (p === 'critico') return 'Crítico'
+  if (p === 'cubierto') return 'Cubierto'
+  return 'Urgente'
+}
+
+function prioColor(p: string): string {
+  if (p === 'critico') return '#E5484D'
+  if (p === 'cubierto') return '#34A853'
+  return '#F59E0B'
 }
 ---
 <section aria-labelledby="urgent-needs-heading">
@@ -44,52 +35,55 @@ function barColor(pct: number) {
     <h2 id="urgent-needs-heading" class="section-title">Necesidades urgentes</h2>
     <a href="/insumos" class="view-all">Ver todas</a>
   </div>
-  <div class="grid-3">
-    {centers.map((center) => (
-      <div class="needs-card">
-        <div class="center-meta">
-          <div class="center-icon" aria-hidden="true">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--marron)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="7" width="9" height="14"/>
-              <rect x="13" y="3" width="9" height="18"/>
-              <line x1="2" y1="21" x2="22" y2="21"/>
-            </svg>
-          </div>
-          <div>
-            <h3 class="center-name">{center.name}</h3>
-            <div class="center-loc">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
-                <circle cx="12" cy="10" r="3"/>
-              </svg>
-              <span>{center.location}</span>
-            </div>
-          </div>
-        </div>
-        <div class="needs-list">
-          {center.needs.map((need) => (
-            <div class="need-row">
-              <div class="need-labels">
-                <span class="need-label">{need.label}</span>
-                <span class="need-pct">{need.pct}%</span>
+
+  {!necesidades?.length ? (
+    <p class="empty-msg">Todo cubierto por ahora. ¡Gracias por la solidaridad!</p>
+  ) : (
+    <div class="grid-3">
+      {necesidades.map((n) => {
+        const p = pct(n.cantidad_recibida ?? 0, n.cantidad_requerida)
+        return (
+          <div class="needs-card">
+            <div class="center-meta">
+              <div class="center-icon" aria-hidden="true">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--marron)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/>
+                  <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/>
+                </svg>
               </div>
-              <div class="progress-track">
-                <div
-                  class="progress-bar"
-                  style={`width: ${need.pct}%; background: ${barColor(need.pct)}`}
-                  role="progressbar"
-                  aria-valuenow={need.pct}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-label={`${need.label}: ${need.pct}% cubierto`}
-                ></div>
+              <div>
+                <h3 class="center-name">{n.item}</h3>
+                <div class="center-loc">
+                  <span style={`color: ${prioColor(n.prioridad)}; font-weight: 600;`}>
+                    {prioLabel(n.prioridad)}
+                  </span>
+                </div>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
-    ))}
-  </div>
+            <div class="needs-list">
+              <div class="need-row">
+                <div class="need-labels">
+                  <span class="need-label">{n.cantidad_recibida ?? 0} / {n.cantidad_requerida} uds.</span>
+                  <span class="need-pct">{p}%</span>
+                </div>
+                <div class="progress-track">
+                  <div
+                    class="progress-bar"
+                    style={`width: ${p}%; background: ${barColor(p)}`}
+                    role="progressbar"
+                    aria-valuenow={p}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label={`${n.item}: ${p}% cubierto`}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )}
 </section>
 
 <style>
@@ -112,6 +106,16 @@ function barColor(pct: number) {
   text-decoration: none;
 }
 .view-all:hover { color: var(--accion-hover); }
+
+.empty-msg {
+  font-size: 0.875rem;
+  color: var(--texto-sec);
+  text-align: center;
+  padding: 2rem;
+  background: var(--card);
+  border-radius: 1rem;
+}
+
 .needs-card {
   background: var(--card);
   border-radius: 1rem;
