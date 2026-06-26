@@ -48,6 +48,20 @@ body {
   border-width: 0;
 }
 
+/* ── Sistema de grid unificado ── */
+.container { max-width: 1200px; margin: 0 auto; padding: 0 32px; }
+.grid-2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 24px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 24px; }
+.grid-5 { display: grid; grid-template-columns: repeat(5,1fr); gap: 24px; }
+@media (max-width: 768px) {
+  .grid-2,.grid-3,.grid-4,.grid-5 { grid-template-columns: repeat(2,1fr); }
+  .container { padding: 0 16px; }
+}
+@media (max-width: 480px) {
+  .grid-2,.grid-3,.grid-4,.grid-5 { grid-template-columns: 1fr; }
+}
+
 /* ── Carrusel global ── */
 .carousel-container {
   display: flex;

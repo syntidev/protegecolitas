@@ -29,7 +29,7 @@ const centers = [
     <h2 id="help-centers-heading" class="section-title">Centros de ayuda activos</h2>
     <a href="/acopio" class="view-all">Ver todos</a>
   </div>
-  <div class="centers-grid">
+  <div class="grid-3">
     {centers.map((center) => (
       <div class="center-card">
         <div class="center-top">
@@ -87,15 +87,6 @@ const centers = [
   text-decoration: none;
 }
 .view-all:hover { color: var(--accion-hover); }
-
-.centers-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
-}
-@media (min-width: 640px) { .centers-grid { grid-template-columns: 1fr 1fr; } }
-@media (min-width: 1024px) { .centers-grid { grid-template-columns: repeat(3, 1fr); } }
-
 .center-card {
   background: var(--card);
   border-radius: 12px;

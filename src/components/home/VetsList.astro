@@ -12,7 +12,7 @@ const vets = [
     <h2 id="vets-heading" class="section-title">Veterinarios voluntarios</h2>
     <a href="/veterinarios" class="view-all">Ver todos</a>
   </div>
-  <div class="vets-grid">
+  <div class="grid-2 vets-list">
     {vets.map((vet) => (
       <div class="vet-card">
         <div class="vet-avatar" aria-hidden="true">{vet.initials}</div>
@@ -68,16 +68,14 @@ const vets = [
   text-decoration: none;
 }
 .view-all:hover { color: var(--accion-hover); }
-
-.vets-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.75rem;
+/* VetsList está dentro de una columna estrecha en desktop (col-side 1/3)
+   El .grid-2 global en ese contexto no aplica bien, así que lo overridemos */
+.vets-list {
+  grid-template-columns: 1fr !important;
 }
-@media (min-width: 640px) { .vets-grid { grid-template-columns: 1fr 1fr; } }
-@media (min-width: 1024px) { .vets-grid { grid-template-columns: 1fr; } }
-@media (min-width: 1280px) { .vets-grid { grid-template-columns: 1fr 1fr; } }
-
+@media (max-width: 480px) {
+  .vets-list { grid-template-columns: 1fr !important; }
+}
 .vet-card {
   background: var(--card);
   border-radius: 12px;

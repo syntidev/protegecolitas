@@ -6,7 +6,7 @@
     <h2 id="quick-actions-heading" class="section-title">¿Cómo puedes ayudar hoy?</h2>
     <p class="section-sub">Cada acción acerca a una mascota a su familia</p>
   </div>
-  <div class="actions-grid">
+  <div class="grid-4">
 
     <div class="action-card">
       <div class="action-icon" style="background: var(--rojo-bg)">
@@ -79,14 +79,6 @@
   font-size: 0.875rem;
   color: var(--texto-sec);
   margin: 4px 0 0;
-}
-.actions-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-}
-@media (min-width: 1024px) {
-  .actions-grid { grid-template-columns: repeat(4, 1fr); gap: 1rem; }
 }
 .action-card {
   background: var(--card);

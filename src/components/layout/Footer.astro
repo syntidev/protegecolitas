@@ -2,8 +2,8 @@
 // Footer — Protege Colitas
 ---
 <footer class="site-footer">
-  <div class="footer-inner">
-    <div class="footer-grid">
+  <div class="container footer-body">
+    <div class="grid-4 footer-grid">
 
       <!-- Col 1: Marca + redes -->
       <div class="footer-brand">
@@ -106,26 +106,14 @@
   background: #3B2A1A;
   color: #fff;
 }
-.footer-inner {
-  max-width: 80rem;
-  margin: 0 auto;
-  padding: 3rem 1rem;
-}
-@media (min-width: 768px) {
-  .footer-inner { padding: 3rem 2rem; }
-}
-.footer-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-}
-@media (min-width: 1024px) {
-  .footer-grid { grid-template-columns: 1.5fr 1fr 1fr 1fr; }
-}
+.footer-body { padding-top: 3rem; padding-bottom: 3rem; }
+
+/* Override grid-4 gap inside footer for better density */
+.footer-grid { gap: 2rem; }
+
 .footer-brand { grid-column: span 2; }
-@media (min-width: 1024px) {
-  .footer-brand { grid-column: span 1; }
-}
+@media (min-width: 768px) { .footer-brand { grid-column: span 1; } }
+
 .brand-row {
   display: flex;
   align-items: center;
@@ -142,20 +130,14 @@
   background: rgba(255,255,255,0.1);
   flex-shrink: 0;
 }
-.brand-name {
-  font-weight: 700;
-  font-size: 0.9375rem;
-}
+.brand-name { font-weight: 700; font-size: 0.9375rem; }
 .brand-desc {
   font-size: 0.8125rem;
   color: rgba(255,255,255,0.65);
   line-height: 1.5;
   margin: 0 0 1.25rem;
 }
-.social-row {
-  display: flex;
-  gap: 0.5rem;
-}
+.social-row { display: flex; gap: 0.5rem; }
 .social-btn {
   display: flex;
   align-items: center;
