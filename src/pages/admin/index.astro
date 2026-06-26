@@ -254,6 +254,21 @@ if (Astro.request.method === 'POST') {
     const { error } = await supabaseAdmin.from('banners').delete().eq('id', getId())
     return J(!error, error?.message)
   }
+  if (action === 'publicar_gemini') {
+    const statusVal = form.get('status')?.toString() || 'pendiente'
+    const { error } = await supabaseAdmin.from('mascotas').insert({
+      nombre:      form.get('nombre')?.toString().trim() || null,
+      especie:     form.get('especie')?.toString() || 'Otro',
+      color:       form.get('color')?.toString().trim() || null,
+      zona:        form.get('zona')?.toString().trim() || '',
+      descripcion: form.get('descripcion')?.toString().trim() || null,
+      whatsapp:    form.get('whatsapp')?.toString().trim() || '',
+      tipo:        form.get('tipo')?.toString() || 'perdido',
+      status:      statusVal,
+    })
+    if (error) return J(false, error.message)
+    return new Response(null, { status: 302, headers: { Location: '/admin' } })
+  }
 }
 
 type Mascota = {
@@ -355,6 +370,7 @@ if (isAuth) {
       <button class="tab" data-tab="vets" role="tab" aria-selected="false">Veterinarios</button>
       <button class="tab" data-tab="feed" role="tab" aria-selected="false">Feed</button>
       <button class="tab" data-tab="insumos" role="tab" aria-selected="false">Insumos</button>
+      <button class="tab" data-tab="gemini" role="tab" aria-selected="false">📸 Desde foto</button>
       <button class="tab" data-tab="banners" role="tab" aria-selected="false">Banners</button>
     </nav>
 
@@ -739,6 +755,83 @@ if (isAuth) {
             </label>
           </div>
           <button type="submit" class="btn-submit" style="margin-top:.75rem">+ Agregar insumo</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- TAB 7: GEMINI VISION -->
+    <div id="tab-gemini" class="tab-pane">
+      <div class="nuevo-section" style="max-width:680px">
+        <h4 class="form-section-title">Registrar desde foto de cartel</h4>
+        <p style="color:#9ca3af;font-size:.875rem;margin:0 0 1.25rem">Sube una foto del cartel y Gemini extrae los datos automáticamente.</p>
+
+        <input type="file" id="geminiImg" accept="image/*" capture="environment" style="display:none" />
+        <div id="geminiPreview" class="gemini-preview" tabindex="0" role="button" aria-label="Seleccionar imagen del cartel">
+          <span id="geminiPlaceholder" class="gemini-placeholder">📷 Toca para seleccionar imagen</span>
+          <img id="geminiPreviewImg" src="" alt="Vista previa del cartel" style="display:none;width:100%;height:100%;object-fit:contain;border-radius:6px" />
+        </div>
+        <div style="display:flex;gap:.75rem;margin-top:.75rem">
+          <button type="button" id="btnSeleccionar" class="btn btn-outline" style="flex:1">📷 Seleccionar foto</button>
+          <button type="button" id="btnExtraer" class="btn-submit" style="flex:1" disabled>🔍 Extraer datos</button>
+        </div>
+
+        <div id="geminiMsg" style="display:none;padding:.625rem .875rem;border-radius:8px;margin:.875rem 0 0;font-size:.8rem;background:#1f2937;color:#e5e7eb;border:1px solid #374151"></div>
+
+        <form id="geminiForm" method="POST" action="/admin" style="display:none;margin-top:1.5rem">
+          <input type="hidden" name="action" value="publicar_gemini" />
+          <input type="hidden" id="g-status-field" name="status" value="pendiente" />
+
+          <div class="nuevo-form-grid">
+            <label class="form-field">
+              <span class="form-lbl">Nombre</span>
+              <input type="text" name="nombre" id="g-nombre" class="feed-input" placeholder="Opcional" />
+            </label>
+            <label class="form-field">
+              <span class="form-lbl">Especie *</span>
+              <select name="especie" id="g-especie" class="feed-input" required>
+                <option value="Perro">Perro</option>
+                <option value="Gato">Gato</option>
+                <option value="Ave">Ave</option>
+                <option value="Otro">Otro</option>
+              </select>
+            </label>
+            <label class="form-field">
+              <span class="form-lbl">Color / descripción física</span>
+              <input type="text" name="color" id="g-color" class="feed-input" />
+            </label>
+            <label class="form-field">
+              <span class="form-lbl">Zona *</span>
+              <input type="text" name="zona" id="g-zona" class="feed-input" required minlength="5" />
+            </label>
+            <label class="form-field">
+              <span class="form-lbl">Tipo</span>
+              <select name="tipo" id="g-tipo" class="feed-input">
+                <option value="perdido">Perdido</option>
+                <option value="encontrado">Encontrado</option>
+              </select>
+            </label>
+            <label class="form-field">
+              <span class="form-lbl">WhatsApp (04XXXXXXXXX)</span>
+              <input type="tel" name="whatsapp" id="g-whatsapp" class="feed-input" pattern="04[0-9]{9}" />
+            </label>
+          </div>
+          <label class="form-field" style="margin-top:.625rem">
+            <span class="form-lbl">Descripción</span>
+            <textarea name="descripcion" id="g-descripcion" class="feed-input feed-textarea" rows="3"></textarea>
+          </label>
+
+          <div style="display:flex;gap:.75rem;margin-top:1.25rem;flex-wrap:wrap">
+            <button type="submit" class="btn-submit"
+              style="flex:1;min-width:160px;background:#16a34a;color:#fff"
+              onclick="document.getElementById('g-status-field').value='publicado'">
+              ✓ Publicar directamente
+            </button>
+            <button type="submit" class="btn btn-outline"
+              style="flex:1;min-width:160px"
+              onclick="document.getElementById('g-status-field').value='pendiente'">
+              ⏳ Enviar como pendiente
+            </button>
+          </div>
         </form>
       </div>
     </div>
@@ -1368,6 +1461,23 @@ if (isAuth) {
   @media (prefers-reduced-motion: reduce) {
     .modal-overlay, .modal-box { animation: none; }
   }
+
+  /* ── Gemini Vision tab ───────────────────────────────────────── */
+  .gemini-preview {
+    height: 200px;
+    background: #1f2937;
+    border: 2px dashed #374151;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    overflow: hidden;
+    transition: border-color .15s;
+  }
+  .gemini-preview:hover { border-color: #F5A623; }
+  .gemini-preview:focus-visible { outline: 2px solid #F5A623; outline-offset: 2px; }
+  .gemini-placeholder { color: #9ca3af; font-size: .875rem; text-align: center; pointer-events: none; }
 </style>
 
 <script>
@@ -1651,4 +1761,95 @@ if (isAuth) {
   setupSearch('searchPendientes', 'tablaPendientes', 'pendiente-row')
   setupSearch('searchPublicadas', 'tablaPublicadas', 'mascota-row')
   setupSearch('searchVets',       'tablaVets',       'vet-row')
+
+  // ── Gemini Vision tab
+  ;(function() {
+    var geminiImg   = document.getElementById('geminiImg')
+    if (!geminiImg) return
+    var btnSel      = document.getElementById('btnSeleccionar')
+    var btnExtraer  = document.getElementById('btnExtraer')
+    var preview     = document.getElementById('geminiPreview')
+    var previewImg  = document.getElementById('geminiPreviewImg')
+    var placeholder = document.getElementById('geminiPlaceholder')
+    var geminiMsg   = document.getElementById('geminiMsg')
+    var geminiForm  = document.getElementById('geminiForm')
+
+    function showMsg(text, ok) {
+      geminiMsg.style.display     = 'block'
+      geminiMsg.textContent       = text
+      geminiMsg.style.background  = ok ? '#064e3b' : '#1f2937'
+      geminiMsg.style.borderColor = ok ? '#16a34a' : '#374151'
+    }
+
+    function loadPreview(file) {
+      var reader = new FileReader()
+      reader.onload = function(e) {
+        previewImg.src            = e.target.result
+        previewImg.style.display  = 'block'
+        placeholder.style.display = 'none'
+        btnExtraer.disabled       = false
+      }
+      reader.readAsDataURL(file)
+    }
+
+    btnSel.addEventListener('click', function() { geminiImg.click() })
+    preview.addEventListener('click', function() { geminiImg.click() })
+    preview.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); geminiImg.click() }
+    })
+    geminiImg.addEventListener('change', function() {
+      if (this.files[0]) loadPreview(this.files[0])
+    })
+
+    btnExtraer.addEventListener('click', async function() {
+      var file = geminiImg.files[0]
+      if (!file) return
+      btnExtraer.disabled = true
+      showMsg('⏳ Analizando imagen con Gemini Vision...', false)
+
+      var reader = new FileReader()
+      reader.onload = async function(e) {
+        var base64 = e.target.result.split(',')[1]
+        var mime   = file.type || 'image/jpeg'
+        try {
+          var r = await fetch('/api/gemini-extract', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ base64: base64, mime: mime })
+          })
+          var data = await r.json()
+          if (!r.ok || data.error) {
+            showMsg('❌ ' + (data.error || 'Error al extraer datos'), false)
+            btnExtraer.disabled = false
+            return
+          }
+          if (data.nombre)      document.getElementById('g-nombre').value = data.nombre
+          if (data.especie) {
+            var selEsp = document.getElementById('g-especie')
+            for (var i = 0; i < selEsp.options.length; i++) {
+              if (selEsp.options[i].value === data.especie) { selEsp.selectedIndex = i; break }
+            }
+          }
+          if (data.color)       document.getElementById('g-color').value = data.color
+          if (data.zona)        document.getElementById('g-zona').value = data.zona
+          if (data.descripcion) document.getElementById('g-descripcion').value = data.descripcion
+          if (data.whatsapp)    document.getElementById('g-whatsapp').value = data.whatsapp
+          if (data.tipo) {
+            var selTip = document.getElementById('g-tipo')
+            for (var j = 0; j < selTip.options.length; j++) {
+              if (selTip.options[j].value === data.tipo) { selTip.selectedIndex = j; break }
+            }
+          }
+          showMsg('✓ Datos extraídos. Revisa y edita antes de guardar.', true)
+          geminiForm.style.display = 'block'
+          geminiForm.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          btnExtraer.disabled = false
+        } catch(err) {
+          showMsg('❌ Error de red: ' + err.message, false)
+          btnExtraer.disabled = false
+        }
+      }
+      reader.readAsDataURL(file)
+    })
+  })()
 </script>
