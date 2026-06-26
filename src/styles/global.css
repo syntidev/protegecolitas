@@ -8,11 +8,11 @@ img { display: block; max-width: 100%; }
   --arena:      #F7E8BF;
   --fondo:      #FFF8EA;
   --card:       #FFFFFF;
-  --border:     #E8E1D6;
+  --border:     #E5DDD0;
   --texto:      #3B2A1A;
   --texto-sec:  #6B7280;
   --texto-muted:#9CA3AF;
-  --marron:     #7A4A24;
+  --marron:     #6B3A2A;
   --accion:     #C96A1B;
   --accion-hover:#A85514;
   --verde:      #34A853;
@@ -25,6 +25,11 @@ img { display: block; max-width: 100%; }
   --naranja-bg: #ffedd5;
   --rosa:       #E91E63;
   --rosa-bg:    #fce7f3;
+  --amarillo:   #F5C107;
+  --blanco:     #FFFFFF;
+  --gris-bg:    #F9F6F0;
+  --gris-txt:   #6B7280;
+  --negro:      #1A1A1A;
 }
 
 html { scroll-behavior: smooth; }
