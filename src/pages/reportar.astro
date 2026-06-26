@@ -54,7 +54,7 @@ import Base from '../layouts/Base.astro'
       <div class="photo-zone" id="photoZone">
         <button type="button" class="photo-add" id="photoAddBtn" aria-label="Agregar foto">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3.5" stroke="currentColor" stroke-width="1.8"/><path d="M9 5l1.5-2h3L15 5" stroke="currentColor" stroke-width="1.8"/></svg>
-          <span>Agregar foto</span>
+          <span>Agregar foto 📷</span>
         </button>
         <div class="photo-previews" id="photoPreviews"></div>
       </div>
@@ -75,7 +75,7 @@ import Base from '../layouts/Base.astro'
     <!-- Especie -->
     <div class="field-group">
       <label class="field-label">
-        Especie
+        ¿Qué animal es?
         <span class="field-req">*</span>
       </label>
       <div class="chip-group" id="especieGroup" role="radiogroup" aria-label="Especie">
@@ -91,7 +91,7 @@ import Base from '../layouts/Base.astro'
     <!-- Color y descripción -->
     <div class="field-group">
       <label class="field-label" for="color">
-        Color
+        ¿De qué color es?
         <span class="field-req">*</span>
       </label>
       <input type="text" id="color" name="color" class="rpt-input" placeholder="Ej: marrón con manchas blancas" autocomplete="off" />
@@ -100,7 +100,7 @@ import Base from '../layouts/Base.astro'
 
     <div class="field-group">
       <label class="field-label" for="descripcion">
-        Descripción
+        Cuéntanos más
         <span class="field-req">*</span>
       </label>
       <textarea id="descripcion" name="descripcion" class="rpt-textarea" rows="3" placeholder="Ej: Labrador de 3 años, collar azul, muy tranquilo…"></textarea>
@@ -109,7 +109,7 @@ import Base from '../layouts/Base.astro'
 
     <!-- Tamaño (solo perdido) -->
     <div class="field-group perdido-only">
-      <label class="field-label">Tamaño</label>
+      <label class="field-label">¿De qué tamaño es?</label>
       <div class="chip-group" role="radiogroup" aria-label="Tamaño">
         <button type="button" class="chip" data-field="tamanio" data-value="pequeño">Pequeño</button>
         <button type="button" class="chip" data-field="tamanio" data-value="mediano">Mediano</button>
@@ -136,7 +136,7 @@ import Base from '../layouts/Base.astro'
     <!-- Zona -->
     <div class="field-group">
       <label class="field-label" for="zona">
-        Zona o sector
+        ¿Dónde lo viste?
         <span class="field-req">*</span>
       </label>
       <input type="text" id="zona" name="zona" class="rpt-input" placeholder="Ej: Porlamar, sector Las Margaritas" autocomplete="off" />
@@ -146,7 +146,7 @@ import Base from '../layouts/Base.astro'
     <!-- Señas particulares (solo perdido) -->
     <div class="field-group perdido-only">
       <label class="field-label" for="senias">
-        Señas particulares
+        Algo que lo identifique
         <span class="field-note">Opcional</span>
       </label>
       <textarea id="senias" name="senias" class="rpt-textarea" rows="2" placeholder="Cicatrices, collar, chip, comportamiento…"></textarea>
@@ -155,7 +155,7 @@ import Base from '../layouts/Base.astro'
     <!-- Tu nombre -->
     <div class="field-group">
       <label class="field-label" for="contacto_nombre">
-        Tu nombre
+        ¿Cómo te llamamos?
         <span class="field-req">*</span>
       </label>
       <input type="text" id="contacto_nombre" name="contacto_nombre" class="rpt-input" placeholder="¿Cómo te llamamos?" autocomplete="given-name" />
@@ -165,7 +165,7 @@ import Base from '../layouts/Base.astro'
     <!-- WhatsApp -->
     <div class="field-group">
       <label class="field-label" for="whatsapp">
-        Tu WhatsApp
+        Tu WhatsApp venezolano
         <span class="field-req">*</span>
         <span class="field-note">04XX-XXXXXXX</span>
       </label>
@@ -179,7 +179,7 @@ import Base from '../layouts/Base.astro'
 
     <div class="submit-wrap">
       <button type="submit" class="btn-submit" id="btnSubmit">
-        <span id="btnLabel">Enviar reporte</span>
+        <span id="btnLabel">Enviar reporte →</span>
         <span id="btnSpinner" class="spinner" aria-hidden="true" style="display:none"></span>
       </button>
       <p class="submit-note" id="spinnerMsg" style="display:none">Estamos guardando tu reporte…</p>
@@ -262,8 +262,8 @@ import Base from '../layouts/Base.astro'
   flex-shrink: 0;
 }
 .rpt-brand {
-  font-family: 'Syne', sans-serif;
-  font-weight: 800;
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
   font-size: 17px;
   color: var(--marron);
 }
@@ -284,8 +284,8 @@ import Base from '../layouts/Base.astro'
   margin-bottom: 10px;
 }
 .s1-title {
-  font-family: 'Syne', sans-serif;
-  font-weight: 800;
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
   font-size: clamp(30px, 8vw, 42px);
   line-height: 1.05;
   color: var(--marron);
@@ -298,12 +298,11 @@ import Base from '../layouts/Base.astro'
 .type-cards {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  flex: 1;
+  gap: 12px;
 }
 .type-card {
-  flex: 1;
-  min-height: 160px;
+  height: 180px;
+  flex-shrink: 0;
   border: none;
   border-radius: 20px;
   cursor: pointer;
@@ -311,7 +310,7 @@ import Base from '../layouts/Base.astro'
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-end;
-  padding: 24px 22px;
+  padding: 20px 22px;
   text-align: left;
   position: relative;
   overflow: hidden;
@@ -330,25 +329,26 @@ import Base from '../layouts/Base.astro'
   box-shadow: 0 4px 20px rgba(245,193,7,.28);
 }
 .card-icon {
-  font-size: 44px;
+  font-size: 32px;
   line-height: 1;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
   display: block;
 }
 .card-label {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Fredoka', sans-serif;
   font-size: 18px;
-  font-weight: 400;
+  font-weight: 700;
   line-height: 1.3;
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 .card-perdido .card-label { color: rgba(255,255,255,.8); }
 .card-perdido .card-label strong { color: #fff; font-weight: 700; }
 .card-encontrado .card-label { color: rgba(107,58,42,.75); }
 .card-encontrado .card-label strong { color: var(--marron); font-weight: 700; }
 .card-hint {
-  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
   font-weight: 500;
   display: block;
 }
@@ -618,8 +618,8 @@ import Base from '../layouts/Base.astro'
   100% { transform: scale(1); opacity: 1; }
 }
 .s3-title {
-  font-family: 'Syne', sans-serif;
-  font-weight: 800;
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
   font-size: 32px;
   color: var(--marron);
   margin-bottom: 14px;
@@ -665,7 +665,7 @@ import Base from '../layouts/Base.astro'
 /* ─── Responsive ─── */
 @media (min-width: 600px) {
   .type-cards { flex-direction: row; }
-  .type-card { min-height: 260px; }
+  .type-card { height: 180px; flex: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
   .screen { transition: none; }

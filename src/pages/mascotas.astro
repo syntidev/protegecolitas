@@ -95,7 +95,7 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
           {mascotas.map((m) => {
             const wa = waHref(m.whatsapp, m.nombre)
             return (
-              <article class="pet-card">
+              <article class={`pet-card tipo-${(m.tipo ?? 'perdido').toLowerCase()}`}>
                 <div class="pet-photo">
                   {m.foto_url
                     ? <img src={m.foto_url} alt={m.nombre ?? 'Mascota'} loading="lazy" class="pet-img" />
@@ -115,11 +115,11 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
                 </div>
 
                 <div class="pet-actions">
-                  <a href={`/mascota/${m.id}`} class="btn-ficha">Ver ficha</a>
+                  <a href={`/mascota/${m.id}`} class="btn-ficha">Ver caso →</a>
                   {wa
                     ? <a href={wa} class="btn-wa-card" target="_blank" rel="noopener noreferrer">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.119.553 4.107 1.516 5.836L.057 23.447a.5.5 0 00.611.612l5.638-1.471A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.891 0-3.666-.5-5.197-1.373l-.371-.22-3.847 1.003 1.022-3.737-.242-.384A9.942 9.942 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
-                        WhatsApp
+                        WhatsApp directo
                       </a>
                     : <span class="btn-wa-card btn-wa-none">Sin contacto</span>
                   }
@@ -155,14 +155,14 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
   text-decoration: none; transition: background .15s; flex-shrink: 0;
 }
 .back-btn:hover { background: var(--border); }
-.brand { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 17px; color: var(--marron); }
+.brand { font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 17px; color: var(--marron); }
 
 .content { padding: 0 16px 100px; max-width: 900px; margin: 0 auto; width: 100%; }
 
 /* ─── Hero ─── */
 .hero-section { padding: 28px 0 20px; }
 .page-title {
-  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-family: 'Fredoka', sans-serif; font-weight: 700;
   font-size: clamp(28px, 7vw, 40px); line-height: 1.05;
   color: var(--marron); margin-bottom: 8px; text-wrap: balance;
 }
@@ -222,13 +222,15 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
   overflow: hidden; display: flex; flex-direction: column;
   transition: box-shadow .2s, transform .2s;
 }
+.pet-card.tipo-perdido    { border-left: 3px solid var(--rojo); }
+.pet-card.tipo-encontrado { border-left: 3px solid var(--verde); }
 .pet-card:hover {
   box-shadow: 0 6px 20px rgba(107,58,42,.1);
   transform: translateY(-2px);
 }
 
 .pet-photo {
-  position: relative; height: 180px; overflow: hidden;
+  position: relative; height: 120px; overflow: hidden;
   background: var(--gris-bg); flex-shrink: 0;
 }
 .pet-img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -247,6 +249,7 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
 
 .pet-info { padding: 12px 12px 8px; flex: 1; }
 .pet-name {
+  font-family: 'Fredoka', sans-serif;
   font-size: 14px; font-weight: 700; color: var(--marron);
   margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }

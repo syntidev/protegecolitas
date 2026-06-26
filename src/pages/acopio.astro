@@ -31,7 +31,7 @@ const items = [
 
     <main class="content">
       <div class="hero-section">
-        <h1 class="page-title">Centro de<br /><em>Acopio</em></h1>
+        <h1 class="page-title">Centro de acopio<br /><em>· Rita Ferrer</em></h1>
         <p class="page-sub">Punto de recepción de donaciones para mascotas afectadas.</p>
       </div>
 
@@ -39,8 +39,9 @@ const items = [
       <section class="location-card">
         <div class="location-icon" aria-hidden="true">📍</div>
         <div class="location-body">
-          <span class="location-label">Dirección</span>
+          <span class="location-label">Rita Ferrer · Centro de Acopio</span>
           <p class="location-address">Urb. El Marqués, Caracas</p>
+          <a href="https://wa.me/584222494136" class="location-wa-num" target="_blank" rel="noopener noreferrer">📱 0422-2494136</a>
           <div class="location-horario">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             <span>Lunes a Domingo · 6:00 AM – 10:00 PM</span>
@@ -181,13 +182,13 @@ const items = [
   text-decoration: none; transition: background .15s;
 }
 .back-btn:hover { background: var(--border); }
-.brand { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 17px; color: var(--marron); }
+.brand { font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 17px; color: var(--marron); }
 
 .content { padding: 0 16px 100px; max-width: 600px; margin: 0 auto; width: 100%; }
 
 .hero-section { padding: 28px 0 24px; }
 .page-title {
-  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-family: 'Fredoka', sans-serif; font-weight: 700;
   font-size: clamp(28px, 7vw, 40px); line-height: 1.05;
   color: var(--marron); margin-bottom: 8px; text-wrap: balance;
 }
@@ -206,6 +207,11 @@ const items = [
 .location-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--gris-txt); }
 .location-address { font-size: 15px; font-weight: 600; color: var(--marron); line-height: 1.4; }
 .location-horario { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--gris-txt); }
+.location-wa-num {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 15px; font-weight: 700; color: #25D366;
+  text-decoration: none; letter-spacing: .01em;
+}
 .btn-ubicacion {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 11px 16px; border-radius: 12px;
@@ -219,7 +225,7 @@ const items = [
 /* Qué traer */
 .items-section { margin-bottom: 36px; }
 .section-title {
-  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-family: 'Fredoka', sans-serif; font-weight: 700;
   font-size: clamp(20px, 5vw, 26px); color: var(--marron);
   margin-bottom: 4px; line-height: 1.2; text-wrap: balance;
 }
@@ -330,7 +336,7 @@ const items = [
 .pm-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
 .pm-icon { font-size: 28px; }
 .pm-title {
-  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-family: 'Fredoka', sans-serif; font-weight: 700;
   font-size: 17px; color: var(--marron); margin: 0 0 2px;
 }
 .pm-sub { font-size: 13px; color: var(--gris-txt); margin: 0; }
