@@ -34,48 +34,6 @@ function json(body: unknown, status = 200): Response {
   })
 }
 
-function parseBase64(raw: string): { buffer: Buffer; ext: string; contentType: string } | null {
-  let b64 = raw
-  let contentType = 'image/jpeg'
-  let ext = 'jpg'
-
-  // Acepta data URLs: data:image/jpeg;base64,...
-  const match = raw.match(/^data:(image\/[a-z]+);base64,(.+)$/i)
-  if (match) {
-    contentType = match[1].toLowerCase()
-    b64 = match[2]
-    if (contentType === 'image/png') ext = 'png'
-    else if (contentType === 'image/webp') ext = 'webp'
-    else if (contentType === 'image/gif') ext = 'gif'
-    else ext = 'jpg'
-  }
-
-  try {
-    const buffer = Buffer.from(b64, 'base64')
-    if (buffer.length === 0) return null
-    return { buffer, ext, contentType }
-  } catch {
-    return null
-  }
-}
-
-async function uploadFoto(mascotaId: string, index: number, raw: string): Promise<string | null> {
-  const parsed = parseBase64(raw)
-  if (!parsed) return null
-
-  const { buffer, ext, contentType } = parsed
-  const filename = `${mascotaId}/foto_${index}.${ext}`
-
-  const { error } = await supabaseAdmin.storage
-    .from('mascotas')
-    .upload(filename, buffer, { contentType, upsert: true })
-
-  if (error) return null
-
-  const { data } = supabaseAdmin.storage.from('mascotas').getPublicUrl(filename)
-  return data.publicUrl ?? null
-}
-
 export const POST: APIRoute = async ({ request, clientAddress }) => {
   const authHeader = request.headers.get('Authorization') ?? ''
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null
@@ -86,20 +44,29 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     return json({ error: 'Demasiados reportes. Espera 5 minutos antes de volver a reportar.' }, 429)
   }
 
-  let body: Record<string, string>
+  let fd: FormData
   try {
-    body = await request.json()
+    fd = await request.formData()
   } catch {
-    return json({ error: 'Cuerpo de solicitud inválido' }, 400)
+    return json({ error: 'Datos inválidos' }, 400)
   }
 
-  const { nombre, especie, descripcion, color, tamanio, zona, whatsapp, tipo, foto1, foto2, foto3, latitud, longitud } = body
+  const nombre    = fd.get('nombre')?.toString().trim() || null
+  const especie   = fd.get('especie')?.toString().trim() || ''
+  const descripcion = fd.get('descripcion')?.toString().trim() || null
+  const color     = fd.get('color')?.toString().trim() || null
+  const tamanio   = fd.get('tamanio')?.toString().trim() || null
+  const zona      = fd.get('zona')?.toString().trim() || ''
+  const whatsapp  = fd.get('whatsapp')?.toString().trim() || ''
+  const tipo      = fd.get('tipo')?.toString().trim() || null
+  const latitudRaw  = fd.get('latitud')?.toString()
+  const longitudRaw = fd.get('longitud')?.toString()
 
   if (!especie || !ESPECIES.includes(especie as typeof ESPECIES[number])) {
     return json({ error: `Especie inválida. Valores permitidos: ${ESPECIES.join(', ')}` }, 400)
   }
 
-  if (!zona || zona.trim().length < 5) {
+  if (!zona || zona.length < 5) {
     return json({ error: 'Zona debe tener mínimo 5 caracteres' }, 400)
   }
 
@@ -110,17 +77,17 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   const { data, error } = await supabaseAdmin
     .from('mascotas')
     .insert({
-      nombre: nombre?.trim() || null,
+      nombre,
       especie,
-      descripcion: descripcion?.trim() || null,
-      color: color?.trim() || null,
-      tamanio: tamanio?.trim() || null,
-      zona: zona.trim(),
+      descripcion,
+      color,
+      tamanio,
+      zona,
       whatsapp,
-      tipo: tipo?.trim() || null,
+      tipo,
       status: 'pendiente',
-      latitud: latitud ? parseFloat(latitud) : null,
-      longitud: longitud ? parseFloat(longitud) : null,
+      latitud: latitudRaw ? parseFloat(latitudRaw) : null,
+      longitud: longitudRaw ? parseFloat(longitudRaw) : null,
     })
     .select('id')
     .single()
@@ -131,10 +98,21 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 
   if (!isModerador) rateMap.set(clientAddress, Date.now())
 
-  // Upload fotos en paralelo
-  const fotoUrls = await Promise.all(
-    [foto1, foto2, foto3].map((f, i) => f ? uploadFoto(data.id, i + 1, f) : Promise.resolve(null))
-  )
+  // Upload fotos a Supabase Storage (binario directo desde FormData)
+  const fotoUrls: (string | null)[] = []
+  for (let i = 1; i <= 3; i++) {
+    const entry = fd.get(`foto${i}`)
+    if (!entry || typeof entry === 'string') { fotoUrls.push(null); continue }
+    const file = entry as File
+    if (file.size === 0) { fotoUrls.push(null); continue }
+    const path = `${data.id}/foto_${i}.jpg`
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from('mascotas')
+      .upload(path, await file.arrayBuffer(), { contentType: 'image/jpeg', upsert: true })
+    if (uploadError) { fotoUrls.push(null); continue }
+    const { data: urlData } = supabaseAdmin.storage.from('mascotas').getPublicUrl(path)
+    fotoUrls.push(urlData.publicUrl ?? null)
+  }
 
   const updatePayload: Record<string, string> = {}
   if (fotoUrls[0]) updatePayload.foto_url   = fotoUrls[0]

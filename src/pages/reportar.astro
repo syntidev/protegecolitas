@@ -1045,10 +1045,19 @@ import Base from '../layouts/Base.astro'
     }
 
     try {
+      const fd = new FormData()
+      Object.entries(payload).forEach(([k, v]) => { if (v != null) fd.append(k, String(v)) })
+      compressedFiles.forEach((item, i) => {
+        const [meta, b64] = item.dataUrl.split(',')
+        const mime = (meta.match(/:(.*?);/) || [])[1] || 'image/jpeg'
+        const bstr = atob(b64)
+        const arr = new Uint8Array(bstr.length)
+        for (let j = 0; j < bstr.length; j++) arr[j] = bstr.charCodeAt(j)
+        fd.append(`foto${i + 1}`, new Blob([arr], { type: mime }), `foto${i + 1}.jpg`)
+      })
       const res = await fetch('/api/reportar', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: fd
       });
 
       if (!res.ok) {
