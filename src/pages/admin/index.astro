@@ -1,5 +1,5 @@
 ---
-import { createClient } from '@supabase/supabase-js'
+import { supabaseAdmin } from '../../lib/supabase'
 import { createHmac, timingSafeEqual } from 'crypto'
 import * as dotenv from 'dotenv'
 import { resolve } from 'path'
@@ -12,11 +12,6 @@ const ADMIN_PASS   = process.env.ADMIN_PASSWORD ?? ''
 const COOKIE_MS    = 8 * 60 * 60 * 1000
 const COOKIE_AGE   = 8 * 60 * 60
 
-const db = createClient(
-  process.env.PUBLIC_SUPABASE_URL    ?? '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.PUBLIC_SUPABASE_ANON_KEY ?? '',
-  { auth: { persistSession: false } }
-)
 
 function sign(s: string): string {
   return createHmac('sha256', ADMIN_PASS).update(s).digest('hex')
@@ -84,7 +79,7 @@ if (Astro.request.method === 'POST') {
 
   if (action === 'aprobar') {
     const id = form.get('id')?.toString() ?? ''
-    const { error } = await db.from('mascotas')
+    const { error } = await supabaseAdmin.from('mascotas')
       .update({ status: 'publicado', moderado_at: new Date().toISOString() })
       .eq('id', id)
     return new Response(JSON.stringify({ ok: !error, error: error?.message }), {
@@ -94,7 +89,7 @@ if (Astro.request.method === 'POST') {
 
   if (action === 'rechazar') {
     const id = form.get('id')?.toString() ?? ''
-    const { error } = await db.from('mascotas')
+    const { error } = await supabaseAdmin.from('mascotas')
       .update({ status: 'descartado', moderado_at: new Date().toISOString() })
       .eq('id', id)
     return new Response(JSON.stringify({ ok: !error, error: error?.message }), {
@@ -106,7 +101,7 @@ if (Astro.request.method === 'POST') {
     const id = form.get('id')?.toString() ?? ''
     const q  = parseInt(form.get('cantidad')?.toString() ?? '0', 10)
     if (id && !isNaN(q)) {
-      await db.from('necesidades')
+      await supabaseAdmin.from('necesidades')
         .update({ cantidad_recibida: q, updated_at: new Date().toISOString() })
         .eq('id', id)
     }
@@ -118,7 +113,7 @@ if (Astro.request.method === 'POST') {
     const titulo = form.get('titulo')?.toString().trim() ?? ''
     const cuerpo = form.get('cuerpo')?.toString().trim() ?? ''
     if (titulo && cuerpo) {
-      await db.from('feed').insert({ tipo, titulo, cuerpo, published_at: new Date().toISOString() })
+      await supabaseAdmin.from('feed').insert({ tipo, titulo, cuerpo, published_at: new Date().toISOString() })
     }
     return new Response(null, { status: 302, headers: { Location: '/admin' } })
   }
@@ -130,7 +125,7 @@ if (Astro.request.method === 'POST') {
     const imagen_url  = form.get('imagen_url')?.toString().trim() || null
     const activo      = form.get('activo') === 'on'
     if (titulo) {
-      await db.from('banners').insert({
+      await supabaseAdmin.from('banners').insert({
         titulo, descripcion, link, imagen_url, activo,
       })
     }
@@ -148,12 +143,12 @@ let stats = { pendientes: 0, publicadas: 0, reunidas: 0, vets: 0 }
 
 if (isAuth) {
   const [mp, mn, sp, spb, sr, sv] = await Promise.all([
-    db.from('mascotas').select('id,nombre,especie,zona,whatsapp,descripcion,color,tamanio,tipo,foto_url,created_at').eq('status','pendiente').order('created_at',{ascending:true}),
-    db.from('necesidades').select('*').order('prioridad'),
-    db.from('mascotas').select('*',{count:'exact',head:true}).eq('status','pendiente'),
-    db.from('mascotas').select('*',{count:'exact',head:true}).eq('status','publicado'),
-    db.from('mascotas').select('*',{count:'exact',head:true}).eq('status','reunido'),
-    db.from('vets').select('*',{count:'exact',head:true}),
+    supabaseAdmin.from('mascotas').select('id,nombre,especie,zona,whatsapp,descripcion,color,tamanio,tipo,foto_url,created_at').eq('status','pendiente').order('created_at',{ascending:true}),
+    supabaseAdmin.from('necesidades').select('*').order('prioridad'),
+    supabaseAdmin.from('mascotas').select('*',{count:'exact',head:true}).eq('status','pendiente'),
+    supabaseAdmin.from('mascotas').select('*',{count:'exact',head:true}).eq('status','publicado'),
+    supabaseAdmin.from('mascotas').select('*',{count:'exact',head:true}).eq('status','reunido'),
+    supabaseAdmin.from('vets').select('*',{count:'exact',head:true}),
   ])
   pendientes  = (mp.data  ?? []) as Mascota[]
   necesidades = (mn.data  ?? []) as Necesidad[]

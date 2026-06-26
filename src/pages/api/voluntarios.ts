@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro'
-import { supabase } from '../../lib/supabase'
+import { supabaseAdmin } from '../../lib/supabase'
 
 const WA_RE = /^04[0-9]{2}[0-9]{7}$/
 
@@ -42,7 +42,7 @@ export const POST: APIRoute = async ({ request }) => {
     `WhatsApp: ${whatsapp}`,
   ].filter(Boolean).join(' | ')
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('feed')
     .insert({ titulo, cuerpo, tipo: 'voluntario' })
     .select('id')

@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro'
-import { supabase } from '../../lib/supabase'
+import { supabaseAdmin } from '../../lib/supabase'
 
 const PAGE_SIZE = 20
 
@@ -18,7 +18,7 @@ export const GET: APIRoute = async ({ url }) => {
   const page = Math.max(1, parseInt(params.get('page') ?? '1', 10))
   const offset = (page - 1) * PAGE_SIZE
 
-  let query = supabase
+  let query = supabaseAdmin
     .from('mascotas')
     .select('id, nombre, especie, descripcion, color, tamanio, zona, tipo, status, foto_url, foto_url_2, foto_url_3, whatsapp, created_at')
     .eq('status', 'publicado')

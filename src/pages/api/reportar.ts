@@ -1,16 +1,5 @@
 import type { APIRoute } from 'astro'
-import { createClient } from '@supabase/supabase-js'
-import { supabase } from '../../lib/supabase'
-import * as dotenv from 'dotenv'
-import { resolve } from 'path'
-
-dotenv.config({ path: resolve(process.cwd(), '.env') })
-
-const supabaseAdmin = createClient(
-  process.env.PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { persistSession: false } }
-)
+import { supabaseAdmin } from '../../lib/supabase'
 
 const ESPECIES = ['Perro', 'Gato', 'Ave', 'Otro'] as const
 const WS_REGEX = /^04[0-9]{2}[0-9]{7}$/
@@ -25,17 +14,10 @@ function isRateLimited(ip: string): boolean {
 }
 
 async function validateModerador(token: string): Promise<boolean> {
-  const { data: { user }, error } = await supabase.auth.getUser(token)
+  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token)
   if (error || !user?.email) return false
 
-  // Crear cliente con token del usuario para que RLS aplique (authenticated policy)
-  const userClient = createClient(
-    process.env.PUBLIC_SUPABASE_URL!,
-    process.env.PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false } }
-  )
-
-  const { data } = await userClient
+  const { data } = await supabaseAdmin
     .from('moderadores')
     .select('id')
     .eq('email', user.email)
