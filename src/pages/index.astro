@@ -2,16 +2,58 @@
 import { supabaseAdmin } from '../lib/supabase'
 
 const [
-  { count: perdidos },
-  { count: encontrados },
-  { count: reunidos },
-  { data: mascotas }
+  { count: totalMascotas },
+  { count: perdidas },
+  { count: encontradas },
+  { count: reunidas },
+  { count: totalVets },
+  { data: ultimasPerdidas },
+  { data: ultimasEncontradas },
+  { data: necesidades },
+  { data: vets },
+  { data: feedItems },
+  { data: bannerActivo }
 ] = await Promise.all([
+  supabaseAdmin.from('mascotas').select('*', { count: 'exact', head: true }).neq('status', 'descartado'),
   supabaseAdmin.from('mascotas').select('*', { count: 'exact', head: true }).eq('status', 'publicado').eq('tipo', 'perdido'),
   supabaseAdmin.from('mascotas').select('*', { count: 'exact', head: true }).eq('status', 'publicado').eq('tipo', 'encontrado'),
   supabaseAdmin.from('mascotas').select('*', { count: 'exact', head: true }).eq('status', 'reunido'),
-  supabaseAdmin.from('mascotas').select('id, nombre, especie, zona, tipo, foto_url, whatsapp, created_at').eq('status', 'publicado').order('created_at', { ascending: false }).limit(20),
+  supabaseAdmin.from('vets').select('*', { count: 'exact', head: true }),
+  supabaseAdmin.from('mascotas').select('id, nombre, especie, zona, foto_url, whatsapp, created_at').eq('status', 'publicado').eq('tipo', 'perdido').order('created_at', { ascending: false }).limit(6),
+  supabaseAdmin.from('mascotas').select('id, nombre, especie, zona, foto_url, whatsapp, created_at').eq('status', 'publicado').eq('tipo', 'encontrado').order('created_at', { ascending: false }).limit(6),
+  supabaseAdmin.from('necesidades').select('*').order('prioridad', { ascending: true }).limit(4),
+  supabaseAdmin.from('vets').select('id, nombre, zona, whatsapp, servicios').limit(4),
+  supabaseAdmin.from('feed').select('id, tipo, titulo, cuerpo, published_at').order('published_at', { ascending: false }).limit(5),
+  supabaseAdmin.from('banners').select('*').eq('activo', true).order('created_at', { ascending: false }).limit(1),
 ])
+
+const banner = bannerActivo?.[0] ?? null
+const diasActivos = Math.floor((Date.now() - new Date('2026-06-24').getTime()) / 86400000) + 1
+
+function waUrl(whatsapp: string | null, msg = ''): string | null {
+  if (!whatsapp) return null
+  const num = `58${whatsapp.slice(1)}`
+  return msg ? `https://wa.me/${num}?text=${encodeURIComponent(msg)}` : `https://wa.me/${num}`
+}
+
+function getInitials(nombre: string): string {
+  return nombre.split(' ').map(w => w[0]).filter(Boolean).join('').slice(0, 2).toUpperCase()
+}
+
+function progColor(pct: number): string {
+  if (pct < 30) return '#CC1F1F'
+  if (pct < 70) return '#F5A623'
+  return '#16A34A'
+}
+
+function feedDate(iso: string | null): { day: string; mon: string } {
+  if (!iso) return { day: '--', mon: '---' }
+  const d = new Date(iso)
+  return {
+    day: d.getDate().toString().padStart(2, '0'),
+    mon: d.toLocaleDateString('es-VE', { month: 'short' }).toUpperCase().replace('.', ''),
+  }
+}
 ---
 <!DOCTYPE html>
 <html lang="es">
@@ -19,430 +61,793 @@ const [
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Plataforma de emergencia para reunir mascotas perdidas con sus familias tras el terremoto de Venezuela 2026." />
-  <meta property="og:title" content="Protege Colitas" />
-  <meta property="og:description" content="Reuniendo mascotas con sus familias. Terremoto Venezuela 2026." />
+  <meta property="og:title" content="Protege Colitas — Venezuela 2026" />
+  <meta property="og:description" content="Reuniendo mascotas con sus familias. Reporta, busca, ayuda." />
   <meta property="og:type" content="website" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/index.css" />
   <title>Protege Colitas — Reuniendo mascotas con sus familias</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:       #F9F6F0;
-      --marron:   #6B3A2A;
-      --amarillo: #F5C107;
-      --blanco:   #FFFFFF;
-      --gris-bg:  #F0EBE3;
-      --gris-txt: #6B7280;
+      --amarillo: #F5A623;
+      --marron:   #3D1C02;
+      --rojo:     #CC1F1F;
       --verde:    #16A34A;
-      --rojo:     #DC2626;
-      --border:   #E5DDD0;
+      --crema:    #FDF8F0;
+      --blanco:   #FFFFFF;
+      --gris:     #6B7280;
+      --border:   #E8DDD0;
+      --wa:       #25D366;
+      --azul:     #2563EB;
     }
 
-    html { background: var(--bg); }
+    html { background: var(--crema); }
     body {
       font-family: 'Inter', sans-serif;
-      background: var(--bg);
+      background: var(--crema);
       color: var(--marron);
       min-height: 100dvh;
       padding-bottom: 68px;
       -webkit-font-smoothing: antialiased;
     }
+    @media (min-width: 768px) { body { padding-bottom: 0; } }
 
-    /* ─── Ribbon ─── */
-    .ribbon {
-      background: var(--rojo);
-      color: #fff;
-      font-size: 13px;
-      font-weight: 600;
-      text-align: center;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0 16px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+    /* Sección a sección: separador 8px crema */
+    section { border-top: 8px solid var(--crema); }
 
-    /* ─── Header ─── */
-    .site-header {
-      background: var(--marron);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 20px;
-    }
-    .site-logo {
-      font-family: 'Syne', sans-serif;
-      font-weight: 800;
-      font-size: 20px;
-      color: #fff;
-      text-decoration: none;
-    }
-    .header-admin {
-      font-size: 12px;
-      color: rgba(255,255,255,.4);
-      text-decoration: none;
-      transition: color .15s;
-    }
-    .header-admin:hover { color: rgba(255,255,255,.8); }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
 
-    /* ─── Hero ─── */
-    .hero {
-      background: var(--amarillo);
-      padding: 32px 16px 28px;
+    /* ─── Scrollbar hide ─── */
+    .scroll-x { overflow-x: auto; scrollbar-width: none; }
+    .scroll-x::-webkit-scrollbar { display: none; }
+
+    /* ─── Section headers ─── */
+    .sec-head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      margin-bottom: 14px;
     }
-    .hero-inner {
-      max-width: 480px;
-      margin: 0 auto;
-      text-align: center;
+    .sec-title {
+      font-family: 'Fredoka', sans-serif; font-weight: 700;
+      font-size: 20px; color: var(--marron);
     }
-    .hero-stats {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin-bottom: 18px;
+    .sec-link {
+      font-size: 13px; font-weight: 600; color: var(--gris);
+      text-decoration: none; transition: color .15s;
     }
-    .hero-stat {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-    }
-    .hero-stat-num {
-      font-family: 'Syne', sans-serif;
-      font-weight: 800;
-      font-size: clamp(36px, 9vw, 52px);
-      color: var(--marron);
-      line-height: 1;
-    }
-    .hero-stat-label {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--marron);
-      opacity: .7;
-    }
-    .hero-line {
-      font-size: 15px;
-      color: var(--marron);
-      line-height: 1.5;
-      margin-bottom: 22px;
-      opacity: .8;
-    }
-    .hero-ctas {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .cta {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      height: 52px;
-      border-radius: 12px;
-      font-family: 'Inter', sans-serif;
-      font-size: 15px;
-      font-weight: 700;
-      text-decoration: none;
+    .sec-link:hover { color: var(--marron); }
+    .sec-empty { font-size: 14px; color: var(--gris); padding: 16px 0; }
+
+    /* ─── Buttons ─── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      min-height: 44px; border-radius: 10px;
+      font-family: 'Inter', sans-serif; font-weight: 700; font-size: 14px;
+      text-decoration: none; border: none; cursor: pointer;
       transition: opacity .15s, transform .1s;
       -webkit-tap-highlight-color: transparent;
     }
-    .cta:active { transform: scale(.98); }
-    .cta:hover { opacity: .88; }
-    .cta-perdido {
-      background: var(--marron);
-      color: #fff;
-    }
-    .cta-encontrado {
-      background: var(--blanco);
-      color: var(--marron);
+    .btn:hover { opacity: .88; }
+    .btn:active { transform: scale(.97); }
+    .btn-marron   { background: var(--marron); color: #fff; }
+    .btn-rojo     { background: var(--rojo);   color: #fff; }
+    .btn-verde    { background: var(--verde);   color: #fff; }
+    .btn-azul     { background: var(--azul);    color: #fff; }
+    .btn-amarillo { background: var(--amarillo); color: var(--marron); }
+    .btn-wa       { background: var(--wa);      color: #fff; }
+    .btn-outline-marron {
+      background: transparent; color: var(--marron);
       border: 2px solid var(--marron);
     }
 
-    /* ─── Lista reportes ─── */
-    .lista-section {
-      padding: 24px 16px 0;
-      max-width: 640px;
-      margin: 0 auto;
+    /* ══ 1. BANNER ══ */
+    .banner-dyn {
+      background: var(--marron); color: #fff; padding: 14px 16px;
     }
-    .lista-title {
-      font-family: 'Syne', sans-serif;
-      font-weight: 800;
-      font-size: 18px;
-      color: var(--marron);
-      margin-bottom: 14px;
+    .banner-dyn-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; flex-direction: column; gap: 6px;
     }
-    .pet-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 12px 14px;
-      background: var(--blanco);
-      border-radius: 10px;
-      margin-bottom: 8px;
+    .banner-dyn-title {
+      font-family: 'Fredoka', sans-serif; font-weight: 700;
+      font-size: 16px; display: flex; align-items: center; gap: 8px;
+    }
+    .banner-dyn-desc { font-size: 14px; opacity: .85; line-height: 1.4; }
+    .banner-dyn-link {
+      align-self: flex-start; margin-top: 4px;
+      padding: 6px 14px; border-radius: 8px;
+      background: var(--amarillo); color: var(--marron);
+      font-weight: 700; font-size: 13px; text-decoration: none;
+      min-height: 36px; display: inline-flex; align-items: center;
+    }
+
+    /* ══ 2. HEADER ══ */
+    .site-header {
+      background: var(--blanco); border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 50; padding: 12px 16px;
+    }
+    .header-inner {
+      max-width: 1200px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .header-logo {
+      display: flex; align-items: center; gap: 8px; text-decoration: none;
+    }
+    .header-logo img { width: 36px; height: 36px; object-fit: contain; }
+    .header-logo-name {
+      font-family: 'Fredoka', sans-serif; font-weight: 700;
+      font-size: 20px; color: var(--marron);
+    }
+    .header-search { display: none; flex: 1; max-width: 400px; }
+    .header-search input {
+      width: 100%; padding: 9px 14px 9px 38px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      font-family: 'Inter', sans-serif; font-size: 14px; color: var(--marron);
+      background: var(--crema); outline: none; transition: border-color .15s;
+    }
+    .header-search input:focus { border-color: var(--amarillo); }
+    .header-search-wrap { position: relative; flex: 1; }
+    .header-search-icon {
+      position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+      color: var(--gris); pointer-events: none; font-size: 16px;
+    }
+    .header-badge { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .badge-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--verde); flex-shrink: 0;
+      animation: blink 1.4s ease-in-out infinite;
+    }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .2; } }
+    .badge-text { font-size: 11px; font-weight: 700; color: var(--rojo); text-transform: uppercase; letter-spacing: .04em; }
+    @media (min-width: 768px) { .header-search { display: flex; } }
+
+    /* ══ 3. CONTADORES ══ */
+    .stats-section { background: var(--crema); padding: 4px 0; }
+    .stats-row {
+      display: flex; overflow-x: auto; scrollbar-width: none;
+      padding: 8px 16px;
+    }
+    .stats-row::-webkit-scrollbar { display: none; }
+    .stat-item {
+      flex-shrink: 0; min-width: 88px;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 12px 16px; border-right: 1px solid var(--border);
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-icon { color: var(--amarillo); font-size: 24px; line-height: 1; }
+    .stat-num {
+      font-family: 'Fredoka', sans-serif; font-weight: 700;
+      font-size: 28px; color: var(--marron); line-height: 1;
+    }
+    .stat-label { font-size: 11px; font-weight: 600; color: var(--gris); text-align: center; white-space: nowrap; }
+    @media (min-width: 768px) {
+      .stats-row { justify-content: center; flex-wrap: wrap; }
+      .stat-item { min-width: 120px; }
+    }
+
+    /* ══ 4. ACCIONES ══ */
+    .acciones-section { background: var(--blanco); padding: 24px 16px; }
+    @media (min-width: 768px) { .acciones-section { padding: 32px 24px; } }
+    .acciones-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+    }
+    @media (min-width: 768px) {
+      .acciones-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    }
+    .accion-card {
+      border: 1.5px solid var(--border); border-radius: 12px;
+      padding: 16px; display: flex; flex-direction: column; gap: 8px;
+    }
+    .accion-card-rojo     { border-color: var(--rojo); }
+    .accion-card-verde    { border-color: var(--verde); }
+    .accion-card-azul     { border-color: var(--azul); }
+    .accion-card-amarillo { border-color: var(--amarillo); }
+    .accion-icon { font-size: 28px; line-height: 1; }
+    .accion-title {
+      font-family: 'Fredoka', sans-serif; font-weight: 600;
+      font-size: 16px; color: var(--marron); line-height: 1.2;
+    }
+    .accion-desc { font-size: 12px; color: var(--gris); line-height: 1.4; flex: 1; }
+    .accion-btn { width: 100%; padding: 0 12px; min-height: 40px; border-radius: 8px; font-size: 13px; }
+
+    /* ══ 5 & 6. CARDS MASCOTAS ══
+       FIRMA: franja de color izquierda — rojo para perdido, verde para encontrado.
+       No es un badge flotante. La estructura misma comunica urgencia. */
+    .mascotas-section { padding: 24px 0; }
+    .mascotas-section-blanco { background: var(--blanco); }
+    .mascotas-section-crema  { background: var(--crema);  }
+    @media (min-width: 768px) { .mascotas-section { padding: 32px 0; } }
+
+    .mascotas-sec-inner { padding: 0 16px; }
+    @media (min-width: 768px) { .mascotas-sec-inner { padding: 0 24px; } }
+
+    .cards-scroll {
+      display: flex; gap: 12px; overflow-x: auto; scrollbar-width: none;
+      padding: 0 16px 8px;
+    }
+    .cards-scroll::-webkit-scrollbar { display: none; }
+    @media (min-width: 768px) { .cards-scroll { gap: 16px; padding: 0 24px 8px; } }
+
+    /* La firma: border-left cambia de estado */
+    .pet-card {
+      flex-shrink: 0; width: 160px;
+      border-radius: 12px;
       border: 1px solid var(--border);
-      border-left: 3px solid transparent;
+      border-left: 4px solid var(--border); /* default: sin estado */
+      background: var(--blanco); overflow: hidden;
+      display: flex; flex-direction: column;
     }
-    .pet-row-perdido    { border-left-color: var(--rojo); }
-    .pet-row-encontrado { border-left-color: var(--verde); }
-    .pet-row-info { flex: 1; min-width: 0; }
-    .pet-row-top {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 3px;
-    }
-    .pet-row-nombre {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--marron);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .badge {
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: .06em;
-      text-transform: uppercase;
-      padding: 2px 6px;
-      border-radius: 4px;
-      flex-shrink: 0;
-    }
-    .badge-perdido {
-      background: #FEE2E2;
-      color: var(--rojo);
-    }
-    .badge-encontrado {
-      background: #DCFCE7;
-      color: var(--verde);
-    }
-    .pet-row-meta {
-      font-size: 13px;
-      color: var(--gris-txt);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .btn-wa-mini {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      padding: 7px 12px;
-      background: #25D366;
-      color: #fff;
-      border-radius: 7px;
-      font-size: 12px;
-      font-weight: 700;
-      text-decoration: none;
-      white-space: nowrap;
-      flex-shrink: 0;
-      min-height: 34px;
-      transition: opacity .15s;
-    }
-    .btn-wa-mini:hover { opacity: .9; }
+    .pet-card-perdido    { border-left-color: var(--rojo); }
+    .pet-card-encontrado { border-left-color: var(--verde); }
+    .pet-card-reunido    { border-left-color: var(--gris); }
 
-    /* ─── Empty state ─── */
-    .empty-state {
-      text-align: center;
-      padding: 40px 16px;
-      color: var(--gris-txt);
+    .pet-card-photo {
+      position: relative; width: 160px; height: 120px;
+      background: var(--crema); overflow: hidden; flex-shrink: 0;
     }
-    .empty-state a {
-      color: var(--marron);
-      font-weight: 600;
-      text-decoration: none;
+    .pet-card-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .pet-card-emoji {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 40px;
     }
-    .empty-state a:hover { text-decoration: underline; }
+    .pet-badge {
+      position: absolute; top: 8px; left: 8px;
+      font-size: 9px; font-weight: 700; letter-spacing: .06em;
+      text-transform: uppercase; padding: 2px 6px; border-radius: 4px;
+    }
+    .pet-badge-perdido    { background: var(--rojo);  color: #fff; }
+    .pet-badge-encontrado { background: var(--verde); color: #fff; }
+    .pet-card-body { padding: 8px; display: flex; flex-direction: column; gap: 2px; flex: 1; }
+    .pet-card-name {
+      font-family: 'Fredoka', sans-serif; font-weight: 600;
+      font-size: 14px; color: var(--marron);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .pet-card-zona { font-size: 12px; color: var(--gris); }
+    .pet-card-wa {
+      display: flex; align-items: center; justify-content: center; gap: 4px;
+      height: 36px; border-radius: 0 0 11px 11px;
+      background: var(--wa); color: #fff;
+      font-size: 12px; font-weight: 700; text-decoration: none;
+      transition: opacity .15s; margin-top: auto;
+    }
+    .pet-card-wa:hover { opacity: .9; }
+    .pet-card-link {
+      display: flex; align-items: center; justify-content: center;
+      height: 36px; text-decoration: none;
+      font-size: 12px; font-weight: 700; color: var(--marron);
+      border-top: 1px solid var(--border); margin-top: auto;
+      transition: background .15s;
+    }
+    .pet-card-link:hover { background: var(--crema); }
 
-    /* ─── Ver todos ─── */
-    .ver-todos {
-      text-align: center;
-      padding: 20px 16px 28px;
+    /* ══ 7. NECESIDADES ══ */
+    .nec-section { background: var(--blanco); padding: 24px 16px; }
+    @media (min-width: 768px) { .nec-section { padding: 32px 24px; } }
+    .nec-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 0; border-bottom: 1px solid var(--border);
     }
-    .ver-todos a {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--gris-txt);
-      text-decoration: none;
-      transition: color .15s;
+    .nec-row:last-child { border-bottom: none; }
+    .nec-info { flex: 1; min-width: 0; }
+    .nec-nombre { font-size: 14px; font-weight: 600; color: var(--marron); margin-bottom: 6px; }
+    .nec-bar-wrap { display: flex; align-items: center; gap: 8px; }
+    .nec-bar { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .nec-bar-fill { height: 100%; border-radius: 3px; }
+    .nec-pct {
+      font-family: 'Fredoka', sans-serif; font-weight: 700;
+      font-size: 14px; width: 36px; text-align: right; flex-shrink: 0;
     }
-    .ver-todos a:hover { color: var(--marron); }
+    .btn-donar { flex-shrink: 0; padding: 0 12px; min-height: 36px; border-radius: 8px; font-size: 12px; }
 
-    /* ─── Nav bottom ─── */
+    /* ══ 8. VETERINARIOS ══ */
+    .vets-section { background: var(--crema); padding: 24px 16px; }
+    @media (min-width: 768px) { .vets-section { padding: 32px 24px; } }
+    .vets-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 768px) { .vets-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; } }
+    .vet-card {
+      background: var(--blanco); border: 1.5px solid var(--border);
+      border-radius: 12px; padding: 14px;
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .vet-avatar {
+      width: 44px; height: 44px; flex-shrink: 0;
+      background: var(--amarillo); border: 2px solid var(--marron); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 15px; color: var(--marron);
+    }
+    .vet-info { flex: 1; min-width: 0; }
+    .vet-nombre {
+      font-family: 'Fredoka', sans-serif; font-weight: 700;
+      font-size: 16px; color: var(--marron); margin-bottom: 2px;
+    }
+    .vet-zona { font-size: 12px; color: var(--gris); margin-bottom: 4px; }
+    .vet-servicios { font-size: 12px; color: var(--marron); margin-bottom: 10px; line-height: 1.4; }
+    .vet-wa {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 0 12px; min-height: 36px; border-radius: 8px;
+      background: var(--wa); color: #fff;
+      font-size: 12px; font-weight: 700; text-decoration: none; transition: opacity .15s;
+    }
+    .vet-wa:hover { opacity: .9; }
+
+    /* ══ 9. NOTICIAS ══ */
+    .noticias-section { background: var(--blanco); padding: 24px 16px; }
+    @media (min-width: 768px) { .noticias-section { padding: 32px 24px; } }
+    .feed-row {
+      display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border);
+    }
+    .feed-row:last-child { border-bottom: none; }
+    .feed-date { flex-shrink: 0; width: 40px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1px; }
+    .feed-day { font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 22px; color: var(--amarillo); line-height: 1; }
+    .feed-mon { font-size: 10px; font-weight: 700; color: var(--gris); letter-spacing: .05em; }
+    .feed-content { flex: 1; min-width: 0; }
+    .feed-titulo { font-size: 14px; font-weight: 600; color: var(--marron); margin-bottom: 4px; line-height: 1.3; }
+    .feed-cuerpo { font-size: 13px; color: var(--gris); line-height: 1.4; }
+
+    /* ══ 10. CTA COMPARTIR ══ */
+    .cta-share { background: var(--marron); border-top: 8px solid var(--crema); padding: 32px 16px; text-align: center; }
+    .cta-share-title {
+      font-family: 'Fredoka', sans-serif; font-weight: 700;
+      font-size: 22px; color: #fff; margin-bottom: 8px; line-height: 1.2;
+    }
+    .cta-share-sub { font-size: 14px; color: rgba(255,255,255,.75); margin-bottom: 20px; line-height: 1.5; }
+    .btn-share {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 0 24px; min-height: 48px; border-radius: 12px;
+      background: var(--amarillo); color: var(--marron);
+      font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 700;
+      border: none; cursor: pointer; transition: opacity .15s;
+    }
+    .btn-share:hover { opacity: .9; }
+
+    /* ══ 11. FOOTER ══ */
+    .site-footer { background: #1a0a00; color: rgba(255,255,255,.75); padding: 32px 16px; }
+    .footer-grid { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr; gap: 28px; }
+    @media (min-width: 768px) { .footer-grid { grid-template-columns: repeat(3, 1fr); } }
+    .footer-logo-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .footer-logo-name { font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 18px; color: #fff; }
+    .footer-tagline { font-size: 13px; line-height: 1.4; }
+    .footer-col-title { font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 14px; color: #fff; margin-bottom: 10px; }
+    .footer-links { display: flex; flex-direction: column; gap: 6px; }
+    .footer-links a { font-size: 13px; color: rgba(255,255,255,.65); text-decoration: none; transition: color .15s; }
+    .footer-links a:hover { color: #fff; }
+    .footer-contact { display: flex; flex-direction: column; gap: 6px; }
+    .footer-contact-item { font-size: 13px; color: rgba(255,255,255,.65); }
+    .footer-contact-item a { color: rgba(255,255,255,.65); text-decoration: none; }
+    .footer-copyright {
+      max-width: 1200px; margin: 24px auto 0;
+      padding-top: 16px; border-top: 1px solid rgba(255,255,255,.1);
+      font-size: 12px; color: rgba(255,255,255,.35); text-align: center;
+    }
+
+    /* ══ 12. NAV BOTTOM ══ */
     .bottom-nav {
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      background: var(--marron);
-      border-top: 1px solid rgba(255,255,255,.1);
-      display: flex;
-      z-index: 100;
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--marron); z-index: 100;
+      display: flex; align-items: center; height: 60px;
+      border-top: 1px solid rgba(255,255,255,.08);
       padding-bottom: env(safe-area-inset-bottom, 0);
     }
+    @media (min-width: 768px) { .bottom-nav { display: none; } }
     .nav-item {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      padding: 8px 4px 10px;
-      text-decoration: none;
-      color: rgba(255,255,255,.45);
-      min-height: 60px;
-      transition: color .15s;
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+      text-decoration: none; color: rgba(255,255,255,.4);
+      min-height: 60px; padding: 6px 0; transition: color .15s;
       -webkit-tap-highlight-color: transparent;
     }
     .nav-item:hover { color: rgba(255,255,255,.8); }
-    .nav-active     { color: #fff; }
-    .nav-label {
-      font-size: 10px;
-      font-weight: 600;
-      line-height: 1;
+    .nav-active     { color: var(--amarillo); }
+    .nav-icon       { font-size: 20px; line-height: 1; }
+    .nav-label      { font-size: 10px; font-weight: 600; line-height: 1; }
+    .nav-reportar-wrap { flex: 1; display: flex; align-items: center; justify-content: center; }
+    .nav-reportar {
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+      width: 52px; height: 52px; border-radius: 50%;
+      background: var(--amarillo); color: var(--marron);
+      text-decoration: none; position: relative; bottom: 10px;
+      box-shadow: 0 4px 12px rgba(245,166,35,.4);
+      font-size: 9px; font-weight: 700;
+      transition: opacity .15s; -webkit-tap-highlight-color: transparent;
     }
-
-    @media (min-width: 640px) {
-      .bottom-nav {
-        max-width: 640px;
-        left: 50%; right: auto;
-        transform: translateX(-50%);
-        border-radius: 16px 16px 0 0;
-        border-left: 1px solid rgba(255,255,255,.1);
-        border-right: 1px solid rgba(255,255,255,.1);
-      }
-    }
+    .nav-reportar:hover { opacity: .9; }
+    .nav-reportar-icon { font-size: 22px; line-height: 1; }
 
     @media (prefers-reduced-motion: reduce) {
-      .cta, .btn-wa-mini, .nav-item { transition: none; }
+      .btn, .btn-share, .nav-item { transition: none; }
+      .badge-dot { animation: none; }
     }
   </style>
 </head>
 <body>
 
-  <!-- 1. Ribbon -->
-  <div class="ribbon">🔴 Emergencia activa · Terremoto Venezuela · 24 jun 2026</div>
+  <!-- 1. BANNER (solo si hay uno activo en DB) -->
+  {banner && (
+    <div class="banner-dyn">
+      <div class="banner-dyn-inner">
+        <div class="banner-dyn-title">
+          <i class="ph-bold ph-megaphone" aria-hidden="true"></i>
+          <span>{banner.titulo}</span>
+        </div>
+        {banner.descripcion && <p class="banner-dyn-desc">{banner.descripcion}</p>}
+        {banner.link && <a href={banner.link} class="banner-dyn-link">Ver más →</a>}
+      </div>
+    </div>
+  )}
 
-  <!-- 2. Header -->
+  <!-- 2. HEADER -->
   <header class="site-header">
-    <span class="site-logo">🐾 Protege Colitas</span>
-    <a href="/admin" class="header-admin">Admin</a>
+    <div class="header-inner">
+      <a href="/" class="header-logo">
+        <img src="/logo.png" alt="Protege Colitas" width="36" height="36" />
+        <span class="header-logo-name">Protege Colitas</span>
+      </a>
+
+      <form class="header-search" action="/mascotas" method="GET" role="search">
+        <div class="header-search-wrap">
+          <i class="ph-bold ph-magnifying-glass header-search-icon" aria-hidden="true"></i>
+          <input type="search" name="q" placeholder="Buscar mascota por nombre, zona…" autocomplete="off" aria-label="Buscar mascota" />
+        </div>
+      </form>
+
+      <div class="header-badge">
+        <span class="badge-dot" aria-hidden="true"></span>
+        <span class="badge-text">Emergencia activa</span>
+      </div>
+    </div>
   </header>
 
-  <!-- 3. Hero + CTAs -->
-  <section class="hero">
-    <div class="hero-inner">
-      <div class="hero-stats">
-        <div class="hero-stat">
-          <span class="hero-stat-num">{perdidos ?? 0}</span>
-          <span class="hero-stat-label">Buscando familia</span>
-        </div>
-        <div class="hero-stat">
-          <span class="hero-stat-num">{encontrados ?? 0}</span>
-          <span class="hero-stat-label">Encontrados</span>
-        </div>
-        <div class="hero-stat">
-          <span class="hero-stat-num">{reunidos ?? 0}</span>
-          <span class="hero-stat-label">Reunidos ✓</span>
-        </div>
+  <!-- 3. CONTADORES -->
+  <section class="stats-section" aria-label="Estadísticas">
+    <div class="stats-row">
+      <div class="stat-item">
+        <i class="ph-bold ph-paw-print stat-icon" aria-hidden="true"></i>
+        <span class="stat-num">{totalMascotas ?? 0}</span>
+        <span class="stat-label">Reportadas</span>
       </div>
-
-      <p class="hero-line">Cada número es una familia esperando.</p>
-
-      <!-- 4. CTAs -->
-      <div class="hero-ctas">
-        <a href="/reportar?tipo=perdido" class="cta cta-perdido">🐾 Perdí a mi mascota</a>
-        <a href="/reportar?tipo=encontrado" class="cta cta-encontrado">📍 Encontré una mascota</a>
+      <div class="stat-item">
+        <i class="ph-bold ph-magnifying-glass stat-icon" aria-hidden="true"></i>
+        <span class="stat-num">{perdidas ?? 0}</span>
+        <span class="stat-label">Buscando</span>
+      </div>
+      <div class="stat-item">
+        <i class="ph-bold ph-eye stat-icon" aria-hidden="true"></i>
+        <span class="stat-num">{encontradas ?? 0}</span>
+        <span class="stat-label">Encontradas</span>
+      </div>
+      <div class="stat-item">
+        <i class="ph-bold ph-heart stat-icon" aria-hidden="true"></i>
+        <span class="stat-num">{reunidas ?? 0}</span>
+        <span class="stat-label">Reunidas</span>
+      </div>
+      <div class="stat-item">
+        <i class="ph-bold ph-first-aid stat-icon" aria-hidden="true"></i>
+        <span class="stat-num">{totalVets ?? 0}</span>
+        <span class="stat-label">Veterinarios</span>
       </div>
     </div>
   </section>
 
-  <!-- 5. Lista reportes -->
-  <section class="lista-section">
-    <h2 class="lista-title">Reportes activos</h2>
+  <!-- 4. ACCIONES RÁPIDAS -->
+  <section class="acciones-section">
+    <div class="container">
+      <div class="sec-head">
+        <h2 class="sec-title">¿Cómo puedes ayudar?</h2>
+      </div>
+      <div class="acciones-grid">
+        <div class="accion-card accion-card-rojo">
+          <i class="ph-bold ph-paw-print accion-icon" style="color: var(--rojo);" aria-hidden="true"></i>
+          <p class="accion-title">Perdí mi mascota</p>
+          <p class="accion-desc">Publica un reporte para que la comunidad te ayude a encontrarla.</p>
+          <a href="/reportar?tipo=perdido" class="btn btn-rojo accion-btn">Reportar ahora →</a>
+        </div>
+        <div class="accion-card accion-card-verde">
+          <i class="ph-bold ph-magnifying-glass accion-icon" style="color: var(--verde);" aria-hidden="true"></i>
+          <p class="accion-title">Encontré una mascota</p>
+          <p class="accion-desc">Ayuda a esta mascota a reencontrar a su familia.</p>
+          <a href="/reportar?tipo=encontrado" class="btn btn-verde accion-btn">Reportar ahora →</a>
+        </div>
+        <div class="accion-card accion-card-azul">
+          <i class="ph-bold ph-first-aid accion-icon" style="color: var(--azul);" aria-hidden="true"></i>
+          <p class="accion-title">Soy veterinario</p>
+          <p class="accion-desc">Ofrece tus servicios a los animales afectados por el sismo.</p>
+          <a href="/veterinarios" class="btn btn-azul accion-btn">Registrarme →</a>
+        </div>
+        <div class="accion-card accion-card-amarillo">
+          <i class="ph-bold ph-package accion-icon" style="color: var(--amarillo);" aria-hidden="true"></i>
+          <p class="accion-title">Quiero donar</p>
+          <p class="accion-desc">Insumos médicos y comida para los animales afectados.</p>
+          <a href="/insumos" class="btn btn-amarillo accion-btn">Ver necesidades →</a>
+        </div>
+      </div>
+    </div>
+  </section>
 
-    {mascotas && mascotas.length > 0 ? (
-      mascotas.map((m) => {
-        const tipo = m.tipo ?? 'perdido'
-        const waNum = m.whatsapp ? `58${m.whatsapp.slice(1)}` : null
-        const waHref = waNum
-          ? `https://wa.me/${waNum}?text=${encodeURIComponent(`Hola, vi el reporte de ${m.nombre ?? 'una mascota'} en protegecolitas.org`)}`
-          : null
-        return (
-          <div class={`pet-row pet-row-${tipo}`}>
-            <div class="pet-row-info">
-              <div class="pet-row-top">
-                <span class="pet-row-nombre">{m.nombre ?? 'Sin nombre'}</span>
-                <span class={`badge badge-${tipo}`}>{tipo}</span>
+  <!-- 5. MASCOTAS PERDIDAS (firma: franja roja izquierda) -->
+  <section class="mascotas-section mascotas-section-crema">
+    <div class="mascotas-sec-inner">
+      <div class="sec-head">
+        <h2 class="sec-title">Se buscan activamente</h2>
+        <a href="/mascotas" class="sec-link">Ver todas →</a>
+      </div>
+    </div>
+    {ultimasPerdidas && ultimasPerdidas.length > 0 ? (
+      <div class="cards-scroll">
+        {ultimasPerdidas.map(m => {
+          const wa = waUrl(m.whatsapp, `Hola, vi el reporte de ${m.nombre ?? 'una mascota'} en protegecolitas.org`)
+          return (
+            <article class="pet-card pet-card-perdido">
+              <div class="pet-card-photo">
+                {m.foto_url
+                  ? <img src={m.foto_url} alt={m.nombre ?? 'Mascota'} loading="lazy" />
+                  : <div class="pet-card-emoji">🐕</div>
+                }
+                <span class="pet-badge pet-badge-perdido">PERDIDO</span>
               </div>
-              <p class="pet-row-meta">{m.especie} · {m.zona}</p>
-            </div>
-            {waHref && (
-              <a href={waHref} class="btn-wa-mini" target="_blank" rel="noopener noreferrer">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.119.553 4.107 1.516 5.836L.057 23.447a.5.5 0 00.611.612l5.638-1.471A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.891 0-3.666-.5-5.197-1.373l-.371-.22-3.847 1.003 1.022-3.737-.242-.384A9.942 9.942 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
-                WA
-              </a>
-            )}
-          </div>
-        )
-      })
+              <div class="pet-card-body">
+                <p class="pet-card-name">{m.nombre ?? 'Sin nombre'}</p>
+                <p class="pet-card-zona">📍 {m.zona}</p>
+              </div>
+              {wa
+                ? <a href={wa} class="pet-card-wa" target="_blank" rel="noopener noreferrer">
+                    <i class="ph-bold ph-whatsapp-logo" aria-hidden="true"></i>
+                    WhatsApp directo
+                  </a>
+                : <a href={`/mascota/${m.id}`} class="pet-card-link">Ver ficha →</a>
+              }
+            </article>
+          )
+        })}
+      </div>
     ) : (
-      <div class="empty-state">
-        <a href="/reportar">Sé el primero en reportar →</a>
+      <div class="mascotas-sec-inner">
+        <p class="sec-empty">Aún no hay reportes. Sé el primero en ayudar →</p>
       </div>
     )}
   </section>
 
-  <div class="ver-todos">
-    <a href="/mascotas">Ver todos los reportes →</a>
-  </div>
+  <!-- 6. MASCOTAS ENCONTRADAS (firma: franja verde izquierda) -->
+  <section class="mascotas-section mascotas-section-blanco">
+    <div class="mascotas-sec-inner">
+      <div class="sec-head">
+        <h2 class="sec-title">Encontradas recientemente</h2>
+        <a href="/mascotas" class="sec-link">Ver todas →</a>
+      </div>
+    </div>
+    {ultimasEncontradas && ultimasEncontradas.length > 0 ? (
+      <div class="cards-scroll">
+        {ultimasEncontradas.map(m => {
+          const wa = waUrl(m.whatsapp, `Hola, vi que encontraste una mascota en protegecolitas.org y podría ser la mía.`)
+          return (
+            <article class="pet-card pet-card-encontrado">
+              <div class="pet-card-photo">
+                {m.foto_url
+                  ? <img src={m.foto_url} alt={m.nombre ?? 'Mascota'} loading="lazy" />
+                  : <div class="pet-card-emoji">🐈</div>
+                }
+                <span class="pet-badge pet-badge-encontrado">ENCONTRADO</span>
+              </div>
+              <div class="pet-card-body">
+                <p class="pet-card-name">{m.nombre ?? 'Sin nombre'}</p>
+                <p class="pet-card-zona">📍 {m.zona}</p>
+              </div>
+              {wa
+                ? <a href={wa} class="pet-card-wa" target="_blank" rel="noopener noreferrer">
+                    <i class="ph-bold ph-whatsapp-logo" aria-hidden="true"></i>
+                    WhatsApp directo
+                  </a>
+                : <a href={`/mascota/${m.id}`} class="pet-card-link">Ver ficha →</a>
+              }
+            </article>
+          )
+        })}
+      </div>
+    ) : (
+      <div class="mascotas-sec-inner">
+        <p class="sec-empty">Aún no hay reportes. Sé el primero en ayudar →</p>
+      </div>
+    )}
+  </section>
 
-  <!-- 6. Nav bottom -->
+  <!-- 7. NECESIDADES -->
+  <section class="nec-section">
+    <div class="container">
+      <div class="sec-head">
+        <h2 class="sec-title">Necesidades urgentes</h2>
+        <a href="/insumos" class="sec-link">Ver todas →</a>
+      </div>
+      {necesidades && necesidades.length > 0 ? (
+        necesidades.map(n => {
+          const req = n.cantidad_requerida > 0 ? n.cantidad_requerida : 1
+          const pct = Math.min(100, Math.round((n.cantidad_recibida / req) * 100))
+          const color = progColor(pct)
+          const donMsg = encodeURIComponent(`Hola, quiero donar ${n.item} para los animales afectados por el terremoto. Protege Colitas.`)
+          return (
+            <div class="nec-row">
+              <div class="nec-info">
+                <p class="nec-nombre">{n.item}</p>
+                <div class="nec-bar-wrap">
+                  <div class="nec-bar">
+                    <div class="nec-bar-fill" style={`width: ${pct}%; background: ${color};`}></div>
+                  </div>
+                  <span class="nec-pct" style={`color: ${color};`}>{pct}%</span>
+                </div>
+              </div>
+              <a href={`https://wa.me/584222494136?text=${donMsg}`} class="btn btn-wa btn-donar" target="_blank" rel="noopener noreferrer">
+                <i class="ph-bold ph-whatsapp-logo" aria-hidden="true"></i>
+                Donar
+              </a>
+            </div>
+          )
+        })
+      ) : (
+        <p class="sec-empty">Sin necesidades registradas por ahora.</p>
+      )}
+    </div>
+  </section>
+
+  <!-- 8. VETERINARIOS -->
+  <section class="vets-section">
+    <div class="container">
+      <div class="sec-head">
+        <h2 class="sec-title">Veterinarios voluntarios</h2>
+        <a href="/veterinarios" class="sec-link">Ver todos →</a>
+      </div>
+      {vets && vets.length > 0 ? (
+        <div class="vets-grid">
+          {vets.map(v => {
+            const wa = waUrl(v.whatsapp, `Hola Dr. ${v.nombre}, encontré su contacto en Protege Colitas y necesito ayuda veterinaria.`)
+            return (
+              <div class="vet-card">
+                <div class="vet-avatar" aria-hidden="true">{getInitials(v.nombre)}</div>
+                <div class="vet-info">
+                  <p class="vet-nombre">{v.nombre}</p>
+                  <p class="vet-zona">📍 {v.zona}</p>
+                  {v.servicios && <p class="vet-servicios">{v.servicios}</p>}
+                  {wa && (
+                    <a href={wa} class="vet-wa" target="_blank" rel="noopener noreferrer">
+                      <i class="ph-bold ph-whatsapp-logo" aria-hidden="true"></i>
+                      WhatsApp directo
+                    </a>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      ) : (
+        <p class="sec-empty">
+          ¿Eres veterinario? <a href="/veterinarios" style="color: var(--amarillo); font-weight:600; text-decoration:none;">Regístrate aquí →</a>
+        </p>
+      )}
+    </div>
+  </section>
+
+  <!-- 9. NOTICIAS -->
+  <section class="noticias-section">
+    <div class="container">
+      <div class="sec-head">
+        <h2 class="sec-title">Últimas actualizaciones</h2>
+        <a href="/noticias" class="sec-link">Ver todas →</a>
+      </div>
+      {feedItems && feedItems.length > 0 ? (
+        feedItems.map(item => {
+          const { day, mon } = feedDate(item.published_at)
+          const resumen = item.cuerpo ? item.cuerpo.slice(0, 80) + (item.cuerpo.length > 80 ? '…' : '') : ''
+          return (
+            <div class="feed-row">
+              <div class="feed-date" aria-label={`${day} ${mon}`}>
+                <span class="feed-day">{day}</span>
+                <span class="feed-mon">{mon}</span>
+              </div>
+              <div class="feed-content">
+                <p class="feed-titulo">{item.titulo}</p>
+                {resumen && <p class="feed-cuerpo">{resumen}</p>}
+              </div>
+            </div>
+          )
+        })
+      ) : (
+        <p class="sec-empty">Sin actualizaciones aún.</p>
+      )}
+    </div>
+  </section>
+
+  <!-- 10. CTA COMPARTIR -->
+  <section class="cta-share">
+    <h2 class="cta-share-title">Cada publicación puede<br />significar un reencuentro</h2>
+    <p class="cta-share-sub">
+      Comparte Protege Colitas con quien pueda reconocer a una mascota.<br />
+      Llevamos {diasActivos} día{diasActivos !== 1 ? 's' : ''} activos.
+    </p>
+    <button class="btn-share" id="btnShare" type="button">
+      <i class="ph-bold ph-share-network" aria-hidden="true"></i>
+      <span id="shareLabel">Compartir esta página</span>
+    </button>
+  </section>
+
+  <!-- 11. FOOTER -->
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-logo-row">
+          <img src="/logo.png" alt="Protege Colitas" width="28" height="28" loading="lazy" />
+          <span class="footer-logo-name">Protege Colitas</span>
+        </div>
+        <p class="footer-tagline">Centro de Emergencia Animal · Venezuela 2026</p>
+      </div>
+      <div>
+        <p class="footer-col-title">Links rápidos</p>
+        <div class="footer-links">
+          <a href="/reportar?tipo=perdido">Reportar mascota perdida</a>
+          <a href="/reportar?tipo=encontrado">Reportar mascota encontrada</a>
+          <a href="/insumos">Necesidades y donaciones</a>
+          <a href="/veterinarios">Veterinarios voluntarios</a>
+          <a href="/admin">Administración</a>
+        </div>
+      </div>
+      <div>
+        <p class="footer-col-title">Contacto</p>
+        <div class="footer-contact">
+          <p class="footer-contact-item"><a href="https://wa.me/584222494136" target="_blank" rel="noopener noreferrer">WhatsApp: 0422-2494136</a></p>
+          <p class="footer-contact-item"><a href="mailto:protegecolitas@gmail.com">protegecolitas@gmail.com</a></p>
+          <p class="footer-contact-item">Horario: 8:00 AM – 8:00 PM</p>
+        </div>
+      </div>
+    </div>
+    <p class="footer-copyright">© 2026 Protege Colitas · Venezuela</p>
+  </footer>
+
+  <!-- 12. NAV BOTTOM (solo mobile) -->
   <nav class="bottom-nav" role="navigation" aria-label="Navegación principal">
     <a href="/" class="nav-item nav-active" aria-current="page" aria-label="Inicio">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-        <polyline points="9 22 9 12 15 12 15 22"/>
-      </svg>
+      <i class="ph-bold ph-house nav-icon" aria-hidden="true"></i>
       <span class="nav-label">Inicio</span>
     </a>
     <a href="/mascotas" class="nav-item" aria-label="Mascotas">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="4.5" cy="9.5" r="2.5"/><circle cx="9" cy="4.5" r="2.5"/>
-        <circle cx="15" cy="4.5" r="2.5"/><circle cx="19.5" cy="9.5" r="2.5"/>
-        <path d="M12 19c-3.3 0-6-2.7-6-6 0-1.2.4-2.4 1-3.3"/>
-      </svg>
+      <i class="ph-bold ph-paw-print nav-icon" aria-hidden="true"></i>
       <span class="nav-label">Mascotas</span>
     </a>
-    <a href="/reportar" class="nav-item" aria-label="Reportar">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="10"/>
-        <line x1="12" y1="8" x2="12" y2="16"/>
-        <line x1="8" y1="12" x2="16" y2="12"/>
-      </svg>
-      <span class="nav-label">Reportar</span>
-    </a>
+    <div class="nav-reportar-wrap">
+      <a href="/reportar" class="nav-reportar" aria-label="Reportar mascota">
+        <i class="ph-bold ph-plus-circle nav-reportar-icon" aria-hidden="true"></i>
+        <span>Reportar</span>
+      </a>
+    </div>
     <a href="/veterinarios" class="nav-item" aria-label="Veterinarios">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-      </svg>
+      <i class="ph-bold ph-first-aid nav-icon" aria-hidden="true"></i>
       <span class="nav-label">Vets</span>
     </a>
     <a href="/insumos" class="nav-item" aria-label="Insumos">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
-        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-        <line x1="12" y1="22.08" x2="12" y2="12"/>
-      </svg>
+      <i class="ph-bold ph-package nav-icon" aria-hidden="true"></i>
       <span class="nav-label">Insumos</span>
     </a>
   </nav>
 
 </body>
+<script>
+(function () {
+  const btn = document.getElementById('btnShare')
+  const label = document.getElementById('shareLabel')
+  if (!btn || !label) return
+  btn.addEventListener('click', async () => {
+    const url = window.location.href
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Protege Colitas', text: 'Ayuda a reunir mascotas con sus familias tras el terremoto.', url })
+        return
+      } catch { /* cancelado */ }
+    }
+    try {
+      await navigator.clipboard.writeText(url)
+      label.textContent = '¡Enlace copiado!'
+      setTimeout(() => { label.textContent = 'Compartir esta página' }, 2000)
+    } catch { /* sin permisos */ }
+  })
+})()
+</script>
 </html>
