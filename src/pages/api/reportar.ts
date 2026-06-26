@@ -1,6 +1,16 @@
 import type { APIRoute } from 'astro'
 import { createClient } from '@supabase/supabase-js'
 import { supabase } from '../../lib/supabase'
+import * as dotenv from 'dotenv'
+import { resolve } from 'path'
+
+dotenv.config({ path: resolve(process.cwd(), '.env') })
+
+const supabaseAdmin = createClient(
+  process.env.PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { persistSession: false } }
+)
 
 const ESPECIES = ['Perro', 'Gato', 'Ave', 'Otro'] as const
 const WS_REGEX = /^04[0-9]{2}[0-9]{7}$/
@@ -73,7 +83,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     return json({ error: 'WhatsApp venezolano requerido. Formato: 04XX-XXXXXXX (11 dígitos)' }, 400)
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('mascotas')
     .insert({
       nombre: nombre?.trim() || null,
