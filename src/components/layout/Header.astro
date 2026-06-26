@@ -1,0 +1,67 @@
+---
+// Header — Protege Colitas
+---
+<header class="bg-white border-b border-[#E8E1D6] sticky top-0 z-50">
+  <div class="max-w-7xl mx-auto px-4 md:px-8">
+    <div class="flex items-center justify-between py-3 md:py-4">
+
+      <!-- Logo -->
+      <a href="/" class="flex items-center gap-2.5 no-underline flex-shrink-0" aria-label="Protege Colitas — Inicio">
+        <span class="flex items-center justify-center w-9 h-9 rounded-xl bg-[#F7E8BF] flex-shrink-0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7A4A24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+          </svg>
+        </span>
+        <div class="flex flex-col">
+          <span class="text-base font-bold text-[#7A4A24] leading-tight">Protege Colitas</span>
+          <span class="text-xs text-[#6B7280] hidden sm:block leading-tight">Emergencia Animal · Venezuela 2026</span>
+        </div>
+      </a>
+
+      <!-- Búsqueda — escritorio -->
+      <div class="hidden md:flex flex-1 max-w-xl mx-8">
+        <div class="relative w-full">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </span>
+          <input
+            type="search"
+            placeholder="Buscar por nombre, color, raza o zona..."
+            class="w-full pl-9 pr-4 py-2.5 rounded-[14px] border border-[#E8E1D6] bg-[#FFF8EA] text-sm text-[#3B2A1A] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#C96A1B] focus:border-transparent"
+            aria-label="Buscar mascota"
+          />
+        </div>
+      </div>
+
+      <!-- Estado de emergencia -->
+      <div class="flex flex-col items-end gap-0.5 flex-shrink-0">
+        <div class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-[#34A853] pulse-dot inline-block" aria-hidden="true"></span>
+          <span class="text-xs font-bold text-[#34A853] tracking-wide">ACTIVO</span>
+        </div>
+        <span class="text-xs text-[#6B7280] hidden sm:block">Desde el 25 jun 2026</span>
+      </div>
+    </div>
+
+    <!-- Búsqueda — móvil -->
+    <div class="md:hidden pb-3">
+      <div class="relative w-full">
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </span>
+        <input
+          type="search"
+          placeholder="Buscar mascota por nombre o zona..."
+          class="w-full pl-9 pr-4 py-2.5 rounded-[14px] border border-[#E8E1D6] bg-[#FFF8EA] text-sm text-[#3B2A1A] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#C96A1B]"
+          aria-label="Buscar mascota"
+        />
+      </div>
+    </div>
+  </div>
+</header>

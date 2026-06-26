@@ -1,0 +1,95 @@
+---
+// TODO: conectar con Supabase tabla feed
+---
+<section aria-labelledby="news-heading">
+  <div class="flex items-center justify-between mb-4">
+    <h2 id="news-heading" class="text-xl font-bold text-[#3B2A1A]">Noticias y actualizaciones</h2>
+    <a href="/noticias" class="text-sm text-[#C96A1B] hover:text-[#A85514] font-medium transition-colors">Ver todas</a>
+  </div>
+  <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] divide-y divide-[#F3EDE6]">
+
+    <!-- Nuevo centro de acopio -->
+    <div class="flex gap-4 p-4 hover:bg-[#FFF8EA] transition-colors">
+      <div class="flex flex-col items-center flex-shrink-0 w-10">
+        <span class="text-xl font-[Nunito] font-[800] text-[#7A4A24] leading-none">26</span>
+        <span class="text-xs font-bold text-[#C96A1B] uppercase tracking-wider">JUN</span>
+      </div>
+      <div class="flex-1 min-w-0 flex items-start gap-2">
+        <div class="w-6 h-6 rounded-md bg-orange-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C96A1B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="7" width="9" height="14"/>
+            <rect x="13" y="3" width="9" height="18"/>
+            <line x1="2" y1="21" x2="22" y2="21"/>
+          </svg>
+        </div>
+        <div>
+          <p class="font-semibold text-sm text-[#3B2A1A] leading-snug">Nuevo centro de acopio abierto en Guarenas</p>
+          <p class="text-xs text-[#6B7280] mt-0.5">Más capacidad para atender mascotas en la zona central.</p>
+        </div>
+      </div>
+      <span class="flex-shrink-0 self-start text-xs font-bold text-[#34A853] bg-green-50 px-2 py-0.5 rounded-full border border-green-100">Nuevo</span>
+    </div>
+
+    <!-- Donación de alimento -->
+    <div class="flex gap-4 p-4 hover:bg-[#FFF8EA] transition-colors">
+      <div class="flex flex-col items-center flex-shrink-0 w-10">
+        <span class="text-xl font-[Nunito] font-[800] text-[#7A4A24] leading-none">26</span>
+        <span class="text-xs font-bold text-[#C96A1B] uppercase tracking-wider">JUN</span>
+      </div>
+      <div class="flex-1 min-w-0 flex items-start gap-2">
+        <div class="w-6 h-6 rounded-md bg-[#F7E8BF] flex items-center justify-center flex-shrink-0 mt-0.5">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#7A4A24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+          </svg>
+        </div>
+        <div>
+          <p class="font-semibold text-sm text-[#3B2A1A] leading-snug">Llegó donación de alimento y medicinas</p>
+          <p class="text-xs text-[#6B7280] mt-0.5">Gracias a todos los que hicieron posible esta ayuda.</p>
+        </div>
+      </div>
+      <span class="flex-shrink-0 self-start text-xs font-bold text-[#34A853] bg-green-50 px-2 py-0.5 rounded-full border border-green-100">Nuevo</span>
+    </div>
+
+    <!-- Veterinarios -->
+    <div class="flex gap-4 p-4 hover:bg-[#FFF8EA] transition-colors">
+      <div class="flex flex-col items-center flex-shrink-0 w-10">
+        <span class="text-xl font-[Nunito] font-[800] text-[#7A4A24] leading-none">25</span>
+        <span class="text-xs font-bold text-[#C96A1B] uppercase tracking-wider">JUN</span>
+      </div>
+      <div class="flex-1 min-w-0 flex items-start gap-2">
+        <div class="w-6 h-6 rounded-md bg-blue-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4285F4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+        </div>
+        <div>
+          <p class="font-semibold text-sm text-[#3B2A1A] leading-snug">Se suman 10 nuevos veterinarios voluntarios</p>
+          <p class="text-xs text-[#6B7280] mt-0.5">El equipo sigue creciendo para atender más mascotas.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lanzamiento -->
+    <div class="flex gap-4 p-4 hover:bg-[#FFF8EA] transition-colors">
+      <div class="flex flex-col items-center flex-shrink-0 w-10">
+        <span class="text-xl font-[Nunito] font-[800] text-[#7A4A24] leading-none">25</span>
+        <span class="text-xs font-bold text-[#C96A1B] uppercase tracking-wider">JUN</span>
+      </div>
+      <div class="flex-1 min-w-0 flex items-start gap-2">
+        <div class="w-6 h-6 rounded-md bg-[#F7E8BF] flex items-center justify-center flex-shrink-0 mt-0.5">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#7A4A24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+        <div>
+          <p class="font-semibold text-sm text-[#3B2A1A] leading-snug">Plataforma Protege Colitas en operación</p>
+          <p class="text-xs text-[#6B7280] mt-0.5">Lanzada 24 horas después del terremoto del 25 de junio.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>

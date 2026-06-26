@@ -1,0 +1,80 @@
+---
+// Acciones rápidas — sección principal de entrada
+---
+<section aria-labelledby="quick-actions-heading">
+  <div class="mb-5">
+    <h2 id="quick-actions-heading" class="text-xl font-bold text-[#3B2A1A]">¿Cómo puedes ayudar hoy?</h2>
+    <p class="text-sm text-[#6B7280] mt-1">Cada acción acerca a una mascota a su familia</p>
+  </div>
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+
+    <!-- Perdí mi mascota -->
+    <div class="bg-white rounded-2xl border border-[#E8E1D6] hover:shadow-[0_4px_20px_rgba(0,0,0,0.07)] transition-shadow duration-200 p-5 flex flex-col items-center text-center gap-3">
+      <div class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E5484D" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          <line x1="11" y1="8" x2="11" y2="11"/>
+          <line x1="11" y1="14" x2="11.01" y2="14"/>
+        </svg>
+      </div>
+      <div>
+        <h3 class="font-semibold text-[#3B2A1A] text-sm md:text-base leading-snug">Perdí mi mascota</h3>
+        <p class="text-xs text-[#6B7280] mt-1 leading-relaxed">Reporta para que la comunidad te ayude a encontrarla</p>
+      </div>
+      <a href="/reportar" class="mt-auto w-full text-center text-sm font-semibold px-4 py-2.5 rounded-[14px] transition-colors bg-[#E5484D] hover:bg-[#c73d42] text-white">
+        Reportar ahora
+      </a>
+    </div>
+
+    <!-- Encontré una mascota -->
+    <div class="bg-white rounded-2xl border border-[#E8E1D6] hover:shadow-[0_4px_20px_rgba(0,0,0,0.07)] transition-shadow duration-200 p-5 flex flex-col items-center text-center gap-3">
+      <div class="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#34A853" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+      </div>
+      <div>
+        <h3 class="font-semibold text-[#3B2A1A] text-sm md:text-base leading-snug">Encontré una mascota</h3>
+        <p class="text-xs text-[#6B7280] mt-1 leading-relaxed">Ayuda a reunirla con quien la está buscando</p>
+      </div>
+      <a href="/reportar" class="mt-auto w-full text-center text-sm font-semibold px-4 py-2.5 rounded-[14px] transition-colors bg-[#34A853] hover:bg-[#2d9247] text-white">
+        Reportar ahora
+      </a>
+    </div>
+
+    <!-- Soy veterinario -->
+    <div class="bg-white rounded-2xl border border-[#E8E1D6] hover:shadow-[0_4px_20px_rgba(0,0,0,0.07)] transition-shadow duration-200 p-5 flex flex-col items-center text-center gap-3">
+      <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4285F4" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+      </div>
+      <div>
+        <h3 class="font-semibold text-[#3B2A1A] text-sm md:text-base leading-snug">Soy veterinario</h3>
+        <p class="text-xs text-[#6B7280] mt-1 leading-relaxed">Ofrezco atención gratuita a mascotas afectadas</p>
+      </div>
+      <a href="/veterinarios" class="mt-auto w-full text-center text-sm font-semibold px-4 py-2.5 rounded-[14px] transition-colors bg-[#4285F4] hover:bg-[#3574db] text-white">
+        Registrarme
+      </a>
+    </div>
+
+    <!-- Quiero donar -->
+    <div class="bg-white rounded-2xl border border-[#E8E1D6] hover:shadow-[0_4px_20px_rgba(0,0,0,0.07)] transition-shadow duration-200 p-5 flex flex-col items-center text-center gap-3">
+      <div class="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C96A1B" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+        </svg>
+      </div>
+      <div>
+        <h3 class="font-semibold text-[#3B2A1A] text-sm md:text-base leading-snug">Quiero donar</h3>
+        <p class="text-xs text-[#6B7280] mt-1 leading-relaxed">Insumos, alimentos, medicinas o recursos para los centros</p>
+      </div>
+      <a href="/insumos" class="mt-auto w-full text-center text-sm font-semibold px-4 py-2.5 rounded-[14px] transition-colors bg-[#C96A1B] hover:bg-[#A85514] text-white">
+        Ver necesidades
+      </a>
+    </div>
+
+  </div>
+</section>

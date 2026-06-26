@@ -1,0 +1,59 @@
+---
+// TODO: conectar con Supabase — historias de mascotas reunidas
+const stories = [
+  {
+    title: 'Max volvió a casa',
+    text: 'Después de dos días perdido tras el terremoto, Max fue encontrado sano y salvo por un vecino que vio su publicación en Protege Colitas.',
+    img: 'https://placedog.net/400/300?id=11',
+    alt: 'Perro Max reunido con su familia',
+    location: 'Caracas',
+  },
+  {
+    title: 'Luna y su familia',
+    text: 'Reunidos en Los Teques gracias a la comunidad. La familia nunca perdió la esperanza y compartió la ficha más de 200 veces.',
+    img: 'https://placekitten.com/400/300',
+    alt: 'Gata Luna reunida con su familia',
+    location: 'Los Teques, Miranda',
+  },
+  {
+    title: 'Rocky está en casa',
+    text: 'La comunidad compartió su historia y Rocky fue encontrado en tiempo récord, a pocas cuadras de donde se perdió.',
+    img: 'https://placedog.net/400/300?id=13',
+    alt: 'Perro Rocky reunido con su familia',
+    location: 'Maracay, Aragua',
+  },
+]
+---
+<section aria-labelledby="hope-stories-heading">
+  <div class="flex items-center justify-between mb-4">
+    <h2 id="hope-stories-heading" class="text-xl font-bold text-[#3B2A1A]">Historias de reencuentro</h2>
+    <a href="/mascotas" class="text-sm text-[#C96A1B] hover:text-[#A85514] font-medium transition-colors">Ver todas</a>
+  </div>
+  <div class="carousel-container">
+    {stories.map((story) => (
+      <div class="carousel-item bg-white rounded-2xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.06)] w-[85vw] sm:w-[calc(50vw-2rem)] lg:w-80 max-w-sm flex-shrink-0">
+        <div class="relative">
+          <img src={story.img} alt={story.alt} class="w-full aspect-[4/3] object-cover" loading="lazy" />
+          <span class="absolute top-3 left-3 inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm text-[#16803C] text-xs font-bold px-2.5 py-1 rounded-full">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="#16803C" stroke="none" aria-hidden="true">
+              <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+            </svg>
+            Reunidos
+          </span>
+        </div>
+        <div class="p-4">
+          <h3 class="font-semibold text-[#3B2A1A] leading-tight">{story.title}</h3>
+          <div class="flex items-center gap-1 mt-1 mb-2">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            <span class="text-xs text-[#9CA3AF]">{story.location}</span>
+          </div>
+          <p class="text-sm text-[#6B7280] line-clamp-2 leading-relaxed">{story.text}</p>
+          <a href="#" class="mt-3 inline-block text-sm font-semibold text-[#C96A1B] hover:text-[#A85514] transition-colors">Leer historia</a>
+        </div>
+      </div>
+    ))}
+  </div>
+</section>

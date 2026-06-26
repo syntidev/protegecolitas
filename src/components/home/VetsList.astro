@@ -1,0 +1,51 @@
+---
+// TODO: conectar con Supabase tabla vets
+const vets = [
+  { name: 'Dra. María González', initials: 'MG', city: 'Caracas', specialty: 'Pequeñas especies', whatsapp: '04121234567' },
+  { name: 'Dr. Carlos Pérez', initials: 'CP', city: 'Los Teques', specialty: 'Cirugía y urgencias', whatsapp: '04141234567' },
+  { name: 'Dra. Andrea Silva', initials: 'AS', city: 'Maracay', specialty: 'Medicina general', whatsapp: '04161234567' },
+  { name: 'Dr. José Ramírez', initials: 'JR', city: 'Guarenas', specialty: 'Dermatología', whatsapp: '04241234567' },
+]
+---
+<section aria-labelledby="vets-heading">
+  <div class="flex items-center justify-between mb-4">
+    <h2 id="vets-heading" class="text-xl font-bold text-[#3B2A1A]">Veterinarios voluntarios</h2>
+    <a href="/veterinarios" class="text-sm text-[#C96A1B] hover:text-[#A85514] font-medium transition-colors">Ver todos</a>
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3">
+    {vets.map((vet) => (
+      <div class="bg-white rounded-xl p-4 flex gap-3 items-start shadow-[0_2px_10px_rgba(0,0,0,0.05)]">
+        <div class="w-11 h-11 rounded-full bg-[#F7E8BF] flex items-center justify-center font-bold text-[#7A4A24] text-sm flex-shrink-0">
+          {vet.initials}
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="font-semibold text-sm text-[#3B2A1A] truncate">{vet.name}</p>
+          <div class="flex items-center gap-1 mt-0.5">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            <p class="text-xs text-[#9CA3AF]">{vet.city}</p>
+          </div>
+          <p class="text-xs text-[#6B7280] italic mt-0.5">{vet.specialty}</p>
+          <div class="flex items-center gap-1 mt-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#34A853] inline-block" aria-hidden="true"></span>
+            <span class="text-xs text-[#34A853] font-medium">Disponible</span>
+          </div>
+          <a
+            href={`https://wa.me/58${vet.whatsapp.substring(1)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold bg-[#34A853] hover:bg-[#2d9247] text-white px-3 py-1.5 rounded-[8px] transition-colors"
+            aria-label={`Contactar a ${vet.name} por WhatsApp`}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+            </svg>
+            Contactar
+          </a>
+        </div>
+      </div>
+    ))}
+  </div>
+</section>

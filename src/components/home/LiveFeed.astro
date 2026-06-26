@@ -1,0 +1,79 @@
+---
+// TODO: conectar con Supabase — feed de actividad en tiempo real
+const feedItems = [
+  { timeAgo: 'Hace 2 min', type: 'found', description: 'Perro blanco con collar azul encontrado en buen estado.', location: 'Las Mercedes, Caracas', borderColor: 'border-[#34A853]' },
+  { timeAgo: 'Hace 5 min', type: 'need', description: 'Se necesita alimento seco para perros medianos y grandes.', location: 'Refugio Patas Seguras', borderColor: 'border-[#F59E0B]' },
+  { timeAgo: 'Hace 7 min', type: 'reunion', description: 'Familia reunida con su gata "Luna" tras 48 horas de búsqueda.', location: 'La California, Miranda', borderColor: 'border-[#E91E63]' },
+  { timeAgo: 'Hace 10 min', type: 'vet', description: 'Dra. María González se une como veterinaria voluntaria.', location: 'Caracas', borderColor: 'border-[#4285F4]' },
+  { timeAgo: 'Hace 12 min', type: 'found', description: 'Gato atigrado encontrado en buen estado, con collar.', location: 'Maracay, Aragua', borderColor: 'border-[#34A853]' },
+  { timeAgo: 'Hace 15 min', type: 'lost', description: 'Se busca Bulldog francés negro, responde al nombre Thor.', location: 'Altamira, Caracas', borderColor: 'border-[#E5484D]' },
+  { timeAgo: 'Hace 18 min', type: 'need', description: 'Faltan transportadores de mascotas de todos los tamaños.', location: 'Centro de Acopio Miranda', borderColor: 'border-[#F59E0B]' },
+  { timeAgo: 'Hace 22 min', type: 'reunion', description: 'Max regresó a casa después de dos días perdido.', location: 'Los Teques, Miranda', borderColor: 'border-[#E91E63]' },
+]
+---
+<section aria-labelledby="livefeed-heading">
+  <div class="flex items-center justify-between mb-4">
+    <div class="flex items-center gap-3">
+      <h2 id="livefeed-heading" class="text-xl font-bold text-[#3B2A1A]">Actividad en vivo</h2>
+      <span class="inline-flex items-center gap-1.5 bg-[#dcfce7] text-[#16803C] text-xs font-bold px-3 py-1 rounded-full border border-green-200">
+        <span class="w-1.5 h-1.5 rounded-full bg-[#34A853] pulse-dot inline-block" aria-hidden="true"></span>
+        TIEMPO REAL
+      </span>
+    </div>
+    <a href="/noticias" class="text-sm text-[#C96A1B] hover:text-[#A85514] font-medium transition-colors">Ver toda la actividad</a>
+  </div>
+
+  <!-- Escritorio: carrusel horizontal -->
+  <div class="hidden md:block">
+    <div class="carousel-container">
+      {feedItems.map((item) => (
+        <div class={`carousel-item bg-white rounded-xl p-4 border-l-[3px] ${item.borderColor} shadow-[0_2px_10px_rgba(0,0,0,0.05)] min-w-[220px] max-w-[240px]`}>
+          <p class="text-xs text-[#9CA3AF] mb-1.5">{item.timeAgo}</p>
+          <div class="mb-2">
+            {item.type === 'found' && <span class="inline-flex items-center font-medium rounded-full bg-green-50 text-green-700 border border-green-200 text-xs px-2.5 py-0.5">Encontrado</span>}
+            {item.type === 'lost' && <span class="inline-flex items-center font-medium rounded-full bg-red-50 text-red-700 border border-red-200 text-xs px-2.5 py-0.5">Perdido</span>}
+            {item.type === 'need' && <span class="inline-flex items-center font-medium rounded-full bg-orange-50 text-orange-700 border border-orange-200 text-xs px-2.5 py-0.5">Necesidad</span>}
+            {item.type === 'vet' && <span class="inline-flex items-center font-medium rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs px-2.5 py-0.5">Veterinario</span>}
+            {item.type === 'reunion' && <span class="inline-flex items-center font-medium rounded-full bg-pink-50 text-pink-700 border border-pink-200 text-xs px-2.5 py-0.5">Reunidos</span>}
+          </div>
+          <p class="text-sm text-[#3B2A1A] font-medium leading-snug">{item.description}</p>
+          <div class="flex items-center gap-1 mt-1.5">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0" aria-hidden="true">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            <p class="text-xs text-[#9CA3AF]">{item.location}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <!-- Móvil: lista vertical -->
+  <div class="md:hidden flex flex-col gap-2.5">
+    {feedItems.slice(0, 5).map((item) => (
+      <div class={`bg-white rounded-xl p-4 border-l-[3px] ${item.borderColor}`}>
+        <div class="flex items-start justify-between gap-2">
+          <div class="flex-1">
+            <p class="text-xs text-[#9CA3AF] mb-0.5">{item.timeAgo}</p>
+            <p class="text-sm text-[#3B2A1A] font-medium leading-snug">{item.description}</p>
+            <div class="flex items-center gap-1 mt-1">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+              <p class="text-xs text-[#9CA3AF]">{item.location}</p>
+            </div>
+          </div>
+          <div class="flex-shrink-0 mt-0.5">
+            {item.type === 'found' && <span class="inline-flex font-medium rounded-full bg-green-50 text-green-700 border border-green-200 text-xs px-2 py-0.5">Encontrado</span>}
+            {item.type === 'lost' && <span class="inline-flex font-medium rounded-full bg-red-50 text-red-700 border border-red-200 text-xs px-2 py-0.5">Perdido</span>}
+            {item.type === 'need' && <span class="inline-flex font-medium rounded-full bg-orange-50 text-orange-700 border border-orange-200 text-xs px-2 py-0.5">Necesidad</span>}
+            {item.type === 'vet' && <span class="inline-flex font-medium rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs px-2 py-0.5">Veterinario</span>}
+            {item.type === 'reunion' && <span class="inline-flex font-medium rounded-full bg-pink-50 text-pink-700 border border-pink-200 text-xs px-2 py-0.5">Reunidos</span>}
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+</section>

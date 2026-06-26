@@ -1,0 +1,73 @@
+---
+// CTA de compartir — sección de cierre
+---
+<section class="bg-[#F7E8BF] py-16 px-4" aria-labelledby="share-cta-heading">
+  <div class="max-w-2xl mx-auto text-center">
+    <div class="flex items-center justify-center mb-5">
+      <div class="w-16 h-16 rounded-2xl bg-white/60 flex items-center justify-center">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#7A4A24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="18" cy="5" r="3"/>
+          <circle cx="6" cy="12" r="3"/>
+          <circle cx="18" cy="19" r="3"/>
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+        </svg>
+      </div>
+    </div>
+    <h2 id="share-cta-heading" class="text-2xl font-bold text-[#3B2A1A] mb-3 text-wrap-balance">
+      Cada publicación puede significar un reencuentro
+    </h2>
+    <p class="text-[#6B7280] mb-8 text-base leading-relaxed max-w-md mx-auto">
+      Comparte, reporta y ayuda. Juntos podemos reunir más familias con sus mascotas.
+    </p>
+    <button
+      id="share-btn"
+      class="inline-flex items-center gap-2.5 bg-[#7A4A24] hover:bg-[#5E3518] text-white font-semibold text-base px-8 py-4 rounded-2xl transition-colors shadow-[0_4px_20px_rgba(122,74,36,0.25)]"
+      aria-label="Compartir Protege Colitas"
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="18" cy="5" r="3"/>
+        <circle cx="6" cy="12" r="3"/>
+        <circle cx="18" cy="19" r="3"/>
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+      </svg>
+      Compartir esta página
+    </button>
+    <p id="share-feedback" class="mt-4 text-sm text-[#34A853] font-medium hidden">Enlace copiado al portapapeles</p>
+  </div>
+</section>
+
+<script>
+  const btn = document.getElementById('share-btn')
+  const feedback = document.getElementById('share-feedback')
+
+  btn?.addEventListener('click', async () => {
+    const shareData = {
+      title: 'Protege Colitas — Reuniendo mascotas con sus familias',
+      text: 'Ayuda a reunir mascotas perdidas con sus familias tras el terremoto de Venezuela.',
+      url: window.location.href,
+    }
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData)
+      } else {
+        await navigator.clipboard.writeText(window.location.href)
+        if (feedback) {
+          feedback.classList.remove('hidden')
+          setTimeout(() => feedback.classList.add('hidden'), 3000)
+        }
+      }
+    } catch {
+      try {
+        await navigator.clipboard.writeText(window.location.href)
+        if (feedback) {
+          feedback.classList.remove('hidden')
+          setTimeout(() => feedback.classList.add('hidden'), 3000)
+        }
+      } catch {
+        // Sin acceso al portapapeles
+      }
+    }
+  })
+</script>

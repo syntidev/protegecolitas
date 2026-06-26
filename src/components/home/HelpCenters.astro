@@ -1,0 +1,78 @@
+---
+// TODO: conectar con Supabase o datos reales de centros
+const centers = [
+  {
+    name: 'Centro de Acopio Caracas',
+    address: 'Av. Principal de Las Mercedes, Caracas',
+    hours: '8:00 AM – 8:00 PM',
+    mapsUrl: '#',
+    contactUrl: '#',
+  },
+  {
+    name: 'Refugio Patas Seguras',
+    address: 'Calle 123, La California, Miranda',
+    hours: '9:00 AM – 7:00 PM',
+    mapsUrl: '#',
+    contactUrl: '#',
+  },
+  {
+    name: 'Centro de Acopio Miranda',
+    address: 'Los Teques, Edo. Miranda',
+    hours: '8:00 AM – 6:00 PM',
+    mapsUrl: '#',
+    contactUrl: '#',
+  },
+]
+---
+<section aria-labelledby="help-centers-heading">
+  <div class="flex items-center justify-between mb-4">
+    <h2 id="help-centers-heading" class="text-xl font-bold text-[#3B2A1A]">Centros de ayuda activos</h2>
+    <a href="/acopio" class="text-sm text-[#C96A1B] hover:text-[#A85514] font-medium transition-colors">Ver todos</a>
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    {centers.map((center) => (
+      <div class="bg-white rounded-xl p-4 shadow-[0_2px_10px_rgba(0,0,0,0.05)]">
+        <div class="flex items-start gap-2.5 mb-3">
+          <div class="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C96A1B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2" y="7" width="9" height="14"/>
+              <rect x="13" y="3" width="9" height="18"/>
+              <line x1="2" y1="21" x2="22" y2="21"/>
+            </svg>
+          </div>
+          <h3 class="font-semibold text-[#3B2A1A] text-sm leading-snug">{center.name}</h3>
+        </div>
+        <div class="space-y-1.5 mb-4">
+          <div class="flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0" aria-hidden="true">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            <p class="text-xs text-[#6B7280]">{center.address}</p>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <p class="text-xs text-[#6B7280]">{center.hours}</p>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <a
+            href={center.mapsUrl}
+            class="flex-1 text-center text-xs font-semibold px-3 py-2 rounded-[10px] border border-[#E8E1D6] text-[#3B2A1A] hover:bg-[#F7E8BF] transition-colors"
+          >
+            Cómo llegar
+          </a>
+          <a
+            href={center.contactUrl}
+            class="flex-1 text-center text-xs font-semibold px-3 py-2 rounded-[10px] bg-[#C96A1B] hover:bg-[#A85514] text-white transition-colors"
+          >
+            Contactar
+          </a>
+        </div>
+      </div>
+    ))}
+  </div>
+</section>

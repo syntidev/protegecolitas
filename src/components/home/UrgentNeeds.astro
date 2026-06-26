@@ -1,0 +1,93 @@
+---
+// TODO: conectar con Supabase tabla necesidades
+const centers = [
+  {
+    name: 'Centro de Acopio Caracas',
+    location: 'Av. Principal Las Mercedes',
+    needs: [
+      { label: 'Alimento seco', pct: 80 },
+      { label: 'Agua', pct: 65 },
+      { label: 'Antipulgas', pct: 30 },
+      { label: 'Mantas', pct: 45 },
+    ],
+  },
+  {
+    name: 'Refugio Patas Seguras',
+    location: 'La California, Miranda',
+    needs: [
+      { label: 'Alimento seco', pct: 60 },
+      { label: 'Medicinas', pct: 25 },
+      { label: 'Agua', pct: 70 },
+      { label: 'Transportadores', pct: 15 },
+    ],
+  },
+  {
+    name: 'Centro de Acopio Miranda',
+    location: 'Los Teques, Miranda',
+    needs: [
+      { label: 'Alimento seco', pct: 40 },
+      { label: 'Mantas', pct: 20 },
+      { label: 'Medicinas', pct: 35 },
+      { label: 'Collares', pct: 50 },
+    ],
+  },
+]
+
+function barColor(pct: number) {
+  if (pct > 70) return 'bg-[#34A853]'
+  if (pct > 40) return 'bg-[#F59E0B]'
+  return 'bg-[#E5484D]'
+}
+---
+<section aria-labelledby="urgent-needs-heading">
+  <div class="flex items-center justify-between mb-4">
+    <h2 id="urgent-needs-heading" class="text-xl font-bold text-[#3B2A1A]">Necesidades urgentes</h2>
+    <a href="/insumos" class="text-sm text-[#C96A1B] hover:text-[#A85514] font-medium transition-colors">Ver todas</a>
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    {centers.map((center) => (
+      <div class="bg-white rounded-2xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+        <div class="flex items-start gap-2.5 mb-4">
+          <div class="w-8 h-8 rounded-lg bg-[#F7E8BF] flex items-center justify-center flex-shrink-0 mt-0.5">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7A4A24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2" y="7" width="9" height="14"/>
+              <rect x="13" y="3" width="9" height="18"/>
+              <line x1="2" y1="21" x2="22" y2="21"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="font-semibold text-[#3B2A1A] text-sm leading-tight">{center.name}</h3>
+            <div class="flex items-center gap-1 mt-0.5">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+              <p class="text-xs text-[#9CA3AF]">{center.location}</p>
+            </div>
+          </div>
+        </div>
+        <div class="space-y-3">
+          {center.needs.map((need) => (
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <span class="text-xs font-medium text-[#3B2A1A]">{need.label}</span>
+                <span class="text-xs text-[#9CA3AF]">{need.pct}%</span>
+              </div>
+              <div class="w-full h-1.5 bg-[#F3EDE6] rounded-full overflow-hidden">
+                <div
+                  class={`h-full rounded-full ${barColor(need.pct)}`}
+                  style={`width: ${need.pct}%`}
+                  role="progressbar"
+                  aria-valuenow={need.pct}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label={`${need.label}: ${need.pct}% cubierto`}
+                ></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    ))}
+  </div>
+</section>
