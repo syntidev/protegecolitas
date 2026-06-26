@@ -1,8 +1,8 @@
 ---
 import Base from '../layouts/Base.astro'
-import { supabase } from '../lib/supabase'
+import { supabaseAdmin } from '../lib/supabase'
 
-const { data: notas } = await supabase
+const { data: notas } = await supabaseAdmin
   .from('feed')
   .select('id, titulo, cuerpo, tipo, published_at')
   .order('published_at', { ascending: false })

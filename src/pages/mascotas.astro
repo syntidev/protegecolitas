@@ -79,6 +79,7 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
       <!-- Búsqueda -->
       <form class="search-form" action="/mascotas" method="GET">
         {especie && <input type="hidden" name="especie" value={especie} />}
+        {zona && <input type="hidden" name="zona" value={zona} />}
         <div class="search-wrap">
           <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
@@ -93,6 +94,9 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
           />
         </div>
         <button type="submit" class="btn-search">Buscar</button>
+        {(q || especie || zona) && (
+          <a href="/mascotas" class="btn-clear">✕ Limpiar</a>
+        )}
       </form>
 
       <!-- Filtros especie -->
@@ -266,7 +270,15 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
   border-color: var(--amarillo);
   box-shadow: 0 0 0 3px rgba(245,193,7,0.18);
 }
-.btn-search {
+.btn-clear {
+      display: inline-flex; align-items: center; padding: 0 16px;
+      height: 44px; border-radius: 10px; font-size: 14px; font-weight: 600;
+      background: transparent; border: 1.5px solid #E5E7EB;
+      color: #6B7280; text-decoration: none; white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .btn-clear:hover { background: #F3F4F6; color: #3D1C02; border-color: #3D1C02; }
+    .btn-search {
   height: 48px;
   padding: 0 20px;
   background: var(--marron);

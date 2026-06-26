@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro'
-import { createClient } from '@supabase/supabase-js'
+import { supabaseAdmin } from '../../lib/supabase'
 import { createHmac, timingSafeEqual } from 'crypto'
 import * as dotenv from 'dotenv'
 import { resolve } from 'path'
@@ -52,7 +52,7 @@ export const POST: APIRoute = async ({ request }) => {
   const titulo = fd.get('titulo')?.toString().trim() ?? ''
   if (!titulo) return json({ ok: false, error: 'El título es requerido' }, 400)
 
-  const { error } = await db.from('banners').insert({
+  const { error } = await supabaseAdmin.from('banners').insert({
     titulo,
     descripcion: fd.get('descripcion')?.toString().trim() || null,
     link:        fd.get('link')?.toString().trim() || null,

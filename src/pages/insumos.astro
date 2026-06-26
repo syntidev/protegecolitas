@@ -1,8 +1,8 @@
 ---
 import Base from '../layouts/Base.astro'
-import { supabase } from '../lib/supabase'
+import { supabaseAdmin } from '../lib/supabase'
 
-const { data: necesidades } = await supabase
+const { data: necesidades } = await supabaseAdmin
   .from('necesidades')
   .select('id, item, cantidad_requerida, cantidad_recibida, prioridad, updated_at')
   .order('prioridad', { ascending: true })
