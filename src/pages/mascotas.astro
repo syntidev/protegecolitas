@@ -1,0 +1,295 @@
+---
+import Base from '../layouts/Base.astro'
+import { supabaseAdmin } from '../lib/supabase'
+
+const especie = Astro.url.searchParams.get('especie') ?? ''
+const zona    = Astro.url.searchParams.get('zona') ?? ''
+const q       = Astro.url.searchParams.get('q') ?? ''
+
+let query = supabaseAdmin
+  .from('mascotas')
+  .select('id, nombre, especie, descripcion, color, zona, tipo, foto_url, whatsapp, created_at')
+  .eq('status', 'publicado')
+  .order('created_at', { ascending: false })
+  .limit(24)
+
+if (especie) query = query.eq('especie', especie)
+if (zona)    query = query.ilike('zona', `%${zona}%`)
+if (q) {
+  const safe = q.replace(/[,()\.:*\\]/g, ' ').trim().slice(0, 100)
+  query = query.or(`nombre.ilike.%${safe}%,descripcion.ilike.%${safe}%,zona.ilike.%${safe}%`)
+}
+
+const { data: mascotas, error } = await query
+
+const ESPECIES = ['Perro', 'Gato', 'Ave', 'Otro'] as const
+
+function chipUrl(esp: string) {
+  const p = new URLSearchParams()
+  if (esp)  p.set('especie', esp)
+  if (zona) p.set('zona', zona)
+  if (q)    p.set('q', q)
+  const s = p.toString()
+  return `/mascotas${s ? '?' + s : ''}`
+}
+
+function waHref(whatsapp: string | null, nombre: string | null): string | null {
+  if (!whatsapp) return null
+  const num = `58${whatsapp.slice(1)}`
+  const text = encodeURIComponent(`Hola, vi el reporte de ${nombre ?? 'una mascota'} en protegecolitas.org`)
+  return `https://wa.me/${num}?text=${text}`
+}
+---
+<Base title="Mascotas — Protege Colitas">
+  <div class="page">
+    <header class="page-header">
+      <a href="/" class="back-btn" aria-label="Volver al inicio">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12 4L6 10l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <div class="header-text">
+        <span class="brand">Protege Colitas</span>
+      </div>
+    </header>
+
+    <main class="content">
+      <div class="hero-section">
+        <h1 class="page-title">¿La has<br /><em>visto?</em></h1>
+        <p class="page-sub">Mascotas perdidas y encontradas tras el sismo.</p>
+      </div>
+
+      <!-- Búsqueda -->
+      <form class="search-form" action="/mascotas" method="GET">
+        {especie && <input type="hidden" name="especie" value={especie} />}
+        <div class="search-wrap">
+          <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input
+            type="search"
+            name="q"
+            value={q}
+            class="search-input"
+            placeholder="Nombre, zona, color…"
+            autocomplete="off"
+          />
+        </div>
+        <button type="submit" class="btn-search">Buscar</button>
+      </form>
+
+      <!-- Filtros especie -->
+      <div class="chips-row" role="group" aria-label="Filtrar por especie">
+        <a href={chipUrl('')} class={`chip${!especie ? ' chip-active' : ''}`}>Todos</a>
+        {ESPECIES.map(e => (
+          <a href={chipUrl(e)} class={`chip${especie === e ? ' chip-active' : ''}`}>{e}</a>
+        ))}
+      </div>
+
+      <!-- Error de carga -->
+      {error && (
+        <div class="state-msg state-error" role="alert">
+          <p>No pudimos cargar los reportes. Intenta de nuevo.</p>
+        </div>
+      )}
+
+      <!-- Grid de mascotas -->
+      {!error && mascotas && mascotas.length > 0 ? (
+        <div class="mascotas-grid">
+          {mascotas.map((m) => {
+            const wa = waHref(m.whatsapp, m.nombre)
+            return (
+              <article class="pet-card">
+                <div class="pet-photo">
+                  {m.foto_url
+                    ? <img src={m.foto_url} alt={m.nombre ?? 'Mascota'} loading="lazy" class="pet-img" />
+                    : <div class="pet-no-photo" aria-label="Sin foto">🐾</div>
+                  }
+                  <span class={`badge-tipo tipo-${(m.tipo ?? 'perdido').toLowerCase()}`}>
+                    {m.tipo === 'encontrado' ? 'ENCONTRADO' : 'PERDIDO'}
+                  </span>
+                </div>
+
+                <div class="pet-info">
+                  <p class="pet-name">{m.nombre ?? 'Sin nombre'}</p>
+                  <p class="pet-meta">
+                    {m.especie}{m.color ? ` · ${m.color}` : ''}
+                  </p>
+                  <p class="pet-zona">📍 {m.zona}</p>
+                </div>
+
+                <div class="pet-actions">
+                  <a href={`/mascota/${m.id}`} class="btn-ficha">Ver ficha</a>
+                  {wa
+                    ? <a href={wa} class="btn-wa-card" target="_blank" rel="noopener noreferrer">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.119.553 4.107 1.516 5.836L.057 23.447a.5.5 0 00.611.612l5.638-1.471A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.891 0-3.666-.5-5.197-1.373l-.371-.22-3.847 1.003 1.022-3.737-.242-.384A9.942 9.942 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+                        WhatsApp
+                      </a>
+                    : <span class="btn-wa-card btn-wa-none">Sin contacto</span>
+                  }
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      ) : !error ? (
+        <div class="state-msg state-empty">
+          <div class="empty-icon">🐾</div>
+          <p class="empty-msg">No hay reportes publicados aún.</p>
+          <a href="/reportar" class="btn-reportar">Sé el primero en reportar</a>
+        </div>
+      ) : null}
+    </main>
+  </div>
+</Base>
+
+<style>
+.page { min-height: 100dvh; display: flex; flex-direction: column; }
+
+.page-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px;
+  background: var(--blanco); border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 20;
+}
+.back-btn {
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px; background: var(--gris-bg); color: var(--marron);
+  text-decoration: none; transition: background .15s; flex-shrink: 0;
+}
+.back-btn:hover { background: var(--border); }
+.brand { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 17px; color: var(--marron); }
+
+.content { padding: 0 16px 100px; max-width: 900px; margin: 0 auto; width: 100%; }
+
+/* ─── Hero ─── */
+.hero-section { padding: 28px 0 20px; }
+.page-title {
+  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-size: clamp(28px, 7vw, 40px); line-height: 1.05;
+  color: var(--marron); margin-bottom: 8px; text-wrap: balance;
+}
+.page-title em { font-style: normal; color: var(--amarillo); }
+.page-sub { font-size: 15px; color: var(--gris-txt); }
+
+/* ─── Búsqueda ─── */
+.search-form { display: flex; gap: 8px; margin-bottom: 16px; }
+.search-wrap { flex: 1; position: relative; display: flex; align-items: center; }
+.search-icon {
+  position: absolute; left: 12px; color: var(--gris-txt); pointer-events: none;
+}
+.search-input {
+  width: 100%; padding: 12px 14px 12px 38px;
+  border: 1.5px solid var(--border); border-radius: 12px;
+  background: var(--blanco);
+  font-family: 'Inter', sans-serif; font-size: 15px; color: var(--marron);
+  outline: none; transition: border-color .15s; -webkit-appearance: none;
+}
+.search-input:focus { border-color: var(--marron); }
+.btn-search {
+  height: 48px; padding: 0 18px;
+  background: var(--marron); color: #fff;
+  border: none; border-radius: 12px;
+  font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 700;
+  cursor: pointer; white-space: nowrap; flex-shrink: 0; min-height: 44px;
+  transition: opacity .15s;
+}
+.btn-search:hover { opacity: .9; }
+
+/* ─── Chips ─── */
+.chips-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.chip {
+  height: 36px; padding: 0 14px; border-radius: 18px;
+  border: 1.5px solid var(--border); background: var(--blanco);
+  font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+  color: var(--gris-txt); text-decoration: none;
+  display: inline-flex; align-items: center;
+  transition: border-color .15s, color .15s, background .15s;
+  white-space: nowrap;
+}
+.chip:hover { border-color: var(--marron); color: var(--marron); }
+.chip-active { background: var(--amarillo); border-color: var(--amarillo); color: var(--marron); }
+
+/* ─── Grid ─── */
+.mascotas-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
+}
+@media (min-width: 640px) {
+  .mascotas-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ─── Card ─── */
+.pet-card {
+  background: var(--blanco); border-radius: 16px;
+  border: 1.5px solid var(--border);
+  overflow: hidden; display: flex; flex-direction: column;
+  transition: box-shadow .2s, transform .2s;
+}
+.pet-card:hover {
+  box-shadow: 0 6px 20px rgba(107,58,42,.1);
+  transform: translateY(-2px);
+}
+
+.pet-photo {
+  position: relative; height: 180px; overflow: hidden;
+  background: var(--gris-bg); flex-shrink: 0;
+}
+.pet-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pet-no-photo {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center; font-size: 48px;
+}
+
+.badge-tipo {
+  position: absolute; top: 10px; left: 10px;
+  font-size: 10px; font-weight: 700; letter-spacing: .07em;
+  padding: 3px 8px; border-radius: 6px; text-transform: uppercase;
+}
+.tipo-perdido    { background: var(--rojo);  color: #fff; }
+.tipo-encontrado { background: var(--azul); color: #fff; }
+
+.pet-info { padding: 12px 12px 8px; flex: 1; }
+.pet-name {
+  font-size: 14px; font-weight: 700; color: var(--marron);
+  margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pet-meta { font-size: 12px; color: var(--gris-txt); margin-bottom: 2px; }
+.pet-zona { font-size: 11px; color: var(--gris-txt); }
+
+.pet-actions {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 0 10px 10px;
+}
+.btn-ficha {
+  display: flex; align-items: center; justify-content: center;
+  height: 38px; border-radius: 10px;
+  background: var(--amarillo); color: var(--marron);
+  font-size: 12px; font-weight: 700; text-decoration: none;
+  transition: opacity .15s;
+}
+.btn-ficha:hover { opacity: .85; }
+.btn-wa-card {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  height: 38px; border-radius: 10px;
+  background: #25D366; color: #fff;
+  font-size: 12px; font-weight: 700; text-decoration: none;
+  transition: opacity .15s;
+}
+.btn-wa-card:hover { opacity: .9; }
+.btn-wa-none {
+  background: var(--gris-bg); color: var(--gris-txt); font-size: 11px; cursor: default;
+}
+
+/* ─── Estados ─── */
+.state-msg { display: flex; flex-direction: column; align-items: center; padding: 60px 20px; text-align: center; }
+.state-error p { font-size: 15px; color: var(--rojo); font-weight: 600; }
+.empty-icon { font-size: 56px; margin-bottom: 16px; }
+.empty-msg { font-size: 17px; font-weight: 700; color: var(--marron); margin-bottom: 20px; }
+.btn-reportar {
+  display: inline-flex; align-items: center; padding: 13px 24px; border-radius: 14px;
+  background: var(--amarillo); color: var(--marron);
+  font-size: 15px; font-weight: 700; text-decoration: none; min-height: 48px;
+  transition: opacity .15s;
+}
+.btn-reportar:hover { opacity: .85; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pet-card, .btn-ficha, .btn-wa-card { transition: none; }
+}
+</style>

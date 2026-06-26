@@ -1,0 +1,300 @@
+---
+import Base from '../../layouts/Base.astro'
+import { supabaseAdmin } from '../../lib/supabase'
+
+const { id } = Astro.params
+
+if (!id) return Astro.redirect('/mascotas')
+
+const { data: m } = await supabaseAdmin
+  .from('mascotas')
+  .select('id, nombre, especie, descripcion, color, tamanio, zona, tipo, status, foto_url, foto_url_2, foto_url_3, whatsapp, created_at')
+  .eq('id', id)
+  .eq('status', 'publicado')
+  .maybeSingle()
+
+if (!m) return Astro.redirect('/mascotas')
+
+const waNum = m.whatsapp ? `58${m.whatsapp.slice(1)}` : null
+const waText = encodeURIComponent(
+  `Hola, vi el reporte de ${m.nombre ?? 'una mascota'} (${m.especie}, zona ${m.zona}) en protegecolitas.org y quiero ayudar.`
+)
+const waHref = waNum ? `https://wa.me/${waNum}?text=${waText}` : null
+
+const fechaStr = new Date(m.created_at).toLocaleDateString('es-VE', {
+  day: 'numeric', month: 'long', year: 'numeric'
+})
+
+const reunido = m.status === 'reunido'
+---
+<Base title={`${m.nombre ?? 'Mascota'} — Protege Colitas`}>
+  <div class="page">
+    <header class="page-header">
+      <a href="/mascotas" class="back-btn" aria-label="Volver a mascotas">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12 4L6 10l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+      <span class="brand">Protege Colitas</span>
+    </header>
+
+    <main class="content">
+      {reunido && (
+        <div class="banner-reunido" role="status">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+          Ya fue reunido con su familia
+        </div>
+      )}
+
+      <!-- Foto principal -->
+      <div class="foto-principal">
+        {m.foto_url
+          ? <img src={m.foto_url} alt={m.nombre ?? 'Mascota'} class="foto-main-img" />
+          : <div class="foto-placeholder" aria-label="Sin foto">🐾</div>
+        }
+        <span class={`badge-tipo tipo-${(m.tipo ?? 'perdido').toLowerCase()}`}>
+          {m.tipo === 'encontrado' ? 'ENCONTRADO' : 'PERDIDO'}
+        </span>
+      </div>
+
+      <!-- Fotos adicionales -->
+      {(m.foto_url_2 || m.foto_url_3) && (
+        <div class="fotos-extra">
+          {m.foto_url_2 && (
+            <img src={m.foto_url_2} alt="Foto adicional" class="foto-thumb" loading="lazy" />
+          )}
+          {m.foto_url_3 && (
+            <img src={m.foto_url_3} alt="Foto adicional" class="foto-thumb" loading="lazy" />
+          )}
+        </div>
+      )}
+
+      <!-- Nombre -->
+      <div class="pet-header">
+        <h1 class="pet-nombre">{m.nombre ?? 'Sin nombre'}</h1>
+      </div>
+
+      <!-- Datos -->
+      <dl class="datos-list">
+        <div class="dato-row">
+          <dt class="dato-label">Especie</dt>
+          <dd class="dato-val">{m.especie}</dd>
+        </div>
+        {m.color && (
+          <div class="dato-row">
+            <dt class="dato-label">Color</dt>
+            <dd class="dato-val">{m.color}</dd>
+          </div>
+        )}
+        {m.tamanio && (
+          <div class="dato-row">
+            <dt class="dato-label">Tamaño</dt>
+            <dd class="dato-val">{m.tamanio}</dd>
+          </div>
+        )}
+        <div class="dato-row">
+          <dt class="dato-label">Zona</dt>
+          <dd class="dato-val">📍 {m.zona}</dd>
+        </div>
+      </dl>
+
+      <!-- Descripción -->
+      {m.descripcion && (
+        <div class="descripcion-section">
+          <p class="desc-label">Descripción</p>
+          <p class="desc-text">{m.descripcion}</p>
+        </div>
+      )}
+
+      <!-- Acciones -->
+      <div class="acciones">
+        {waHref
+          ? (
+            <a href={waHref} class="btn-action btn-wa" target="_blank" rel="noopener noreferrer">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.119.553 4.107 1.516 5.836L.057 23.447a.5.5 0 00.611.612l5.638-1.471A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.891 0-3.666-.5-5.197-1.373l-.371-.22-3.847 1.003 1.022-3.737-.242-.384A9.942 9.942 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+              Contactar por WhatsApp
+            </a>
+          ) : (
+            <div class="btn-action btn-no-wa">Sin número de contacto</div>
+          )
+        }
+
+        <button
+          class="btn-action btn-compartir"
+          id="btnCompartir"
+          data-nombre={m.nombre ?? 'Mascota'}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          <span id="compartirLabel">Compartir este reporte</span>
+        </button>
+      </div>
+
+      <p class="fecha-reporte">Reportado el {fechaStr}</p>
+
+      <!-- CTA footer -->
+      <div class="cta-final">
+        <p class="cta-txt">¿También tienes información?</p>
+        <a href="/reportar" class="btn-cta-reportar">Reportar →</a>
+      </div>
+    </main>
+  </div>
+</Base>
+
+<style>
+.page { min-height: 100dvh; display: flex; flex-direction: column; }
+
+.page-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px;
+  background: var(--blanco); border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 20;
+}
+.back-btn {
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px; background: var(--gris-bg); color: var(--marron);
+  text-decoration: none; transition: background .15s; flex-shrink: 0;
+}
+.back-btn:hover { background: var(--border); }
+.brand { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 17px; color: var(--marron); }
+
+.content { padding: 0 0 100px; max-width: 600px; margin: 0 auto; width: 100%; }
+
+/* ─── Banner reunido ─── */
+.banner-reunido {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px;
+  background: #f0fdf4; border-bottom: 1px solid #bbf7d0;
+  font-size: 14px; font-weight: 700; color: var(--verde);
+}
+
+/* ─── Foto principal ─── */
+.foto-principal { position: relative; background: var(--gris-bg); }
+.foto-main-img { width: 100%; max-height: 360px; object-fit: cover; display: block; }
+.foto-placeholder {
+  height: 220px;
+  display: flex; align-items: center; justify-content: center; font-size: 64px;
+}
+
+.badge-tipo {
+  position: absolute; top: 12px; left: 16px;
+  font-size: 11px; font-weight: 700; letter-spacing: .07em;
+  padding: 4px 10px; border-radius: 6px; text-transform: uppercase;
+}
+.tipo-perdido    { background: var(--rojo); color: #fff; }
+.tipo-encontrado { background: var(--azul); color: #fff; }
+
+/* ─── Fotos extra ─── */
+.fotos-extra { display: flex; gap: 8px; padding: 10px 16px; background: var(--gris-bg); }
+.foto-thumb {
+  width: 72px; height: 60px; object-fit: cover;
+  border-radius: 8px; border: 1.5px solid var(--border); flex-shrink: 0;
+}
+
+/* ─── Nombre ─── */
+.pet-header { padding: 20px 16px 0; }
+.pet-nombre {
+  font-family: 'Syne', sans-serif; font-weight: 800;
+  font-size: clamp(26px, 6vw, 36px); color: var(--marron);
+  line-height: 1.1; text-wrap: balance;
+}
+
+/* ─── Datos ─── */
+.datos-list {
+  margin: 16px 16px 0; padding: 0;
+  background: var(--blanco); border-radius: 14px;
+  border: 1.5px solid var(--border); overflow: hidden;
+}
+.dato-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 13px 16px; border-bottom: 1px solid var(--border);
+}
+.dato-row:last-child { border-bottom: none; }
+.dato-label { font-size: 13px; color: var(--gris-txt); font-weight: 500; }
+.dato-val   { font-size: 14px; color: var(--marron); font-weight: 700; text-align: right; }
+
+/* ─── Descripción ─── */
+.descripcion-section { padding: 20px 16px 0; }
+.desc-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--gris-txt); margin-bottom: 8px;
+}
+.desc-text {
+  font-size: 15px; color: var(--marron); line-height: 1.65;
+  background: var(--blanco); border-radius: 12px;
+  padding: 14px 16px; border: 1.5px solid var(--border);
+}
+
+/* ─── Acciones ─── */
+.acciones { padding: 24px 16px 0; display: flex; flex-direction: column; gap: 10px; }
+.btn-action {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; min-height: 52px; border-radius: 14px; border: none;
+  font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 700;
+  text-decoration: none; cursor: pointer;
+  transition: opacity .15s, transform .1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-action:active { transform: scale(.98); }
+.btn-wa    { background: #25D366; color: #fff; }
+.btn-wa:hover { opacity: .9; }
+.btn-compartir { background: var(--azul); color: #fff; }
+.btn-compartir:hover { opacity: .9; }
+.btn-no-wa { background: var(--gris-bg); color: var(--gris-txt); font-size: 14px; cursor: default; }
+
+/* ─── Fecha ─── */
+.fecha-reporte {
+  padding: 16px 16px 0;
+  font-size: 12px; color: var(--gris-txt); text-align: center;
+}
+
+/* ─── CTA final ─── */
+.cta-final {
+  margin: 24px 16px 0; padding: 20px;
+  background: var(--gris-bg); border-radius: 14px;
+  border: 1.5px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+}
+.cta-txt { font-size: 14px; color: var(--gris-txt); }
+.btn-cta-reportar {
+  display: inline-flex; align-items: center;
+  padding: 10px 20px; border-radius: 10px;
+  background: var(--amarillo); color: var(--marron);
+  font-size: 14px; font-weight: 700; text-decoration: none;
+  min-height: 44px; transition: opacity .15s; white-space: nowrap;
+}
+.btn-cta-reportar:hover { opacity: .85; }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-action { transition: none; }
+}
+</style>
+
+<script>
+(function () {
+  const btn = document.getElementById('btnCompartir')
+  const label = document.getElementById('compartirLabel')
+  if (!btn || !label) return
+
+  btn.addEventListener('click', async () => {
+    const url = window.location.href
+    const nombre = (btn as HTMLButtonElement).dataset.nombre || 'Mascota'
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${nombre} — Protege Colitas`,
+          text: '¿La has visto? Ayudá a reunir a esta mascota con su familia.',
+          url,
+        })
+        return
+      } catch { /* usuario canceló */ }
+    }
+
+    try {
+      await navigator.clipboard.writeText(url)
+      label.textContent = '¡Enlace copiado!'
+      setTimeout(() => { label.textContent = 'Compartir este reporte' }, 2000)
+    } catch { /* clipboard no disponible */ }
+  })
+})()
+</script>
