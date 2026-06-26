@@ -1,25 +1,72 @@
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@800;900&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; }
+img { display: block; max-width: 100%; }
 
 :root {
-  --amarillo:  #F5C107;
-  --marron:    #6B3A2A;
-  --blanco:    #FFFFFF;
-  --negro:     #1A1A1A;
-  --gris-bg:   #F9F6F0;
-  --gris-txt:  #6B7280;
-  --rojo:      #DC2626;
-  --verde:     #16A34A;
-  --azul:      #2563EB;
-  --naranja:   #EA580C;
-  --border:    #E5DDD0;
+  /* variables canónicas */
+  --arena:      #F7E8BF;
+  --fondo:      #FFF8EA;
+  --card:       #FFFFFF;
+  --border:     #E8E1D6;
+  --texto:      #3B2A1A;
+  --texto-sec:  #6B7280;
+  --texto-muted:#9CA3AF;
+  --marron:     #7A4A24;
+  --accion:     #C96A1B;
+  --accion-hover:#A85514;
+  --verde:      #34A853;
+  --verde-bg:   #dcfce7;
+  --rojo:       #E5484D;
+  --rojo-bg:    #fee2e2;
+  --azul:       #4285F4;
+  --azul-bg:    #dbeafe;
+  --naranja:    #F59E0B;
+  --naranja-bg: #ffedd5;
+  --rosa:       #E91E63;
+  --rosa-bg:    #fce7f3;
 }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
+
 body {
-  font-family: 'Inter', sans-serif;
-  background: var(--gris-bg);
-  color: var(--negro);
-  font-size: 15px;
-  line-height: 1.6;
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--fondo);
+  color: var(--texto);
+  margin: 0;
 }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ── Carrusel global ── */
+.carousel-container {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  gap: 1rem;
+  padding-bottom: 0.5rem;
+}
+.carousel-container::-webkit-scrollbar { height: 4px; }
+.carousel-container::-webkit-scrollbar-track { background: var(--border); border-radius: 9999px; }
+.carousel-container::-webkit-scrollbar-thumb { background: var(--accion); border-radius: 9999px; }
+.carousel-item { scroll-snap-align: start; flex-shrink: 0; }
+
+/* ── Scrollbar body ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--arena); }
+::-webkit-scrollbar-thumb { background: var(--accion); border-radius: 9999px; }
+
+/* ── Pulso ── */
+@keyframes pulse-dot { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+.pulse-dot { animation: pulse-dot 1.5s ease-in-out infinite; }

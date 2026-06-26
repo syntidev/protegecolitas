@@ -6,19 +6,19 @@ const centers = [
     location: 'Av. Principal Las Mercedes',
     needs: [
       { label: 'Alimento seco', pct: 80 },
-      { label: 'Agua', pct: 65 },
-      { label: 'Antipulgas', pct: 30 },
-      { label: 'Mantas', pct: 45 },
+      { label: 'Agua',          pct: 65 },
+      { label: 'Antipulgas',    pct: 30 },
+      { label: 'Mantas',        pct: 45 },
     ],
   },
   {
     name: 'Refugio Patas Seguras',
     location: 'La California, Miranda',
     needs: [
-      { label: 'Alimento seco', pct: 60 },
-      { label: 'Medicinas', pct: 25 },
-      { label: 'Agua', pct: 70 },
-      { label: 'Transportadores', pct: 15 },
+      { label: 'Alimento seco',  pct: 60 },
+      { label: 'Medicinas',      pct: 25 },
+      { label: 'Agua',           pct: 70 },
+      { label: 'Transportadores',pct: 15 },
     ],
   },
   {
@@ -26,57 +26,57 @@ const centers = [
     location: 'Los Teques, Miranda',
     needs: [
       { label: 'Alimento seco', pct: 40 },
-      { label: 'Mantas', pct: 20 },
-      { label: 'Medicinas', pct: 35 },
-      { label: 'Collares', pct: 50 },
+      { label: 'Mantas',        pct: 20 },
+      { label: 'Medicinas',     pct: 35 },
+      { label: 'Collares',      pct: 50 },
     ],
   },
 ]
 
 function barColor(pct: number) {
-  if (pct > 70) return 'bg-[#34A853]'
-  if (pct > 40) return 'bg-[#F59E0B]'
-  return 'bg-[#E5484D]'
+  if (pct > 70) return '#34A853'
+  if (pct > 40) return '#F59E0B'
+  return '#E5484D'
 }
 ---
 <section aria-labelledby="urgent-needs-heading">
-  <div class="flex items-center justify-between mb-4">
-    <h2 id="urgent-needs-heading" class="text-xl font-bold text-[#3B2A1A]">Necesidades urgentes</h2>
-    <a href="/insumos" class="text-sm text-[#C96A1B] hover:text-[#A85514] font-medium transition-colors">Ver todas</a>
+  <div class="section-header">
+    <h2 id="urgent-needs-heading" class="section-title">Necesidades urgentes</h2>
+    <a href="/insumos" class="view-all">Ver todas</a>
   </div>
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+  <div class="needs-grid">
     {centers.map((center) => (
-      <div class="bg-white rounded-2xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
-        <div class="flex items-start gap-2.5 mb-4">
-          <div class="w-8 h-8 rounded-lg bg-[#F7E8BF] flex items-center justify-center flex-shrink-0 mt-0.5">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7A4A24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <div class="needs-card">
+        <div class="center-meta">
+          <div class="center-icon" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--marron)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="2" y="7" width="9" height="14"/>
               <rect x="13" y="3" width="9" height="18"/>
               <line x1="2" y1="21" x2="22" y2="21"/>
             </svg>
           </div>
           <div>
-            <h3 class="font-semibold text-[#3B2A1A] text-sm leading-tight">{center.name}</h3>
-            <div class="flex items-center gap-1 mt-0.5">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <h3 class="center-name">{center.name}</h3>
+            <div class="center-loc">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
                 <circle cx="12" cy="10" r="3"/>
               </svg>
-              <p class="text-xs text-[#9CA3AF]">{center.location}</p>
+              <span>{center.location}</span>
             </div>
           </div>
         </div>
-        <div class="space-y-3">
+        <div class="needs-list">
           {center.needs.map((need) => (
-            <div>
-              <div class="flex justify-between items-center mb-1">
-                <span class="text-xs font-medium text-[#3B2A1A]">{need.label}</span>
-                <span class="text-xs text-[#9CA3AF]">{need.pct}%</span>
+            <div class="need-row">
+              <div class="need-labels">
+                <span class="need-label">{need.label}</span>
+                <span class="need-pct">{need.pct}%</span>
               </div>
-              <div class="w-full h-1.5 bg-[#F3EDE6] rounded-full overflow-hidden">
+              <div class="progress-track">
                 <div
-                  class={`h-full rounded-full ${barColor(need.pct)}`}
-                  style={`width: ${need.pct}%`}
+                  class="progress-bar"
+                  style={`width: ${need.pct}%; background: ${barColor(need.pct)}`}
                   role="progressbar"
                   aria-valuenow={need.pct}
                   aria-valuemin={0}
@@ -91,3 +91,104 @@ function barColor(pct: number) {
     ))}
   </div>
 </section>
+
+<style>
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--texto);
+  margin: 0;
+}
+.view-all {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--accion);
+  text-decoration: none;
+}
+.view-all:hover { color: var(--accion-hover); }
+
+.needs-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+@media (min-width: 640px) { .needs-grid { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 1024px) { .needs-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.needs-card {
+  background: var(--card);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+.center-meta {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  margin-bottom: 1rem;
+}
+.center-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--arena);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.center-name {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--texto);
+  line-height: 1.3;
+  margin: 0 0 2px;
+}
+.center-loc {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--texto-muted);
+  font-size: 0.6875rem;
+}
+.needs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.need-row {}
+.need-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.need-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--texto);
+}
+.need-pct {
+  font-size: 0.75rem;
+  color: var(--texto-muted);
+}
+.progress-track {
+  width: 100%;
+  height: 6px;
+  background: #F3EDE6;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+.progress-bar {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width .3s ease;
+}
+</style>

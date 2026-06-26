@@ -6,9 +6,12 @@ interface Props {
   description?: string
 }
 
-const { title = 'Protege Colitas', description = 'Plataforma de emergencia para reunir mascotas perdidas con sus familias tras el terremoto de Venezuela 2026.' } = Astro.props
-const path = Astro.url?.pathname ?? '/'
+const {
+  title = 'Protege Colitas',
+  description = 'Plataforma de emergencia para reunir mascotas perdidas con sus familias tras el terremoto de Venezuela 2026.'
+} = Astro.props
 
+const path = Astro.url?.pathname ?? '/'
 function active(href: string) {
   return href === '/' ? path === '/' : path.startsWith(href)
 }
@@ -26,10 +29,9 @@ function active(href: string) {
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Nunito:wght@800;900&display=swap" rel="stylesheet" />
-  <script src="https://cdn.tailwindcss.com"></script>
   <title>{title}</title>
 </head>
-<body class="pb-20">
+<body>
   <slot />
 
   <nav class="bottom-nav" role="navigation" aria-label="Navegación principal">
@@ -40,7 +42,6 @@ function active(href: string) {
       </svg>
       <span class="nav-label">Inicio</span>
     </a>
-
     <a href="/reportar" class={`nav-item${active('/reportar') ? ' nav-active' : ''}`} aria-current={active('/reportar') ? 'page' : undefined} aria-label="Reportar mascota">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <circle cx="12" cy="12" r="10"/>
@@ -49,8 +50,7 @@ function active(href: string) {
       </svg>
       <span class="nav-label">Reportar</span>
     </a>
-
-    <a href="/insumos" class={`nav-item${active('/insumos') ? ' nav-active' : ''}`} aria-current={active('/insumos') ? 'page' : undefined} aria-label="Insumos y necesidades">
+    <a href="/insumos" class={`nav-item${active('/insumos') ? ' nav-active' : ''}`} aria-current={active('/insumos') ? 'page' : undefined} aria-label="Insumos">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
         <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
@@ -58,14 +58,12 @@ function active(href: string) {
       </svg>
       <span class="nav-label">Insumos</span>
     </a>
-
-    <a href="/veterinarios" class={`nav-item${active('/veterinarios') ? ' nav-active' : ''}`} aria-current={active('/veterinarios') ? 'page' : undefined} aria-label="Veterinarios voluntarios">
+    <a href="/veterinarios" class={`nav-item${active('/veterinarios') ? ' nav-active' : ''}`} aria-current={active('/veterinarios') ? 'page' : undefined} aria-label="Veterinarios">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
       </svg>
       <span class="nav-label">Vets</span>
     </a>
-
     <a href="/acopio" class={`nav-item${active('/acopio') ? ' nav-active' : ''}`} aria-current={active('/acopio') ? 'page' : undefined} aria-label="Centros de acopio">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <rect x="2" y="7" width="9" height="14"/>
@@ -74,8 +72,7 @@ function active(href: string) {
       </svg>
       <span class="nav-label">Acopio</span>
     </a>
-
-    <a href="/noticias" class={`nav-item${active('/noticias') ? ' nav-active' : ''}`} aria-current={active('/noticias') ? 'page' : undefined} aria-label="Noticias y actualizaciones">
+    <a href="/noticias" class={`nav-item${active('/noticias') ? ' nav-active' : ''}`} aria-current={active('/noticias') ? 'page' : undefined} aria-label="Noticias">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
         <path d="M13.73 21a2 2 0 01-3.46 0"/>
@@ -87,11 +84,13 @@ function active(href: string) {
 </html>
 
 <style>
+body { padding-bottom: 5rem; }
+
 .bottom-nav {
   position: fixed;
   bottom: 0; left: 0; right: 0;
   display: flex;
-  background: #FFFFFF;
+  background: #fff;
   border-top: 1px solid #E8E1D6;
   z-index: 100;
   padding-bottom: env(safe-area-inset-bottom, 0);

@@ -25,35 +25,124 @@ const stories = [
 ]
 ---
 <section aria-labelledby="hope-stories-heading">
-  <div class="flex items-center justify-between mb-4">
-    <h2 id="hope-stories-heading" class="text-xl font-bold text-[#3B2A1A]">Historias de reencuentro</h2>
-    <a href="/mascotas" class="text-sm text-[#C96A1B] hover:text-[#A85514] font-medium transition-colors">Ver todas</a>
+  <div class="section-header">
+    <h2 id="hope-stories-heading" class="section-title">Historias de reencuentro</h2>
+    <a href="/mascotas" class="view-all">Ver todas</a>
   </div>
   <div class="carousel-container">
     {stories.map((story) => (
-      <div class="carousel-item bg-white rounded-2xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.06)] w-[85vw] sm:w-[calc(50vw-2rem)] lg:w-80 max-w-sm flex-shrink-0">
-        <div class="relative">
-          <img src={story.img} alt={story.alt} class="w-full aspect-[4/3] object-cover" loading="lazy" />
-          <span class="absolute top-3 left-3 inline-flex items-center gap-1 bg-white/90 backdrop-blur-sm text-[#16803C] text-xs font-bold px-2.5 py-1 rounded-full">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="#16803C" stroke="none" aria-hidden="true">
+      <div class="carousel-item story-card">
+        <div class="story-img-wrap">
+          <img src={story.img} alt={story.alt} class="story-img" loading="lazy" />
+          <span class="story-badge">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="#15803d" stroke="none" aria-hidden="true">
               <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
             </svg>
             Reunidos
           </span>
         </div>
-        <div class="p-4">
-          <h3 class="font-semibold text-[#3B2A1A] leading-tight">{story.title}</h3>
-          <div class="flex items-center gap-1 mt-1 mb-2">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <div class="story-body">
+          <h3 class="story-title">{story.title}</h3>
+          <div class="story-location">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
               <circle cx="12" cy="10" r="3"/>
             </svg>
-            <span class="text-xs text-[#9CA3AF]">{story.location}</span>
+            <span>{story.location}</span>
           </div>
-          <p class="text-sm text-[#6B7280] line-clamp-2 leading-relaxed">{story.text}</p>
-          <a href="#" class="mt-3 inline-block text-sm font-semibold text-[#C96A1B] hover:text-[#A85514] transition-colors">Leer historia</a>
+          <p class="story-text">{story.text}</p>
+          <a href="#" class="story-link">Leer historia</a>
         </div>
       </div>
     ))}
   </div>
 </section>
+
+<style>
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--texto);
+  margin: 0;
+}
+.view-all {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--accion);
+  text-decoration: none;
+}
+.view-all:hover { color: var(--accion-hover); }
+
+.story-card {
+  background: var(--card);
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  width: 85vw;
+  max-width: 24rem;
+  flex-shrink: 0;
+}
+@media (min-width: 480px) { .story-card { width: calc(50vw - 2rem); } }
+@media (min-width: 1024px) { .story-card { width: 20rem; } }
+
+.story-img-wrap { position: relative; }
+.story-img {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  display: block;
+}
+.story-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255,255,255,0.9);
+  color: #15803d;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  backdrop-filter: blur(4px);
+}
+.story-body { padding: 1rem; }
+.story-title {
+  font-weight: 600;
+  color: var(--texto);
+  line-height: 1.3;
+  margin: 0 0 6px;
+}
+.story-location {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--texto-muted);
+  font-size: 0.6875rem;
+  margin-bottom: 8px;
+}
+.story-text {
+  font-size: 0.875rem;
+  color: var(--texto-sec);
+  line-height: 1.5;
+  margin: 0 0 0.75rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.story-link {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--accion);
+  text-decoration: none;
+}
+.story-link:hover { color: var(--accion-hover); }
+</style>
