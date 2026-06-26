@@ -161,13 +161,19 @@ if (Astro.request.method === 'POST') {
   }
   if (action === 'editar_mascota') {
     const id = getId()
-    const fotoNueva = form.get('foto_nueva') as File | null
-    const fotoUpdate: { foto_url?: string } = {}
-    if (fotoNueva && fotoNueva.size > 0) {
-      const path = `${id}/foto_1.jpg`
-      await supabaseAdmin.storage.from('mascotas').upload(path, await fotoNueva.arrayBuffer(), { contentType: 'image/jpeg', upsert: true })
-      const { data: urlData } = supabaseAdmin.storage.from('mascotas').getPublicUrl(path)
-      if (urlData.publicUrl) fotoUpdate.foto_url = urlData.publicUrl
+    const fotoUpdate: { foto_url?: string; foto_url_2?: string; foto_url_3?: string } = {}
+    for (let i = 1; i <= 3; i++) {
+      const foto = form.get(`foto_nueva_${i}`) as File | null
+      if (foto && foto.size > 0) {
+        const path = `${id}/foto_${i}.jpg`
+        await supabaseAdmin.storage.from('mascotas').upload(path, await foto.arrayBuffer(), { contentType: 'image/jpeg', upsert: true })
+        const { data: urlData } = supabaseAdmin.storage.from('mascotas').getPublicUrl(path)
+        if (urlData.publicUrl) {
+          if (i === 1) fotoUpdate.foto_url   = urlData.publicUrl
+          if (i === 2) fotoUpdate.foto_url_2 = urlData.publicUrl
+          if (i === 3) fotoUpdate.foto_url_3 = urlData.publicUrl
+        }
+      }
     }
     const { error } = await supabaseAdmin.from('mascotas').update({
       nombre:     form.get('nombre')?.toString().trim()     || null,
@@ -341,11 +347,11 @@ if (isAuth) {
     </header>
 
     <nav class="tabs-nav" role="tablist" aria-label="Secciones del panel">
-      <button class="tab active" data-tab="pendientes" role="tab" aria-selected="true">
+      <button class="tab active" data-tab="publicadas" role="tab" aria-selected="true">Publicadas</button>
+      <button class="tab" data-tab="pendientes" role="tab" aria-selected="false">
         Mascotas pendientes
         <span class={`tab-badge${pendientes.length === 0 ? ' zero' : ''}`}>{pendientes.length}</span>
       </button>
-      <button class="tab" data-tab="publicadas" role="tab" aria-selected="false">Publicadas</button>
       <button class="tab" data-tab="vets" role="tab" aria-selected="false">Veterinarios</button>
       <button class="tab" data-tab="feed" role="tab" aria-selected="false">Feed</button>
       <button class="tab" data-tab="insumos" role="tab" aria-selected="false">Insumos</button>
@@ -353,7 +359,7 @@ if (isAuth) {
     </nav>
 
     <!-- TAB 1: PENDIENTES -->
-    <div id="tab-pendientes" class="tab-pane active">
+    <div id="tab-pendientes" class="tab-pane">
       {pendientes.length === 0
         ? <p class="empty-msg">No hay mascotas pendientes ✓</p>
         : <Fragment>
@@ -866,9 +872,17 @@ if (isAuth) {
             <input type="text" name="whatsapp" id="em-whatsapp" class="modal-input" />
           </label>
           <label class="modal-field modal-field--full">
-            <span class="modal-lbl">Foto de la mascota</span>
-            <input type="file" name="foto_nueva" id="em-fotonueva" accept="image/*" class="upload-input" />
-            <small class="modal-hint">Solo si quieres cambiar la foto actual</small>
+            <span class="modal-lbl">Foto principal</span>
+            <input type="file" name="foto_nueva_1" id="em-fotonueva1" accept="image/*" class="upload-input" />
+            <small class="modal-hint">Solo si quieres reemplazar la foto principal</small>
+          </label>
+          <label class="modal-field">
+            <span class="modal-lbl">Foto 2 (opcional)</span>
+            <input type="file" name="foto_nueva_2" id="em-fotonueva2" accept="image/*" class="upload-input" />
+          </label>
+          <label class="modal-field">
+            <span class="modal-lbl">Foto 3 (opcional)</span>
+            <input type="file" name="foto_nueva_3" id="em-fotonueva3" accept="image/*" class="upload-input" />
           </label>
           <label class="modal-field modal-field--full">
             <span class="modal-lbl">Descripción</span>
