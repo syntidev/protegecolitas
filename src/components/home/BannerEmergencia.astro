@@ -1,0 +1,122 @@
+---
+import { createClient } from '@supabase/supabase-js'
+import * as dotenv from 'dotenv'
+import { resolve } from 'path'
+
+dotenv.config({ path: resolve(process.cwd(), '.env') })
+
+type Banner = {
+  id: string
+  imagen_url: string | null
+  titulo: string
+  descripcion: string | null
+  link: string | null
+}
+
+let banner: Banner | null = null
+try {
+  const db = createClient(
+    process.env.PUBLIC_SUPABASE_URL ?? '',
+    process.env.PUBLIC_SUPABASE_ANON_KEY ?? '',
+    { auth: { persistSession: false } }
+  )
+  const { data } = await db
+    .from('banners')
+    .select('id,imagen_url,titulo,descripcion,link')
+    .eq('activo', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  banner = data
+} catch {
+  // Sin banner — no bloquea el render
+}
+---
+{banner && (
+  <div class="emg-banner">
+    {banner.imagen_url && (
+      <img
+        src={banner.imagen_url}
+        alt={banner.titulo}
+        class="banner-img"
+        loading="eager"
+      />
+    )}
+    <div class="banner-body container">
+      <div class="banner-text">
+        <p class="banner-title">{banner.titulo}</p>
+        {banner.descripcion && (
+          <p class="banner-desc">{banner.descripcion}</p>
+        )}
+      </div>
+      {banner.link && (
+        <a
+          href={banner.link}
+          class="banner-cta"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Ver más
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="5" y1="12" x2="19" y2="12"/>
+            <polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </a>
+      )}
+    </div>
+  </div>
+)}
+
+<style>
+.emg-banner {
+  background: var(--rojo);
+  color: #fff;
+  overflow: hidden;
+}
+.banner-img {
+  width: 100%;
+  max-height: 320px;
+  object-fit: cover;
+  display: block;
+}
+.banner-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding-top: 0.875rem;
+  padding-bottom: 0.875rem;
+  flex-wrap: wrap;
+}
+.banner-text { flex: 1; min-width: 0; }
+.banner-title {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  margin: 0;
+  line-height: 1.3;
+}
+@media (min-width: 768px) { .banner-title { font-size: 1.0625rem; } }
+.banner-desc {
+  font-size: 0.8125rem;
+  margin: 3px 0 0;
+  opacity: 0.88;
+  line-height: 1.4;
+}
+.banner-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background .15s;
+  min-height: 40px;
+}
+.banner-cta:hover { background: rgba(255,255,255,0.3); }
+</style>

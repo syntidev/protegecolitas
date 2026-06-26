@@ -122,6 +122,20 @@ if (Astro.request.method === 'POST') {
     }
     return new Response(null, { status: 302, headers: { Location: '/admin' } })
   }
+
+  if (action === 'banner') {
+    const titulo      = form.get('titulo')?.toString().trim() ?? ''
+    const descripcion = form.get('descripcion')?.toString().trim() || null
+    const link        = form.get('link')?.toString().trim() || null
+    const imagen_url  = form.get('imagen_url')?.toString().trim() || null
+    const activo      = form.get('activo') === 'on'
+    if (titulo) {
+      await db.from('banners').insert({
+        titulo, descripcion, link, imagen_url, activo,
+      })
+    }
+    return new Response(null, { status: 302, headers: { Location: '/admin' } })
+  }
 }
 
 // ── Data fetching (solo si autenticado) ───────────────────────────────────
@@ -258,6 +272,22 @@ if (isAuth) {
             </form>
           ))
       }
+    </section>
+
+    <section class="sec">
+      <h2 class="sec-title">Banner de emergencia</h2>
+      <form method="POST" class="feed-form" id="form-banner">
+        <input type="hidden" name="action" value="banner" />
+        <input type="text" name="titulo" placeholder="Título del banner *" required maxlength="120" />
+        <textarea name="descripcion" placeholder="Descripción (opcional)" rows="2"></textarea>
+        <input type="url" name="link" placeholder="URL destino (opcional, ej: https://...)" />
+        <input type="url" name="imagen_url" placeholder="URL de imagen (opcional, ej: https://...)" />
+        <label class="toggle-label">
+          <input type="checkbox" name="activo" checked />
+          Publicar como activo
+        </label>
+        <button type="submit" class="btn-primary">Publicar banner</button>
+      </form>
     </section>
 
     <section class="sec">
@@ -501,8 +531,23 @@ if (isAuth) {
   .insumo-de   { font-size: .75rem; color: var(--gris-txt); }
   .btn-save    { background: var(--amarillo); color: var(--marron); padding: .35rem .75rem; min-height: 36px; font-size: .8rem; }
 
-  /* ── Feed ─────────────────────────────────────────────────────────────── */
+  /* ── Banner / Feed forms ─────────────────────────────────────────────── */
   .feed-form { display: flex; flex-direction: column; gap: .75rem; }
+  .toggle-label {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-size: .875rem;
+    font-weight: 600;
+    color: var(--marron, #7A4A24);
+    cursor: pointer;
+  }
+  .toggle-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #C96A1B;
+    cursor: pointer;
+  }
 
   /* ── Responsive ───────────────────────────────────────────────────────── */
   @media (max-width: 480px) {
