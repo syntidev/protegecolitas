@@ -599,9 +599,7 @@ function feedDate(iso: string | null): { day: string; mon: string } {
     </div>
     {ultimasPerdidas && ultimasPerdidas.length > 0 ? (
       <div class="cards-scroll">
-        {ultimasPerdidas.map(m => {
-          const wa = waUrl(m.whatsapp, `Hola, vi el reporte de ${m.nombre ?? 'una mascota'} en protegecolitas.org`)
-          return (
+        {ultimasPerdidas.map(m => (
             <article class="pet-card pet-card-perdido">
               <div class="pet-card-photo">
                 {m.foto_url
@@ -614,16 +612,9 @@ function feedDate(iso: string | null): { day: string; mon: string } {
                 <p class="pet-card-name">{m.nombre ?? 'Sin nombre'}</p>
                 <p class="pet-card-zona">📍 {m.zona}</p>
               </div>
-              {wa
-                ? <a href={wa} class="pet-card-wa" target="_blank" rel="noopener noreferrer">
-                    <i class="ph-bold ph-whatsapp-logo" aria-hidden="true"></i>
-                    WhatsApp directo
-                  </a>
-                : <a href={`/mascota/${m.id}`} class="pet-card-link">Ver ficha →</a>
-              }
+              <a href={`/mascota/${m.id}`} style="display:block;background:#3D1C02;color:white;text-align:center;padding:12px;font-weight:700;text-decoration:none;font-family:'Fredoka',sans-serif;font-size:16px">Ver caso completo →</a>
             </article>
-          )
-        })}
+        ))}
       </div>
     ) : (
       <div class="mascotas-sec-inner">
@@ -642,9 +633,7 @@ function feedDate(iso: string | null): { day: string; mon: string } {
     </div>
     {ultimasEncontradas && ultimasEncontradas.length > 0 ? (
       <div class="cards-scroll">
-        {ultimasEncontradas.map(m => {
-          const wa = waUrl(m.whatsapp, `Hola, vi que encontraste una mascota en protegecolitas.org y podría ser la mía.`)
-          return (
+        {ultimasEncontradas.map(m => (
             <article class="pet-card pet-card-encontrado">
               <div class="pet-card-photo">
                 {m.foto_url
@@ -657,16 +646,9 @@ function feedDate(iso: string | null): { day: string; mon: string } {
                 <p class="pet-card-name">{m.nombre ?? 'Sin nombre'}</p>
                 <p class="pet-card-zona">📍 {m.zona}</p>
               </div>
-              {wa
-                ? <a href={wa} class="pet-card-wa" target="_blank" rel="noopener noreferrer">
-                    <i class="ph-bold ph-whatsapp-logo" aria-hidden="true"></i>
-                    WhatsApp directo
-                  </a>
-                : <a href={`/mascota/${m.id}`} class="pet-card-link">Ver ficha →</a>
-              }
+              <a href={`/mascota/${m.id}`} style="display:block;background:#3D1C02;color:white;text-align:center;padding:12px;font-weight:700;text-decoration:none;font-family:'Fredoka',sans-serif;font-size:16px">Ver caso completo →</a>
             </article>
-          )
-        })}
+        ))}
       </div>
     ) : (
       <div class="mascotas-sec-inner">

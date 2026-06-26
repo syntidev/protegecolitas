@@ -47,7 +47,9 @@ const reunido = m.status === 'reunido'
       <!-- Foto principal -->
       <div class="foto-principal">
         {m.foto_url
-          ? <img src={m.foto_url} alt={m.nombre ?? 'Mascota'} class="foto-main-img" />
+          ? <a href={m.foto_url} target="_blank" rel="noopener noreferrer">
+              <img src={m.foto_url} alt={m.nombre ?? 'mascota'} class="foto-main-img" style="cursor:zoom-in" />
+            </a>
           : <div class="foto-placeholder" aria-label="Sin foto">🐾</div>
         }
         <span class={`badge-tipo tipo-${(m.tipo ?? 'perdido').toLowerCase()}`}>
@@ -59,10 +61,14 @@ const reunido = m.status === 'reunido'
       {(m.foto_url_2 || m.foto_url_3) && (
         <div class="fotos-extra">
           {m.foto_url_2 && (
-            <img src={m.foto_url_2} alt="Foto adicional" class="foto-thumb" loading="lazy" />
+            <a href={m.foto_url_2} target="_blank" rel="noopener noreferrer">
+              <img src={m.foto_url_2} alt="Foto adicional" class="foto-thumb" loading="lazy" style="cursor:zoom-in" />
+            </a>
           )}
           {m.foto_url_3 && (
-            <img src={m.foto_url_3} alt="Foto adicional" class="foto-thumb" loading="lazy" />
+            <a href={m.foto_url_3} target="_blank" rel="noopener noreferrer">
+              <img src={m.foto_url_3} alt="Foto adicional" class="foto-thumb" loading="lazy" style="cursor:zoom-in" />
+            </a>
           )}
         </div>
       )}
@@ -185,8 +191,8 @@ const reunido = m.status === 'reunido'
 /* ─── Fotos extra ─── */
 .fotos-extra { display: flex; gap: 8px; padding: 10px 16px; background: var(--gris-bg); }
 .foto-thumb {
-  width: 72px; height: 60px; object-fit: cover;
-  border-radius: 8px; border: 1.5px solid var(--border); flex-shrink: 0;
+  width: 80px; height: 80px; object-fit: cover;
+  border-radius: 8px; border: 1.5px solid var(--border); flex-shrink: 0; display: block;
 }
 
 /* ─── Nombre ─── */
