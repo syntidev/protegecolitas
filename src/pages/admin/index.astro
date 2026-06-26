@@ -596,7 +596,7 @@ if (isAuth) {
         <div class="table-wrap mt">
           <table>
             <thead>
-              <tr><th>Img</th><th>Título</th><th>Link</th><th>Estado</th><th>Hace</th><th>Eliminar</th></tr>
+              <tr><th>Desktop</th><th>Mobile</th><th>Título</th><th>Link</th><th>Estado</th><th>Hace</th><th>Eliminar</th></tr>
             </thead>
             <tbody>
               {banners.map(b => (
@@ -604,6 +604,12 @@ if (isAuth) {
                   <td>
                     {b.imagen_url
                       ? <img src={b.imagen_url} alt={b.titulo} style="height:50px;object-fit:cover;border-radius:4px;max-width:80px;display:block" loading="lazy" />
+                      : <span class="td-gris">—</span>
+                    }
+                  </td>
+                  <td>
+                    {b.imagen_url_mobile
+                      ? <img src={b.imagen_url_mobile} alt={`${b.titulo} mobile`} style="height:50px;object-fit:cover;border-radius:4px;max-width:80px;display:block" loading="lazy" />
                       : <span class="td-gris">—</span>
                     }
                   </td>
