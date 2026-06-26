@@ -133,6 +133,20 @@ import Base from '../layouts/Base.astro'
       <p class="field-error" id="err-estado" role="alert"></p>
     </div>
 
+    <!-- GPS (opcional) -->
+    <div class="field-group">
+      <label class="field-label">
+        Ubicación GPS
+        <span class="field-note">Opcional — ayuda a ubicar más rápido</span>
+      </label>
+      <div class="gps-wrap">
+        <button type="button" class="btn-gps" id="btnGps">📍 Obtener mi ubicación</button>
+        <span class="gps-status" id="gpsStatus"></span>
+      </div>
+      <input type="hidden" id="latitud" name="latitud" value="" />
+      <input type="hidden" id="longitud" name="longitud" value="" />
+    </div>
+
     <!-- Zona -->
     <div class="field-group">
       <label class="field-label" for="zona">
@@ -506,6 +520,21 @@ import Base from '../layouts/Base.astro'
   line-height: 1;
 }
 
+/* ─── GPS ─── */
+.gps-wrap { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn-gps {
+  height: 44px; padding: 0 16px; border-radius: 12px;
+  border: 1.5px solid var(--border); background: var(--blanco);
+  font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--marron); cursor: pointer; transition: border-color .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-gps:hover { border-color: var(--marron); }
+.btn-gps:disabled { opacity: .6; cursor: not-allowed; }
+.gps-status { font-size: 13px; color: var(--gris-txt); }
+.gps-status.ok  { color: var(--verde); font-weight: 600; }
+.gps-status.err { color: var(--rojo);  font-weight: 600; }
+
 /* ─── WhatsApp input ─── */
 .wa-input-wrap {
   display: flex;
@@ -702,6 +731,41 @@ import Base from '../layouts/Base.astro'
   const formError = document.getElementById('formError');
 
   const WA_RE = /^04[0-9]{2}[0-9]{7}$/;
+
+  /* ── GPS ── */
+  const btnGps    = document.getElementById('btnGps');
+  const gpsStatus = document.getElementById('gpsStatus');
+  const latInput  = document.getElementById('latitud');
+  const lngInput  = document.getElementById('longitud');
+
+  if (btnGps && gpsStatus && latInput && lngInput) {
+    btnGps.addEventListener('click', function () {
+      if (!navigator.geolocation) {
+        gpsStatus.textContent = 'GPS no disponible en este dispositivo';
+        gpsStatus.className = 'gps-status err';
+        return;
+      }
+      btnGps.disabled = true;
+      gpsStatus.textContent = 'Obteniendo ubicación…';
+      gpsStatus.className = 'gps-status';
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          latInput.value = pos.coords.latitude.toFixed(6);
+          lngInput.value = pos.coords.longitude.toFixed(6);
+          gpsStatus.textContent = '✓ Ubicación obtenida';
+          gpsStatus.className = 'gps-status ok';
+          btnGps.textContent = '📍 Actualizar ubicación';
+          btnGps.disabled = false;
+        },
+        function () {
+          gpsStatus.textContent = 'No se pudo obtener la ubicación';
+          gpsStatus.className = 'gps-status err';
+          btnGps.disabled = false;
+        },
+        { timeout: 10000, maximumAge: 60000 }
+      );
+    });
+  }
 
   /* ── Transiciones entre pantallas ── */
   function showScreen(next) {
@@ -919,6 +983,8 @@ import Base from '../layouts/Base.astro'
     btnSpinner.style.display = '';
     spinnerMsg.style.display = '';
 
+    const lat = document.getElementById('latitud')?.value;
+    const lng = document.getElementById('longitud')?.value;
     const payload = {
       tipo: selectedTipo,
       especie: document.getElementById('especie').value,
@@ -928,6 +994,7 @@ import Base from '../layouts/Base.astro'
       whatsapp: document.getElementById('whatsapp').value.trim(),
       contacto_nombre: document.getElementById('contacto_nombre').value.trim(),
     };
+    if (lat && lng) { payload.latitud = lat; payload.longitud = lng; }
 
     if (selectedTipo === 'perdido') {
       payload.nombre = document.getElementById('nombre').value.trim();

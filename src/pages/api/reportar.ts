@@ -93,7 +93,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     return json({ error: 'Cuerpo de solicitud inválido' }, 400)
   }
 
-  const { nombre, especie, descripcion, color, tamanio, zona, whatsapp, tipo, foto1, foto2, foto3 } = body
+  const { nombre, especie, descripcion, color, tamanio, zona, whatsapp, tipo, foto1, foto2, foto3, latitud, longitud } = body
 
   if (!especie || !ESPECIES.includes(especie as typeof ESPECIES[number])) {
     return json({ error: `Especie inválida. Valores permitidos: ${ESPECIES.join(', ')}` }, 400)
@@ -118,7 +118,9 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
       zona: zona.trim(),
       whatsapp,
       tipo: tipo?.trim() || null,
-      status: 'pendiente'
+      status: 'pendiente',
+      latitud: latitud ? parseFloat(latitud) : null,
+      longitud: longitud ? parseFloat(longitud) : null,
     })
     .select('id')
     .single()

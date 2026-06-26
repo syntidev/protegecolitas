@@ -8,7 +8,7 @@ if (!id) return Astro.redirect('/mascotas')
 
 const { data: m } = await supabaseAdmin
   .from('mascotas')
-  .select('id, nombre, especie, descripcion, color, tamanio, zona, tipo, status, foto_url, foto_url_2, foto_url_3, whatsapp, created_at')
+  .select('id, nombre, especie, descripcion, color, tamanio, zona, tipo, status, foto_url, foto_url_2, foto_url_3, whatsapp, created_at, latitud, longitud')
   .eq('id', id)
   .eq('status', 'publicado')
   .maybeSingle()
@@ -26,6 +26,9 @@ const fechaStr = new Date(m.created_at).toLocaleDateString('es-VE', {
 })
 
 const reunido = m.status === 'reunido'
+const mapsHref = (m.latitud && m.longitud)
+  ? `https://www.google.com/maps?q=${m.latitud},${m.longitud}`
+  : null
 ---
 <Base title={`${m.nombre ?? 'Mascota'} — Protege Colitas`}>
   <div class="page">
@@ -100,6 +103,12 @@ const reunido = m.status === 'reunido'
           <dt class="dato-label">Dónde fue visto</dt>
           <dd class="dato-val">📍 {m.zona}</dd>
         </div>
+        {mapsHref && (
+          <div class="dato-row">
+            <dt class="dato-label">Mapa</dt>
+            <dd class="dato-val"><a href={mapsHref} target="_blank" rel="noopener noreferrer" class="maps-link">Ver en Google Maps →</a></dd>
+          </div>
+        )}
       </dl>
 
       <!-- Descripción -->
@@ -216,6 +225,8 @@ const reunido = m.status === 'reunido'
 .dato-row:last-child { border-bottom: none; }
 .dato-label { font-size: 13px; color: var(--gris-txt); font-weight: 500; }
 .dato-val   { font-size: 14px; color: var(--marron); font-weight: 700; text-align: right; }
+.maps-link  { color: var(--azul); text-decoration: none; font-size: 13px; }
+.maps-link:hover { text-decoration: underline; }
 
 /* ─── Descripción ─── */
 .descripcion-section { padding: 20px 16px 0; }
