@@ -34,6 +34,48 @@ function json(body: unknown, status = 200): Response {
   })
 }
 
+function parseBase64(raw: string): { buffer: Buffer; ext: string; contentType: string } | null {
+  let b64 = raw
+  let contentType = 'image/jpeg'
+  let ext = 'jpg'
+
+  // Acepta data URLs: data:image/jpeg;base64,...
+  const match = raw.match(/^data:(image\/[a-z]+);base64,(.+)$/i)
+  if (match) {
+    contentType = match[1].toLowerCase()
+    b64 = match[2]
+    if (contentType === 'image/png') ext = 'png'
+    else if (contentType === 'image/webp') ext = 'webp'
+    else if (contentType === 'image/gif') ext = 'gif'
+    else ext = 'jpg'
+  }
+
+  try {
+    const buffer = Buffer.from(b64, 'base64')
+    if (buffer.length === 0) return null
+    return { buffer, ext, contentType }
+  } catch {
+    return null
+  }
+}
+
+async function uploadFoto(mascotaId: string, index: number, raw: string): Promise<string | null> {
+  const parsed = parseBase64(raw)
+  if (!parsed) return null
+
+  const { buffer, ext, contentType } = parsed
+  const filename = `${mascotaId}/foto_${index}.${ext}`
+
+  const { error } = await supabaseAdmin.storage
+    .from('mascotas')
+    .upload(filename, buffer, { contentType, upsert: true })
+
+  if (error) return null
+
+  const { data } = supabaseAdmin.storage.from('mascotas').getPublicUrl(filename)
+  return data.publicUrl ?? null
+}
+
 export const POST: APIRoute = async ({ request, clientAddress }) => {
   const authHeader = request.headers.get('Authorization') ?? ''
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null
@@ -51,7 +93,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     return json({ error: 'Cuerpo de solicitud inválido' }, 400)
   }
 
-  const { nombre, especie, descripcion, color, tamanio, zona, whatsapp, tipo } = body
+  const { nombre, especie, descripcion, color, tamanio, zona, whatsapp, tipo, foto1, foto2, foto3 } = body
 
   if (!especie || !ESPECIES.includes(especie as typeof ESPECIES[number])) {
     return json({ error: `Especie inválida. Valores permitidos: ${ESPECIES.join(', ')}` }, 400)
@@ -86,6 +128,20 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   }
 
   if (!isModerador) rateMap.set(clientAddress, Date.now())
+
+  // Upload fotos en paralelo
+  const fotoUrls = await Promise.all(
+    [foto1, foto2, foto3].map((f, i) => f ? uploadFoto(data.id, i + 1, f) : Promise.resolve(null))
+  )
+
+  const updatePayload: Record<string, string> = {}
+  if (fotoUrls[0]) updatePayload.foto_url   = fotoUrls[0]
+  if (fotoUrls[1]) updatePayload.foto_url_2 = fotoUrls[1]
+  if (fotoUrls[2]) updatePayload.foto_url_3 = fotoUrls[2]
+
+  if (Object.keys(updatePayload).length > 0) {
+    await supabaseAdmin.from('mascotas').update(updatePayload).eq('id', data.id)
+  }
 
   return json({ id: data.id, message: 'Reporte recibido. Será revisado por un moderador pronto.' })
 }
