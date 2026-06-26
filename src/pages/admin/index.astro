@@ -3,15 +3,13 @@ import { supabaseAdmin } from '../../lib/supabase'
 import { createHmac, timingSafeEqual } from 'crypto'
 import * as dotenv from 'dotenv'
 import { resolve } from 'path'
-import '../../styles/global.css'
 
 dotenv.config({ path: resolve(process.cwd(), '.env') })
 
-const ADMIN_EMAIL  = 'protegecolitas@gmail.com'
-const ADMIN_PASS   = process.env.ADMIN_PASSWORD ?? ''
-const COOKIE_MS    = 8 * 60 * 60 * 1000
-const COOKIE_AGE   = 8 * 60 * 60
-
+const ADMIN_EMAIL = 'protegecolitas@gmail.com'
+const ADMIN_PASS  = process.env.ADMIN_PASSWORD ?? ''
+const COOKIE_MS   = 8 * 60 * 60 * 1000
+const COOKIE_AGE  = 8 * 60 * 60
 
 function sign(s: string): string {
   return createHmac('sha256', ADMIN_PASS).update(s).digest('hex')
@@ -32,6 +30,13 @@ function getCookie(header: string, name: string): string | null {
   return header.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`))?.[1] ?? null
 }
 
+function rel(iso: string): string {
+  const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
+  if (m < 60) return `${m}m`
+  if (m < 1440) return `${Math.floor(m / 60)}h`
+  return `${Math.floor(m / 1440)}d`
+}
+
 const cookies  = Astro.request.headers.get('cookie') ?? ''
 const ck       = getCookie(cookies, 'admin_session')
 const isAuth   = !!ck && validSession(ck)
@@ -42,16 +47,15 @@ if (Astro.request.method === 'POST') {
   const form   = await Astro.request.formData()
   const action = form.get('action')?.toString()
 
-  // ── Login ──────────────────────────────────────────────────────────────
   if (action === 'login') {
     const email = form.get('email')?.toString().trim() ?? ''
     const pass  = form.get('password')?.toString() ?? ''
     if (!ADMIN_PASS || email !== ADMIN_EMAIL || pass !== ADMIN_PASS) {
       loginError = 'Email o contraseña incorrectos'
     } else {
-      const exp     = Date.now() + COOKIE_MS
-      const payload = `${email}|${exp}`
-      const val     = encodeURIComponent(`${payload}|${sign(payload)}`)
+      const exp = Date.now() + COOKIE_MS
+      const pl  = `${email}|${exp}`
+      const val = encodeURIComponent(`${pl}|${sign(pl)}`)
       return new Response(null, {
         status: 302,
         headers: {
@@ -62,7 +66,6 @@ if (Astro.request.method === 'POST') {
     }
   }
 
-  // ── Logout ─────────────────────────────────────────────────────────────
   if (action === 'logout') {
     return new Response(null, {
       status: 302,
@@ -70,89 +73,119 @@ if (Astro.request.method === 'POST') {
     })
   }
 
-  // ── Acciones protegidas (requieren sesión) ─────────────────────────────
   if (!isAuth) {
     return new Response(JSON.stringify({ ok: false, error: 'No autorizado' }), {
       status: 401, headers: { 'Content-Type': 'application/json' }
     })
   }
 
+  const getId = (): string => form.get('id')?.toString() ?? ''
+  const J = (ok: boolean, error?: string): Response =>
+    new Response(JSON.stringify({ ok, error }), { headers: { 'Content-Type': 'application/json' } })
+
   if (action === 'aprobar') {
-    const id = form.get('id')?.toString() ?? ''
-    const { error } = await supabaseAdmin.from('mascotas')
-      .update({ status: 'publicado', moderado_at: new Date().toISOString() })
-      .eq('id', id)
-    return new Response(JSON.stringify({ ok: !error, error: error?.message }), {
-      headers: { 'Content-Type': 'application/json' }
-    })
+    const { error } = await supabaseAdmin.from('mascotas').update({ status: 'publicado', moderado_at: new Date().toISOString() }).eq('id', getId())
+    return J(!error, error?.message)
   }
-
   if (action === 'rechazar') {
-    const id = form.get('id')?.toString() ?? ''
-    const { error } = await supabaseAdmin.from('mascotas')
-      .update({ status: 'descartado', moderado_at: new Date().toISOString() })
-      .eq('id', id)
-    return new Response(JSON.stringify({ ok: !error, error: error?.message }), {
-      headers: { 'Content-Type': 'application/json' }
-    })
+    const { error } = await supabaseAdmin.from('mascotas').update({ status: 'descartado', moderado_at: new Date().toISOString() }).eq('id', getId())
+    return J(!error, error?.message)
   }
-
-  if (action === 'insumo') {
-    const id = form.get('id')?.toString() ?? ''
-    const q  = parseInt(form.get('cantidad')?.toString() ?? '0', 10)
-    if (id && !isNaN(q)) {
-      await supabaseAdmin.from('necesidades')
-        .update({ cantidad_recibida: q, updated_at: new Date().toISOString() })
-        .eq('id', id)
-    }
-    return new Response(null, { status: 302, headers: { Location: '/admin' } })
+  if (action === 'reunir') {
+    const { error } = await supabaseAdmin.from('mascotas').update({ status: 'reunido', moderado_at: new Date().toISOString() }).eq('id', getId())
+    return J(!error, error?.message)
   }
-
+  if (action === 'eliminar_mascota') {
+    const { error } = await supabaseAdmin.from('mascotas').delete().eq('id', getId())
+    return J(!error, error?.message)
+  }
+  if (action === 'aprobar_vet') {
+    const { error } = await supabaseAdmin.from('vets').update({ aprobado: true }).eq('id', getId())
+    return J(!error, error?.message)
+  }
+  if (action === 'rechazar_vet') {
+    const { error } = await supabaseAdmin.from('vets').delete().eq('id', getId())
+    return J(!error, error?.message)
+  }
   if (action === 'feed') {
     const tipo   = form.get('tipo')?.toString() ?? 'info'
     const titulo = form.get('titulo')?.toString().trim() ?? ''
     const cuerpo = form.get('cuerpo')?.toString().trim() ?? ''
-    if (titulo && cuerpo) {
-      await supabaseAdmin.from('feed').insert({ tipo, titulo, cuerpo, published_at: new Date().toISOString() })
-    }
-    return new Response(null, { status: 302, headers: { Location: '/admin' } })
+    if (!titulo || !cuerpo) return J(false, 'Faltan datos')
+    const { error } = await supabaseAdmin.from('feed').insert({ tipo, titulo, cuerpo, published_at: new Date().toISOString() })
+    return J(!error, error?.message)
   }
-
+  if (action === 'eliminar_feed') {
+    const { error } = await supabaseAdmin.from('feed').delete().eq('id', getId())
+    return J(!error, error?.message)
+  }
+  if (action === 'insumo') {
+    const q = parseInt(form.get('cantidad')?.toString() ?? '0', 10)
+    if (isNaN(q)) return J(false, 'Cantidad inválida')
+    const { error } = await supabaseAdmin.from('necesidades').update({ cantidad_recibida: q, updated_at: new Date().toISOString() }).eq('id', getId())
+    return J(!error, error?.message)
+  }
   if (action === 'banner') {
     const titulo      = form.get('titulo')?.toString().trim() ?? ''
     const descripcion = form.get('descripcion')?.toString().trim() || null
     const link        = form.get('link')?.toString().trim() || null
     const imagen_url  = form.get('imagen_url')?.toString().trim() || null
     const activo      = form.get('activo') === 'on'
-    if (titulo) {
-      await supabaseAdmin.from('banners').insert({
-        titulo, descripcion, link, imagen_url, activo,
-      })
-    }
-    return new Response(null, { status: 302, headers: { Location: '/admin' } })
+    if (!titulo) return J(false, 'Título requerido')
+    const { error } = await supabaseAdmin.from('banners').insert({ titulo, descripcion, link, imagen_url, activo })
+    return J(!error, error?.message)
+  }
+  if (action === 'toggle_banner') {
+    const activo = form.get('activo') === 'true'
+    const { error } = await supabaseAdmin.from('banners').update({ activo }).eq('id', getId())
+    return J(!error, error?.message)
+  }
+  if (action === 'eliminar_banner') {
+    const { error } = await supabaseAdmin.from('banners').delete().eq('id', getId())
+    return J(!error, error?.message)
   }
 }
 
-// ── Data fetching (solo si autenticado) ───────────────────────────────────
-type Mascota  = { id: string; nombre: string|null; especie: string; zona: string; whatsapp: string; descripcion: string|null; color: string|null; tamanio: string|null; tipo: string|null; foto_url: string|null; created_at: string }
+type Mascota = {
+  id: string; nombre: string | null; especie: string; zona: string
+  tipo: string | null; whatsapp: string | null; foto_url: string | null
+  status: string; created_at: string; moderado_at: string | null
+}
+type Vet = {
+  id: string; nombre: string; zona: string; whatsapp: string | null
+  servicios: string | null; horario: string | null; gratuito: boolean; created_at: string
+}
+type FeedItem = { id: string; tipo: string; titulo: string; cuerpo: string; published_at: string }
 type Necesidad = { id: string; item: string; cantidad_requerida: number; cantidad_recibida: number; prioridad: string }
 
-let pendientes: Mascota[]   = []
+let pendientes:  Mascota[]   = []
+let publicadas:  Mascota[]   = []
+let reunidas:    Mascota[]   = []
+let vets:        Vet[]       = []
+let feedItems:   FeedItem[]  = []
 let necesidades: Necesidad[] = []
 let stats = { pendientes: 0, publicadas: 0, reunidas: 0, vets: 0 }
 
 if (isAuth) {
-  const [mp, mn, sp, spb, sr, sv] = await Promise.all([
-    supabaseAdmin.from('mascotas').select('id,nombre,especie,zona,whatsapp,descripcion,color,tamanio,tipo,foto_url,created_at').eq('status','pendiente').order('created_at',{ascending:true}),
+  const [mp, mpub, mreu, mv, mf, mn, sp, spub, sreu, sv] = await Promise.all([
+    supabaseAdmin.from('mascotas').select('id,nombre,especie,zona,tipo,whatsapp,foto_url,status,created_at,moderado_at').eq('status','pendiente').order('created_at',{ascending:true}),
+    supabaseAdmin.from('mascotas').select('id,nombre,especie,zona,tipo,whatsapp,foto_url,status,created_at,moderado_at').eq('status','publicado').order('created_at',{ascending:false}).limit(50),
+    supabaseAdmin.from('mascotas').select('id,nombre,especie,zona,tipo,foto_url,status,created_at,moderado_at').eq('status','reunido').order('moderado_at',{ascending:false}).limit(20),
+    supabaseAdmin.from('vets').select('id,nombre,zona,whatsapp,servicios,horario,gratuito,created_at').order('created_at',{ascending:false}),
+    supabaseAdmin.from('feed').select('id,tipo,titulo,cuerpo,published_at').order('published_at',{ascending:false}).limit(50),
     supabaseAdmin.from('necesidades').select('*').order('prioridad'),
     supabaseAdmin.from('mascotas').select('*',{count:'exact',head:true}).eq('status','pendiente'),
     supabaseAdmin.from('mascotas').select('*',{count:'exact',head:true}).eq('status','publicado'),
     supabaseAdmin.from('mascotas').select('*',{count:'exact',head:true}).eq('status','reunido'),
     supabaseAdmin.from('vets').select('*',{count:'exact',head:true}),
   ])
-  pendientes  = (mp.data  ?? []) as Mascota[]
-  necesidades = (mn.data  ?? []) as Necesidad[]
-  stats = { pendientes: sp.count ?? 0, publicadas: spb.count ?? 0, reunidas: sr.count ?? 0, vets: sv.count ?? 0 }
+  pendientes  = (mp.data   ?? []) as Mascota[]
+  publicadas  = (mpub.data ?? []) as Mascota[]
+  reunidas    = (mreu.data ?? []) as Mascota[]
+  vets        = (mv.data   ?? []) as Vet[]
+  feedItems   = (mf.data   ?? []) as FeedItem[]
+  necesidades = (mn.data   ?? []) as Necesidad[]
+  stats = { pendientes: sp.count ?? 0, publicadas: spub.count ?? 0, reunidas: sreu.count ?? 0, vets: sv.count ?? 0 }
 }
 ---
 <!DOCTYPE html>
@@ -161,145 +194,287 @@ if (isAuth) {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin — Protege Colitas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 </head>
 <body>
 
 {!isAuth ? (
   <div class="login-wrap">
     <div class="login-box">
-      <h1>Protege Colitas</h1>
-      <p class="login-sub">Panel de moderación</p>
-      {loginError && <p class="error-msg" role="alert">{loginError}</p>}
+      <p class="login-logo">🐾</p>
+      <h1 class="login-title">Protege Colitas</h1>
+      <p class="login-sub">Centro de control</p>
+      {loginError && <p class="login-err" role="alert">{loginError}</p>}
       <form method="POST" autocomplete="off">
         <input type="hidden" name="action" value="login" />
-        <label>
-          Email
-          <input type="email" name="email" required placeholder="protegecolitas@gmail.com" />
-        </label>
-        <label>
-          Contraseña
-          <input type="password" name="password" required autofocus />
-        </label>
-        <button type="submit">Entrar</button>
+        <input type="email" name="email" placeholder="Email" required autocomplete="email" />
+        <input type="password" name="password" placeholder="Contraseña" required autofocus />
+        <button type="submit" class="btn-login">Entrar →</button>
       </form>
     </div>
   </div>
 ) : (
   <div class="panel">
 
-    <header class="panel-header">
-      <span class="panel-title">🐾 Protege Colitas — Admin</span>
-      <form method="POST">
+    <header class="hdr">
+      <span class="hdr-title">🐾 Centro de Control</span>
+      <div class="hdr-stats">
+        <span class="stat-pill stat-naranja">{stats.pendientes} pendientes</span>
+        <span class="stat-pill stat-verde">{stats.publicadas} publicadas</span>
+        <span class="stat-pill stat-azul">{stats.reunidas} reunidas</span>
+        <span class="stat-pill stat-gris">{stats.vets} vets</span>
+      </div>
+      <form method="POST" class="logout-form">
         <input type="hidden" name="action" value="logout" />
-        <button type="submit" class="btn-logout">Cerrar sesión</button>
+        <button type="submit" class="btn-logout">Salir</button>
       </form>
     </header>
 
-    <div class="stats-row">
-      <div class="stat stat-warn">
-        <strong id="stat-pendientes">{stats.pendientes}</strong>
-        <span>Pendientes</span>
-      </div>
-      <div class="stat stat-ok">
-        <strong>{stats.publicadas}</strong>
-        <span>Publicadas</span>
-      </div>
-      <div class="stat stat-green">
-        <strong>{stats.reunidas}</strong>
-        <span>Reunidas</span>
-      </div>
-      <div class="stat stat-blue">
-        <strong>{stats.vets}</strong>
-        <span>Vets</span>
-      </div>
+    <nav class="tabs-nav" role="tablist" aria-label="Secciones del panel">
+      <button class="tab active" data-tab="pendientes" role="tab" aria-selected="true">
+        Mascotas pendientes
+        {pendientes.length > 0 && <span class="tab-count">{pendientes.length}</span>}
+      </button>
+      <button class="tab" data-tab="publicadas" role="tab" aria-selected="false">Publicadas</button>
+      <button class="tab" data-tab="vets" role="tab" aria-selected="false">Veterinarios</button>
+      <button class="tab" data-tab="feed" role="tab" aria-selected="false">Feed</button>
+      <button class="tab" data-tab="insumos" role="tab" aria-selected="false">Insumos</button>
+    </nav>
+
+    <!-- TAB 1: PENDIENTES -->
+    <div id="tab-pendientes" class="tab-pane active">
+      {pendientes.length === 0
+        ? <p class="empty-msg">No hay mascotas pendientes ✓</p>
+        : <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Foto</th><th>Nombre</th><th>Especie</th><th>Tipo</th>
+                  <th>Zona</th><th>WA</th><th>Hace</th><th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendientes.map(m => (
+                  <tr id={`row-${m.id}`}>
+                    <td>
+                      {m.foto_url
+                        ? <img src={m.foto_url} alt="" class="thumb" loading="lazy" />
+                        : <span class="thumb-empty">🐾</span>
+                      }
+                    </td>
+                    <td class="td-name">{m.nombre ?? 'Sin nombre'}</td>
+                    <td>{m.especie}</td>
+                    <td>
+                      {m.tipo === 'perdido'
+                        ? <span class="badge badge-rojo">perdido</span>
+                        : m.tipo === 'encontrado'
+                          ? <span class="badge badge-verde">encontrado</span>
+                          : <span class="badge badge-gris">—</span>
+                      }
+                    </td>
+                    <td class="td-zona">{m.zona}</td>
+                    <td>
+                      {m.whatsapp
+                        ? <a href={`https://wa.me/58${m.whatsapp.slice(1)}`} class="link-wa" target="_blank" rel="noreferrer">💬</a>
+                        : <span>—</span>
+                      }
+                    </td>
+                    <td class="td-time">{rel(m.created_at)}</td>
+                    <td class="td-actions">
+                      <button class="btn btn-verde" data-action="aprobar" data-id={m.id} data-row={`row-${m.id}`}>✓ Aprobar</button>
+                      <button class="btn btn-rojo"  data-action="rechazar" data-id={m.id} data-row={`row-${m.id}`} data-confirm="¿Rechazar este reporte?">✗ Rechazar</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+      }
     </div>
 
-    <section class="sec">
-      <h2 class="sec-title">Pendientes de moderación <span class="badge">{pendientes.length}</span></h2>
+    <!-- TAB 2: PUBLICADAS -->
+    <div id="tab-publicadas" class="tab-pane">
+      {publicadas.length > 0 && (
+        <Fragment>
+          <h3 class="sub-title">Publicadas ({publicadas.length})</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Foto</th><th>Nombre</th><th>Especie</th><th>Tipo</th>
+                  <th>Zona</th><th>Hace</th><th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {publicadas.map(m => (
+                  <tr id={`row-${m.id}`}>
+                    <td>
+                      {m.foto_url
+                        ? <img src={m.foto_url} alt="" class="thumb" loading="lazy" />
+                        : <span class="thumb-empty">🐾</span>
+                      }
+                    </td>
+                    <td class="td-name">{m.nombre ?? 'Sin nombre'}</td>
+                    <td>{m.especie}</td>
+                    <td>
+                      {m.tipo === 'perdido'
+                        ? <span class="badge badge-rojo">perdido</span>
+                        : m.tipo === 'encontrado'
+                          ? <span class="badge badge-verde">encontrado</span>
+                          : <span class="badge badge-gris">—</span>
+                      }
+                    </td>
+                    <td class="td-zona">{m.zona}</td>
+                    <td class="td-time">{rel(m.created_at)}</td>
+                    <td class="td-actions">
+                      <button class="btn btn-azul" data-action="reunir" data-id={m.id} data-row={`row-${m.id}`}>✓ Reunida</button>
+                      <button class="btn btn-rojo btn-icon" data-action="eliminar_mascota" data-id={m.id} data-row={`row-${m.id}`} data-confirm="¿Eliminar mascota?">✕</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Fragment>
+      )}
+      {reunidas.length > 0 && (
+        <Fragment>
+          <h3 class={`sub-title${publicadas.length > 0 ? ' mt' : ''}`}>Reunidas ({reunidas.length})</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Foto</th><th>Nombre</th><th>Especie</th><th>Zona</th><th>Reunida hace</th><th>Eliminar</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reunidas.map(m => (
+                  <tr id={`row-${m.id}`}>
+                    <td>
+                      {m.foto_url
+                        ? <img src={m.foto_url} alt="" class="thumb" loading="lazy" />
+                        : <span class="thumb-empty">🐾</span>
+                      }
+                    </td>
+                    <td class="td-name">{m.nombre ?? 'Sin nombre'}</td>
+                    <td>{m.especie}</td>
+                    <td class="td-zona">{m.zona}</td>
+                    <td class="td-time">{m.moderado_at ? rel(m.moderado_at) : '—'}</td>
+                    <td>
+                      <button class="btn btn-rojo btn-icon" data-action="eliminar_mascota" data-id={m.id} data-row={`row-${m.id}`} data-confirm="¿Eliminar mascota reunida?">✕</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Fragment>
+      )}
+      {publicadas.length === 0 && reunidas.length === 0 && (
+        <p class="empty-msg">No hay mascotas publicadas</p>
+      )}
+    </div>
 
-      {pendientes.length === 0
-        ? <p class="empty">No hay mascotas pendientes ✓</p>
-        : <div id="lista-pendientes">
-            {pendientes.map(m => (
-              <article class="card" id={`card-${m.id}`}>
-                {m.foto_url && (
-                  <img src={m.foto_url} alt={m.nombre ?? 'Sin nombre'} loading="lazy" class="card-foto" />
-                )}
-                <div class="card-body">
-                  <p class="card-title">
-                    {m.nombre ?? 'Sin nombre'}
-                    <span class="tag">{m.especie}</span>
-                    {m.tipo && <span class="tag tag-tipo">{m.tipo}</span>}
-                  </p>
-                  <p class="card-meta">
-                    📍 {m.zona}
-                    {m.color   && ` · ${m.color}`}
-                    {m.tamanio && ` · ${m.tamanio}`}
-                  </p>
-                  {m.descripcion && <p class="card-desc">{m.descripcion}</p>}
-                  <p class="card-date">{new Date(m.created_at).toLocaleString('es-VE')}</p>
-                </div>
-                <div class="card-actions">
-                  <button class="btn-aprobar" data-id={m.id}>✓ Aprobar</button>
-                  <button class="btn-rechazar" data-id={m.id}>✗ Rechazar</button>
-                  <a class="btn-wa" href={`https://wa.me/58${m.whatsapp.slice(1)}`} target="_blank" rel="noreferrer">💬 WA</a>
-                </div>
-              </article>
+    <!-- TAB 3: VETERINARIOS -->
+    <div id="tab-vets" class="tab-pane">
+      {vets.length === 0
+        ? <p class="empty-msg">No hay veterinarios registrados</p>
+        : <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nombre</th><th>Zona</th><th>WhatsApp</th>
+                  <th>Servicios</th><th>Horario</th><th>Hace</th><th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {vets.map(v => (
+                  <tr id={`row-${v.id}`}>
+                    <td class="td-name">{v.nombre}</td>
+                    <td class="td-zona">{v.zona}</td>
+                    <td>
+                      {v.whatsapp
+                        ? <a href={`https://wa.me/58${v.whatsapp.slice(1)}`} class="link-wa-txt" target="_blank" rel="noreferrer">💬 {v.whatsapp}</a>
+                        : <span class="td-gris">—</span>
+                      }
+                    </td>
+                    <td class="td-truncate">{v.servicios ?? '—'}</td>
+                    <td class="td-gris">{v.horario ?? '—'}</td>
+                    <td class="td-time">{rel(v.created_at)}</td>
+                    <td class="td-actions">
+                      <button class="btn btn-verde"    data-action="aprobar_vet" data-id={v.id} data-row={`row-${v.id}`}>✓ Aprobar</button>
+                      <button class="btn btn-rojo btn-icon" data-action="rechazar_vet" data-id={v.id} data-row={`row-${v.id}`} data-confirm="¿Eliminar veterinario?">✕</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+      }
+    </div>
+
+    <!-- TAB 4: FEED -->
+    <div id="tab-feed" class="tab-pane">
+      <form id="form-feed" class="feed-form">
+        <div class="feed-row">
+          <select name="tipo" class="feed-select">
+            <option value="info">ℹ️ Info</option>
+            <option value="alerta">🔴 Alerta</option>
+            <option value="rescate">🐾 Rescate</option>
+            <option value="buenas">✅ Buenas noticias</option>
+            <option value="voluntario">🙌 Voluntarios</option>
+          </select>
+          <input type="text" name="titulo" placeholder="Título *" required maxlength="150" class="feed-input" />
+        </div>
+        <textarea name="cuerpo" placeholder="Texto *" required rows="3" class="feed-textarea"></textarea>
+        <button type="submit" class="btn btn-azul">Publicar en feed</button>
+      </form>
+
+      {feedItems.length > 0 && (
+        <div class="table-wrap mt">
+          <table>
+            <thead>
+              <tr><th>Tipo</th><th>Título</th><th>Texto</th><th>Hace</th><th>Eliminar</th></tr>
+            </thead>
+            <tbody>
+              {feedItems.map(f => (
+                <tr id={`row-${f.id}`}>
+                  <td><span class={`badge badge-tipo-${f.tipo}`}>{f.tipo}</span></td>
+                  <td class="td-name">{f.titulo}</td>
+                  <td class="td-truncate">{f.cuerpo.slice(0, 80)}{f.cuerpo.length > 80 ? '…' : ''}</td>
+                  <td class="td-time">{rel(f.published_at)}</td>
+                  <td>
+                    <button class="btn btn-rojo btn-icon" data-action="eliminar_feed" data-id={f.id} data-row={`row-${f.id}`} data-confirm="¿Eliminar publicación?">✕</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {feedItems.length === 0 && <p class="empty-msg mt-sm">No hay publicaciones en el feed</p>}
+    </div>
+
+    <!-- TAB 5: INSUMOS -->
+    <div id="tab-insumos" class="tab-pane">
+      {necesidades.length === 0
+        ? <p class="empty-msg">No hay insumos registrados</p>
+        : <div class="insumos-list">
+            {necesidades.map(n => (
+              <div class="insumo-row" id={`insumo-${n.id}`}>
+                <span class={`prio-dot prio-${n.prioridad}`}></span>
+                <span class="insumo-name">{n.item}</span>
+                <span class="insumo-progress">{n.cantidad_recibida}/{n.cantidad_requerida}</span>
+                <form class="insumo-form" data-id={n.id}>
+                  <input type="number" name="cantidad" value={n.cantidad_recibida} min="0" max={n.cantidad_requerida * 10} class="insumo-input" aria-label={`Cantidad ${n.item}`} />
+                  <button type="submit" class="btn btn-amarillo btn-sm">✓</button>
+                </form>
+              </div>
             ))}
           </div>
       }
-    </section>
-
-    <section class="sec">
-      <h2 class="sec-title">Insumos</h2>
-      {necesidades.length === 0
-        ? <p class="empty">No hay insumos registrados</p>
-        : necesidades.map(n => (
-            <form method="POST" class="insumo-row">
-              <input type="hidden" name="action" value="insumo" />
-              <input type="hidden" name="id"     value={n.id}   />
-              <span class="insumo-item">{n.item}</span>
-              <span class={`prio prio-${n.prioridad}`}>{n.prioridad}</span>
-              <input type="number" name="cantidad" value={n.cantidad_recibida}
-                     min="0" max={n.cantidad_requerida * 10} class="insumo-n" aria-label={`Cantidad de ${n.item}`} />
-              <span class="insumo-de">/ {n.cantidad_requerida}</span>
-              <button type="submit" class="btn-save">Guardar</button>
-            </form>
-          ))
-      }
-    </section>
-
-    <section class="sec">
-      <h2 class="sec-title">Banner de emergencia</h2>
-      <form method="POST" class="feed-form" id="form-banner">
-        <input type="hidden" name="action" value="banner" />
-        <input type="text" name="titulo" placeholder="Título del banner *" required maxlength="120" />
-        <textarea name="descripcion" placeholder="Descripción (opcional)" rows="2"></textarea>
-        <input type="url" name="link" placeholder="URL destino (opcional, ej: https://...)" />
-        <input type="url" name="imagen_url" placeholder="URL de imagen (opcional, ej: https://...)" />
-        <label class="toggle-label">
-          <input type="checkbox" name="activo" checked />
-          Publicar como activo
-        </label>
-        <button type="submit" class="btn-primary">Publicar banner</button>
-      </form>
-    </section>
-
-    <section class="sec">
-      <h2 class="sec-title">Publicar en feed</h2>
-      <form method="POST" class="feed-form">
-        <input type="hidden" name="action" value="feed" />
-        <select name="tipo" aria-label="Tipo de publicación">
-          <option value="info">ℹ️ Info</option>
-          <option value="alerta">🔴 Alerta</option>
-          <option value="rescate">🐾 Rescate</option>
-          <option value="buenas">✅ Buenas noticias</option>
-        </select>
-        <input type="text" name="titulo" placeholder="Título" required maxlength="150" />
-        <textarea name="cuerpo" placeholder="Texto de la publicación..." required rows="3"></textarea>
-        <button type="submit" class="btn-primary">Publicar</button>
-      </form>
-    </section>
+    </div>
 
   </div>
 )}
@@ -308,292 +483,334 @@ if (isAuth) {
 </html>
 
 <style>
-  /* ── Login ────────────────────────────────────────────────────────────── */
+  :root {
+    --bg:       #0F1117;
+    --surface:  #1A1D27;
+    --border:   #2D3148;
+    --texto:    #F1F5F9;
+    --gris:     #94A3B8;
+    --verde:    #22C55E;
+    --rojo:     #EF4444;
+    --amarillo: #F59E0B;
+    --azul:     #3B82F6;
+    --naranja:  #F97316;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--texto);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ── Login ────────────────────────────────────────────────────────── */
   .login-wrap {
     min-height: 100vh;
     display: grid;
     place-items: center;
-    background: var(--gris-bg);
     padding: 1rem;
   }
   .login-box {
-    background: var(--blanco);
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 2rem;
-    width: min(100%, 360px);
-  }
-  .login-box h1 {
-    font-family: 'Nunito', sans-serif;
-    font-size: 1.5rem;
-    color: var(--marron);
-    font-weight: 900;
-  }
-  .login-sub { font-size: .875rem; color: var(--gris-txt); margin-bottom: 1.5rem; }
-  .error-msg {
-    background: #FEE2E2;
-    color: var(--rojo);
-    border-radius: 8px;
-    padding: .75rem 1rem;
-    font-size: .875rem;
-    margin-bottom: 1rem;
-  }
-  .login-box form  { display: flex; flex-direction: column; gap: .75rem; }
-  .login-box label { display: flex; flex-direction: column; gap: .25rem; font-size: .8rem; font-weight: 600; color: var(--marron); }
-
-  /* ── Inputs ──────────────────────────────────────────────────────────── */
-  input[type="email"],
-  input[type="password"],
-  input[type="text"],
-  input[type="number"],
-  textarea, select {
-    width: 100%;
-    padding: .625rem .875rem;
-    border: 1.5px solid var(--border);
-    border-radius: 8px;
-    font-family: 'Inter', sans-serif;
-    font-size: .9375rem;
-    background: var(--blanco);
-    color: var(--negro);
-  }
-  input:focus, textarea:focus, select:focus {
-    outline: none;
-    border-color: var(--amarillo);
-  }
-  textarea { resize: vertical; }
-
-  /* ── Botones base ─────────────────────────────────────────────────────── */
-  button {
-    cursor: pointer;
-    border: none;
-    border-radius: 8px;
-    font-family: 'Inter', sans-serif;
-    font-weight: 600;
-    font-size: .875rem;
-    min-height: 44px;
-    padding: .5rem 1rem;
-    transition: filter .1s;
-  }
-  button:hover   { filter: brightness(.9); }
-  button:active  { filter: brightness(.8); }
-  button:disabled { opacity: .5; cursor: not-allowed; }
-
-  .login-box button[type="submit"],
-  .btn-primary {
-    background: var(--amarillo);
-    color: var(--marron);
-    width: 100%;
-    font-size: 1rem;
-  }
-
-  /* ── Panel layout ─────────────────────────────────────────────────────── */
-  .panel { max-width: 700px; margin: 0 auto; padding: .75rem 1rem 4rem; }
-
-  .panel-header {
+    width: min(100%, 320px);
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: .75rem 0 1rem;
-    border-bottom: 2px solid var(--border);
-    margin-bottom: 1.25rem;
+    flex-direction: column;
+    gap: .75rem;
   }
-  .panel-title {
-    font-family: 'Nunito', sans-serif;
-    font-weight: 900;
-    color: var(--marron);
-    font-size: 1.1rem;
+  .login-logo  { font-size: 2rem; text-align: center; }
+  .login-title { font-size: 1.25rem; font-weight: 700; text-align: center; }
+  .login-sub   { font-size: .8rem; color: var(--gris); text-align: center; }
+  .login-err   { background: rgba(239,68,68,.12); color: var(--rojo); border: 1px solid rgba(239,68,68,.35); border-radius: 6px; padding: .625rem .875rem; font-size: .8rem; }
+  .login-box form { display: flex; flex-direction: column; gap: .625rem; }
+  .login-box input {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    color: var(--texto); padding: .625rem .875rem; font-size: .875rem;
+    width: 100%; font-family: inherit;
   }
-  .btn-logout {
-    background: transparent;
-    border: 1.5px solid var(--border);
-    color: var(--gris-txt);
-    font-size: .8rem;
-    min-height: 36px;
-    padding: .25rem .875rem;
+  .login-box input:focus { outline: none; border-color: var(--azul); }
+  .btn-login {
+    background: var(--azul); color: #fff; border: none; border-radius: 6px;
+    padding: .625rem; font-size: .875rem; font-weight: 600; cursor: pointer;
+    font-family: inherit; transition: opacity .15s;
   }
-  .btn-logout:hover { border-color: var(--rojo); color: var(--rojo); filter: none; }
+  .btn-login:hover { opacity: .85; }
 
-  /* ── Stats ───────────────────────────────────────────────────────────── */
-  .stats-row {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: .625rem;
-    margin-bottom: 1.75rem;
-  }
-  .stat {
-    background: var(--blanco);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: .75rem .5rem;
-    text-align: center;
-  }
-  .stat strong { display: block; font-size: 1.625rem; line-height: 1; font-family: 'Nunito', sans-serif; font-weight: 900; }
-  .stat span   { font-size: .65rem; color: var(--gris-txt); text-transform: uppercase; letter-spacing: .05em; }
-  .stat-warn strong { color: var(--naranja); }
-  .stat-ok    strong { color: var(--azul); }
-  .stat-green strong { color: var(--verde); }
-  .stat-blue  strong { color: var(--azul); }
-
-  /* ── Secciones ────────────────────────────────────────────────────────── */
-  .sec { margin-bottom: 2rem; }
-  .sec-title {
-    font-size: .9375rem;
-    font-weight: 700;
-    color: var(--marron);
-    padding-bottom: .5rem;
+  /* ── Header ───────────────────────────────────────────────────────── */
+  .hdr {
+    display: flex; align-items: center; gap: .75rem;
+    padding: .625rem 1rem;
+    background: var(--surface);
     border-bottom: 1px solid var(--border);
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: .5rem;
-  }
-  .badge {
-    background: var(--amarillo);
-    color: var(--marron);
-    border-radius: 99px;
-    padding: .1rem .5rem;
-    font-size: .7rem;
-    font-weight: 700;
-  }
-  .empty { color: var(--gris-txt); font-size: .875rem; padding: 1rem 0; }
-
-  /* ── Tarjetas de mascota ─────────────────────────────────────────────── */
-  .card {
-    background: var(--blanco);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-    margin-bottom: .75rem;
-  }
-  .card-foto { display: block; width: 100%; max-height: 220px; object-fit: cover; }
-  .card-body { padding: .875rem 1rem .625rem; }
-  .card-title { font-weight: 700; color: var(--marron); font-size: .9375rem; margin-bottom: .25rem; }
-  .tag {
-    display: inline-block;
-    padding: .1rem .45rem;
-    border-radius: 4px;
-    background: var(--gris-bg);
-    color: var(--gris-txt);
-    font-size: .7rem;
-    font-weight: 600;
-    margin-left: .35rem;
-    vertical-align: middle;
-  }
-  .tag-tipo { background: #FEF3C7; color: #92400E; }
-  .card-meta  { font-size: .8rem; color: var(--gris-txt); margin-bottom: .25rem; }
-  .card-desc  { font-size: .875rem; color: var(--negro); margin-top: .25rem; }
-  .card-date  { font-size: .72rem; color: var(--gris-txt); margin-top: .375rem; }
-  .card-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr auto;
-    gap: .5rem;
-    padding: .625rem 1rem .875rem;
-    border-top: 1px solid var(--gris-bg);
-  }
-  .btn-aprobar  { background: var(--verde);  color: #fff; }
-  .btn-rechazar { background: var(--rojo);   color: #fff; }
-  .btn-wa {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: .25rem;
-    padding: .5rem .75rem;
-    background: #25D366;
-    color: #fff;
-    border-radius: 8px;
-    text-decoration: none;
-    font-size: .8rem;
-    font-weight: 700;
-    min-height: 44px;
-    white-space: nowrap;
-  }
-
-  /* ── Insumos ──────────────────────────────────────────────────────────── */
-  .insumo-row {
-    display: flex;
-    align-items: center;
-    gap: .5rem;
-    padding: .625rem 0;
-    border-bottom: 1px solid var(--gris-bg);
     flex-wrap: wrap;
   }
-  .insumo-item { flex: 1; min-width: 120px; font-size: .875rem; font-weight: 600; color: var(--marron); }
-  .prio { font-size: .7rem; padding: .2rem .5rem; border-radius: 4px; font-weight: 600; white-space: nowrap; }
-  .prio-critico { background: #FEE2E2; color: #991B1B; }
-  .prio-urgente { background: #FEF3C7; color: #92400E; }
-  .prio-cubierto { background: #DCFCE7; color: #166534; }
-  .insumo-n    { width: 70px; flex: none; text-align: center; padding: .375rem .5rem; }
-  .insumo-de   { font-size: .75rem; color: var(--gris-txt); }
-  .btn-save    { background: var(--amarillo); color: var(--marron); padding: .35rem .75rem; min-height: 36px; font-size: .8rem; }
-
-  /* ── Banner / Feed forms ─────────────────────────────────────────────── */
-  .feed-form { display: flex; flex-direction: column; gap: .75rem; }
-  .toggle-label {
-    display: flex;
-    align-items: center;
-    gap: .5rem;
-    font-size: .875rem;
-    font-weight: 600;
-    color: var(--marron, #7A4A24);
-    cursor: pointer;
+  .hdr-title  { font-weight: 700; font-size: .875rem; flex-shrink: 0; }
+  .hdr-stats  { display: flex; gap: .375rem; flex-wrap: wrap; flex: 1; min-width: 0; }
+  .stat-pill  { font-size: .7rem; font-weight: 600; padding: .2rem .625rem; border-radius: 999px; }
+  .stat-naranja { background: rgba(249,115,22,.2);  color: #FB923C; }
+  .stat-verde   { background: rgba(34,197,94,.2);   color: #4ADE80; }
+  .stat-azul    { background: rgba(59,130,246,.2);  color: #60A5FA; }
+  .stat-gris    { background: rgba(148,163,184,.15); color: var(--gris); }
+  .logout-form  { flex-shrink: 0; }
+  .btn-logout {
+    background: transparent; border: 1px solid var(--border); color: var(--gris);
+    border-radius: 6px; padding: .3rem .75rem; cursor: pointer;
+    font-size: .75rem; font-family: inherit; transition: border-color .15s, color .15s;
   }
-  .toggle-label input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    accent-color: #C96A1B;
-    cursor: pointer;
+  .btn-logout:hover { border-color: var(--rojo); color: var(--rojo); }
+
+  /* ── Tabs nav ─────────────────────────────────────────────────────── */
+  .tabs-nav {
+    display: flex; background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .tabs-nav::-webkit-scrollbar { display: none; }
+  .tab {
+    background: transparent; border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--gris); padding: .625rem 1rem;
+    font-size: .8rem; font-weight: 600; cursor: pointer;
+    font-family: inherit; white-space: nowrap;
+    transition: color .15s, border-color .15s;
+    display: flex; align-items: center; gap: .35rem;
+  }
+  .tab:hover { color: var(--texto); }
+  .tab.active { color: var(--azul); border-bottom-color: var(--azul); }
+  .tab-count {
+    background: var(--naranja); color: #fff;
+    border-radius: 999px; padding: .1rem .4rem; font-size: .65rem;
   }
 
-  /* ── Responsive ───────────────────────────────────────────────────────── */
+  /* ── Tab panes ────────────────────────────────────────────────────── */
+  .tab-pane { display: none; padding: 1rem; }
+  .tab-pane.active { display: block; }
+
+  /* ── Tables ───────────────────────────────────────────────────────── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+  th {
+    text-align: left; padding: .5rem .75rem;
+    font-size: .68rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .05em; color: var(--gris);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg); white-space: nowrap;
+  }
+  td { padding: .5rem .75rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:nth-child(even) td { background: var(--surface); }
+  tr:hover td { background: rgba(59,130,246,.05); }
+
+  .thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; display: block; }
+  .thumb-empty {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px; font-size: 1.2rem;
+  }
+  .td-name     { font-weight: 600; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .td-zona     { max-width: 100px; color: var(--gris); font-size: .75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .td-time     { color: var(--gris); font-size: .72rem; white-space: nowrap; }
+  .td-gris     { color: var(--gris); }
+  .td-truncate { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--gris); }
+  .td-actions  { white-space: nowrap; }
+  .link-wa     { font-size: 1.1rem; text-decoration: none; }
+  .link-wa-txt { font-size: .75rem; color: #4ADE80; text-decoration: none; white-space: nowrap; }
+  .link-wa-txt:hover { text-decoration: underline; }
+
+  /* ── Buttons ──────────────────────────────────────────────────────── */
+  .btn {
+    border: none; border-radius: 4px;
+    padding: .3rem .625rem; font-size: .75rem; font-weight: 600;
+    cursor: pointer; font-family: inherit; transition: opacity .15s;
+    min-height: 28px;
+  }
+  .btn + .btn { margin-left: .25rem; }
+  .btn:hover    { opacity: .8; }
+  .btn:disabled { opacity: .35; cursor: not-allowed; }
+  .btn-verde   { background: var(--verde);   color: #fff; }
+  .btn-rojo    { background: var(--rojo);    color: #fff; }
+  .btn-azul    { background: var(--azul);    color: #fff; }
+  .btn-amarillo { background: var(--amarillo); color: #000; }
+  .btn-icon    { padding: .3rem .5rem; }
+  .btn-sm      { padding: .25rem .5rem; min-height: 26px; font-size: .72rem; }
+
+  /* ── Badges ───────────────────────────────────────────────────────── */
+  .badge {
+    display: inline-block; font-size: .65rem; font-weight: 700;
+    padding: .15rem .45rem; border-radius: 4px; text-transform: capitalize;
+  }
+  .badge-rojo  { background: rgba(239,68,68,.2);  color: #FCA5A5; }
+  .badge-verde { background: rgba(34,197,94,.2);  color: #86EFAC; }
+  .badge-azul  { background: rgba(59,130,246,.2); color: #93C5FD; }
+  .badge-gris  { background: rgba(148,163,184,.1); color: var(--gris); }
+  .badge-tipo-info       { background: rgba(59,130,246,.2);  color: #93C5FD; }
+  .badge-tipo-alerta     { background: rgba(239,68,68,.2);   color: #FCA5A5; }
+  .badge-tipo-rescate    { background: rgba(245,158,11,.2);  color: #FCD34D; }
+  .badge-tipo-buenas     { background: rgba(34,197,94,.2);   color: #86EFAC; }
+  .badge-tipo-voluntario { background: rgba(139,92,246,.2);  color: #C4B5FD; }
+
+  /* ── Sub-titles ───────────────────────────────────────────────────── */
+  .sub-title {
+    font-size: .72rem; font-weight: 700; color: var(--gris);
+    text-transform: uppercase; letter-spacing: .05em; margin-bottom: .75rem;
+  }
+  .mt    { margin-top: 1.5rem; }
+  .mt-sm { margin-top: .75rem; }
+  .empty-msg { color: var(--gris); padding: 2rem; text-align: center; font-size: .875rem; }
+
+  /* ── Feed form ────────────────────────────────────────────────────── */
+  .feed-form { display: flex; flex-direction: column; gap: .625rem; max-width: 640px; }
+  .feed-row  { display: flex; gap: .5rem; }
+  .feed-select, .feed-input, .feed-textarea {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--texto);
+    padding: .5rem .75rem; font-size: .875rem; font-family: inherit;
+  }
+  .feed-select { flex-shrink: 0; }
+  .feed-input  { flex: 1; }
+  .feed-textarea { resize: vertical; width: 100%; }
+  .feed-select:focus, .feed-input:focus, .feed-textarea:focus { outline: none; border-color: var(--azul); }
+
+  /* ── Insumos ──────────────────────────────────────────────────────── */
+  .insumos-list { display: flex; flex-direction: column; gap: .25rem; max-width: 520px; }
+  .insumo-row {
+    display: flex; align-items: center; gap: .75rem;
+    padding: .5rem .25rem; border-bottom: 1px solid var(--border);
+  }
+  .prio-dot    { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .prio-critico  { background: var(--rojo); }
+  .prio-urgente  { background: var(--amarillo); }
+  .prio-cubierto { background: var(--verde); }
+  .insumo-name     { flex: 1; font-weight: 500; font-size: .85rem; }
+  .insumo-progress { font-size: .75rem; color: var(--gris); white-space: nowrap; }
+  .insumo-form     { display: flex; align-items: center; gap: .375rem; }
+  .insumo-input {
+    width: 64px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 4px; color: var(--texto); padding: .3rem .5rem;
+    font-family: inherit; font-size: .8rem; text-align: center;
+  }
+  .insumo-input:focus { outline: none; border-color: var(--azul); }
+
+  /* ── Responsive ───────────────────────────────────────────────────── */
   @media (max-width: 480px) {
-    .stats-row { grid-template-columns: repeat(2, 1fr); }
-    .card-actions { grid-template-columns: 1fr 1fr; }
-    .card-actions .btn-wa { grid-column: span 2; }
-    .insumo-row { gap: .375rem; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .card { transition: none; }
+    .hdr { gap: .5rem; }
+    .tab { padding: .5rem .625rem; font-size: .75rem; }
+    .feed-row { flex-direction: column; }
   }
 </style>
 
 <script>
-  async function moderar(id, accion) {
-    const card = document.getElementById('card-' + id)
-    if (!card) return
-    const btns = card.querySelectorAll('button')
-    btns.forEach(b => (b.disabled = true))
-    const fd = new FormData()
-    fd.append('action', accion)
-    fd.append('id', id)
-    let json = null
+  // ── Tab switching
+  document.querySelectorAll('.tab').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.tab').forEach(function(b) {
+        b.classList.remove('active')
+        b.setAttribute('aria-selected', 'false')
+      })
+      document.querySelectorAll('.tab-pane').forEach(function(p) {
+        p.classList.remove('active')
+      })
+      btn.classList.add('active')
+      btn.setAttribute('aria-selected', 'true')
+      var pane = document.getElementById('tab-' + btn.dataset.tab)
+      if (pane) pane.classList.add('active')
+    })
+  })
+
+  // ── Generic fetch action
+  async function doAction(params, rowId, confirmMsg) {
+    if (confirmMsg && !confirm(confirmMsg)) return false
+    var fd = new FormData()
+    Object.keys(params).forEach(function(k) { fd.append(k, String(params[k])) })
     try {
-      const res = await fetch('/admin', { method: 'POST', body: fd })
-      json = await res.json()
-    } catch {
-      btns.forEach(b => (b.disabled = false))
-      alert('Error de red — verifica tu conexión')
-      return
+      var r = await fetch('/admin', { method: 'POST', body: fd })
+      var j = await r.json()
+      if (!j.ok) { alert('Error: ' + (j.error || 'desconocido')); return false }
+      if (rowId) {
+        var el = document.getElementById(rowId)
+        if (el) {
+          el.style.transition = 'opacity .2s'
+          el.style.opacity = '0'
+          setTimeout(function() { el.remove() }, 200)
+        }
+      }
+      return true
+    } catch(e) {
+      alert('Error de red')
+      return false
     }
-    if (!json || !json.ok) {
-      btns.forEach(b => (b.disabled = false))
-      alert('Error: ' + (json && json.error ? json.error : 'desconocido'))
-      return
-    }
-    card.style.transition = 'opacity .2s, transform .2s'
-    card.style.opacity = '0'
-    card.style.transform = 'translateX(16px)'
-    setTimeout(function () {
-      card.remove()
-      const counter = document.getElementById('stat-pendientes')
-      if (counter) counter.textContent = String(Math.max(0, parseInt(counter.textContent || '0', 10) - 1))
-    }, 200)
   }
 
-  document.querySelectorAll('.btn-aprobar').forEach(function (btn) {
-    btn.addEventListener('click', function () { moderar(btn.dataset.id, 'aprobar') })
+  // ── Data-attribute buttons
+  document.querySelectorAll('[data-action]').forEach(function(btn) {
+    btn.addEventListener('click', async function() {
+      var action = btn.dataset.action
+      var id     = btn.dataset.id
+      var row    = btn.dataset.row
+      var conf   = btn.dataset.confirm
+      if (!action || !id) return
+      btn.disabled = true
+      var ok = await doAction({ action: action, id: id }, row, conf || null)
+      if (!ok) btn.disabled = false
+    })
   })
-  document.querySelectorAll('.btn-rechazar').forEach(function (btn) {
-    btn.addEventListener('click', function () { moderar(btn.dataset.id, 'rechazar') })
+
+  // ── Feed form
+  var formFeed = document.getElementById('form-feed')
+  if (formFeed) {
+    formFeed.addEventListener('submit', async function(e) {
+      e.preventDefault()
+      var fd  = new FormData(formFeed)
+      fd.append('action', 'feed')
+      var btn = formFeed.querySelector('button[type="submit"]')
+      if (btn) btn.disabled = true
+      try {
+        var r = await fetch('/admin', { method: 'POST', body: fd })
+        var j = await r.json()
+        if (!j.ok) {
+          alert('Error: ' + (j.error || 'desconocido'))
+          if (btn) btn.disabled = false
+        } else {
+          formFeed.reset()
+          if (btn) btn.disabled = false
+          var msg = document.createElement('p')
+          msg.textContent = '✓ Publicado'
+          msg.style.cssText = 'color:#22C55E;font-size:.8rem;margin-top:.375rem;'
+          formFeed.appendChild(msg)
+          setTimeout(function() { msg.remove() }, 2500)
+        }
+      } catch(e) {
+        alert('Error de red')
+        if (btn) btn.disabled = false
+      }
+    })
+  }
+
+  // ── Insumo forms
+  document.querySelectorAll('.insumo-form').forEach(function(form) {
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault()
+      var id     = form.dataset.id
+      var input  = form.querySelector('input[name="cantidad"]')
+      var cant   = input ? input.value : '0'
+      var btn    = form.querySelector('button')
+      if (btn) btn.disabled = true
+      var ok = await doAction({ action: 'insumo', id: id, cantidad: cant }, null, null)
+      if (ok) {
+        var row  = document.getElementById('insumo-' + id)
+        if (row) {
+          var prog = row.querySelector('.insumo-progress')
+          if (prog) {
+            var parts = prog.textContent.split('/')
+            if (parts.length === 2) prog.textContent = cant + '/' + parts[1].trim()
+          }
+        }
+      }
+      if (btn) btn.disabled = false
+    })
   })
 </script>

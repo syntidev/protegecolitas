@@ -1,0 +1,88 @@
+---
+const path = Astro.url?.pathname ?? '/'
+const navItems = [
+  { href: '/',             label: 'Inicio' },
+  { href: '/mascotas',     label: 'Mascotas' },
+  { href: '/reportar',     label: 'Reportar' },
+  { href: '/insumos',      label: 'Insumos' },
+  { href: '/veterinarios', label: 'Veterinarios' },
+  { href: '/noticias',     label: 'Noticias' },
+  { href: '/acopio',       label: 'Acopio' },
+]
+---
+<header class="top-nav">
+  <nav class="top-nav__inner" role="navigation" aria-label="Navegación principal">
+    <a href="/" class="top-nav__brand">🐾 Protege Colitas</a>
+    <div class="top-nav__links">
+      {navItems.map(({ href, label }) => {
+        const isActive = href === '/' ? path === '/' : path.startsWith(href)
+        return (
+          <a
+            href={href}
+            class={`top-nav__link${isActive ? ' top-nav__link--active' : ''}`}
+            aria-current={isActive ? 'page' : undefined}
+          >{label}</a>
+        )
+      })}
+    </div>
+  </nav>
+</header>
+
+<style>
+.top-nav {
+  background: var(--amarillo);
+  height: 52px;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  border-bottom: 2px solid rgba(107,58,42,0.15);
+}
+.top-nav__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+.top-nav__brand {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--marron);
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+.top-nav__links {
+  display: flex;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  flex: 1;
+}
+.top-nav__links::-webkit-scrollbar { display: none; }
+.top-nav__link {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--marron);
+  text-decoration: none;
+  padding: 0 12px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  border-bottom: 3px solid transparent;
+  transition: opacity 0.15s;
+  min-width: 44px;
+  justify-content: center;
+}
+.top-nav__link:hover { opacity: 0.7; }
+.top-nav__link--active { border-bottom-color: var(--marron); }
+</style>
