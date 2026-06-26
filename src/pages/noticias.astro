@@ -31,138 +31,208 @@ const TIPO_META: Record<string, { label: string; color: string; bg: string; bord
 const BASE_URL = 'https://protegecolitas.org'
 ---
 <Base title="Noticias — Protege Colitas">
-  <div class="page">
-    <header class="page-header">
-      <a href="/" class="back-btn" aria-label="Volver al inicio">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12 4L6 10l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </a>
-      <div class="header-text">
-        <span class="brand">Protege Colitas</span>
+  <div class="page-inner">
+    <div class="page-hero">
+      <h1 class="page-title">Lo que está <em>pasando</em></h1>
+      <p class="page-sub">Actualizaciones en tiempo real de la emergencia.</p>
+    </div>
+
+    {notas && notas.length > 0 ? (
+      <div class="feed-glass">
+        {notas.map((nota, i) => {
+          const meta = TIPO_META[nota.tipo] ?? TIPO_META['info']
+          const d = nota.published_at ? new Date(nota.published_at) : null
+          const day = d ? d.getDate().toString().padStart(2, '0') : '--'
+          const mon = d
+            ? d.toLocaleDateString('es-VE', { month: 'short' }).toUpperCase().replace('.', '')
+            : '---'
+          const isLast = i === notas.length - 1
+          return (
+            <div class:list={['feed-item', { 'feed-item--last': isLast }]}>
+              <div class="feed-date" aria-hidden="true">
+                <span class="feed-day">{day}</span>
+                <span class="feed-mon">{mon}</span>
+              </div>
+              <div class="feed-content">
+                <span
+                  class="feed-badge"
+                  style={`color:${meta.color};background:${meta.bg};border:1px solid ${meta.border}`}
+                >
+                  {meta.label}
+                </span>
+                <h2 class="feed-title">{nota.titulo}</h2>
+                <p class="feed-body">{nota.cuerpo}</p>
+                <span class="feed-time">{tiempoRelativo(nota.published_at)}</span>
+              </div>
+            </div>
+          )
+        })}
       </div>
-    </header>
-
-    <main class="content">
-      <div class="hero-section">
-        <h1 class="page-title">Lo que está<br /><em>pasando</em></h1>
-        <p class="page-sub">Actualizaciones en tiempo real de la emergencia.</p>
+    ) : (
+      <div class="empty-state">
+        <span class="empty-icon">📋</span>
+        <p class="empty-msg">Sin actualizaciones aún</p>
       </div>
-
-      {notas && notas.length > 0 ? (
-        <div class="notas-list">
-          {notas.map((n) => {
-            const meta = TIPO_META[n.tipo] ?? TIPO_META['info']
-            const shareText = encodeURIComponent(`${n.titulo} — ${BASE_URL}/noticias`)
-            const waShare = `https://wa.me/?text=${shareText}`
-            return (
-              <article
-                class="nota-card"
-                style={`border-color: ${meta.border};`}
-              >
-                <div class="nota-header">
-                  <span class="nota-tag" style={`color:${meta.color}; background:${meta.bg};`}>
-                    {meta.label}
-                  </span>
-                  {n.published_at && (
-                    <time class="nota-time" datetime={n.published_at}>
-                      {tiempoRelativo(n.published_at)}
-                    </time>
-                  )}
-                </div>
-
-                <h2 class="nota-titulo">{n.titulo}</h2>
-                <p class="nota-cuerpo">{n.cuerpo.length > 80 ? n.cuerpo.slice(0, 80) + '…' : n.cuerpo}</p>
-
-                <div class="nota-footer">
-                  <a
-                    href={waShare}
-                    class="btn-share"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`Compartir: ${n.titulo}`}
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.119.553 4.107 1.516 5.836L.057 23.447a.5.5 0 00.611.612l5.638-1.471A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.891 0-3.666-.5-5.197-1.373l-.371-.22-3.847 1.003 1.022-3.737-.242-.384A9.942 9.942 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
-                    Compartir
-                  </a>
-                </div>
-              </article>
-            )
-          })}
-        </div>
-      ) : (
-        <div class="empty-state">
-          <div class="empty-icon">📢</div>
-          <p class="empty-msg">Pronto publicaremos actualizaciones.</p>
-          <p class="empty-sub">Síguenos para estar al tanto de la emergencia.</p>
-        </div>
-      )}
-    </main>
+    )}
   </div>
 </Base>
 
 <style>
-.page { min-height: 100dvh; display: flex; flex-direction: column; }
-
-.page-header {
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px 16px;
-  background: var(--blanco); border-bottom: 1px solid var(--border);
-  position: sticky; top: 0; z-index: 20;
+.page-inner {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 24px 16px;
+  width: 100%;
 }
-.back-btn {
-  width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
-  border-radius: 10px; background: var(--gris-bg); color: var(--marron);
-  text-decoration: none; transition: background .15s;
+
+.page-hero {
+  padding-bottom: 24px;
 }
-.back-btn:hover { background: var(--border); }
-.brand { font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 17px; color: var(--marron); }
 
-.content { padding: 0 16px 100px; max-width: 600px; margin: 0 auto; width: 100%; }
-
-.hero-section { padding: 28px 0 24px; }
 .page-title {
-  font-family: 'Fredoka', sans-serif; font-weight: 700;
-  font-size: clamp(28px, 7vw, 40px); line-height: 1.05;
-  color: var(--marron); margin-bottom: 8px; text-wrap: balance;
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
+  font-size: clamp(28px, 7vw, 40px);
+  line-height: 1.05;
+  color: var(--marron, #3D1C02);
+  margin-bottom: 8px;
+  text-wrap: balance;
 }
-.page-title em { font-style: normal; color: var(--amarillo); }
-.page-sub { font-size: 15px; color: var(--gris-txt); }
-
-.notas-list { display: flex; flex-direction: column; gap: 12px; }
-
-.nota-card {
-  background: var(--blanco); border-radius: 16px;
-  padding: 16px; border: 1.5px solid var(--border);
-  display: flex; flex-direction: column; gap: 8px;
-  transition: box-shadow .15s;
+.page-title em {
+  font-style: normal;
+  color: var(--amarillo, #F5A623);
 }
-.nota-card:hover { box-shadow: 0 4px 16px rgba(107,58,42,.08); }
 
-.nota-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.nota-tag {
-  display: inline-flex; align-items: center;
-  padding: 3px 10px; border-radius: 20px;
-  font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+.page-sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  color: var(--gris, #6B7280);
+  line-height: 1.5;
 }
-.nota-time { font-size: 12px; color: var(--gris-txt); flex-shrink: 0; }
 
-.nota-titulo { font-family: 'Fredoka', sans-serif; font-size: 16px; font-weight: 700; color: var(--marron); line-height: 1.3; }
-.nota-cuerpo { font-size: 14px; color: #374151; line-height: 1.6; }
-
-.nota-footer { display: flex; justify-content: flex-end; padding-top: 4px; }
-.btn-share {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 14px; border-radius: 10px;
-  background: #f0fdf4; color: #166534;
-  font-size: 13px; font-weight: 600; text-decoration: none;
-  min-height: 36px; transition: background .15s;
+/* Glass container */
+.feed-glass {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 18px;
+  box-shadow: 0 8px 32px rgba(61, 28, 2, 0.10);
+  padding: 0 20px;
 }
-.btn-share:hover { background: #dcfce7; }
 
+/* Feed items */
+.feed-item {
+  display: flex;
+  gap: 16px;
+  padding: 18px 0;
+  border-bottom: 1px solid rgba(61, 28, 2, 0.08);
+  align-items: flex-start;
+}
+.feed-item--last {
+  border-bottom: none;
+}
+
+.feed-date {
+  flex-shrink: 0;
+  width: 52px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 2px;
+}
+
+.feed-day {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  color: var(--amarillo, #F5A623);
+  line-height: 1;
+  display: block;
+}
+
+.feed-mon {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  color: var(--gris, #6B7280);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: block;
+  margin-top: 2px;
+}
+
+.feed-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.feed-badge {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 6px;
+  letter-spacing: 0.03em;
+}
+
+.feed-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--marron, #3D1C02);
+  margin: 0 0 4px 0;
+  line-height: 1.35;
+}
+
+.feed-body {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--gris, #6B7280);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0 0 6px 0;
+}
+
+.feed-time {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--gris, #6B7280);
+}
+
+/* Empty state */
 .empty-state {
-  display: flex; flex-direction: column; align-items: center;
-  padding: 60px 20px; text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 20px;
+  text-align: center;
 }
-.empty-icon { font-size: 56px; margin-bottom: 16px; }
-.empty-msg { font-size: 17px; font-weight: 700; color: var(--marron); margin-bottom: 6px; }
-.empty-sub { font-size: 14px; color: var(--gris-txt); }
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.empty-msg {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--marron, #3D1C02);
+  margin: 0;
+}
 </style>

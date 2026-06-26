@@ -31,109 +31,105 @@ const mapsHref = (m.latitud && m.longitud)
   : null
 ---
 <Base title={`${m.nombre ?? 'Mascota'} — Protege Colitas`}>
-  <div class="page">
-    <header class="page-header">
-      <a href="/mascotas" class="back-btn" aria-label="Volver a mascotas">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M12 4L6 10l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </a>
-      <span class="brand">Protege Colitas</span>
-    </header>
+  <div class="detail-page">
 
-    <main class="content">
-      {reunido && (
-        <div class="banner-reunido" role="status">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-          Ya fue reunido con su familia
-        </div>
-      )}
+    <!-- Back link (non-sticky, top of content) -->
+    <a href="/mascotas" class="back-link">← Volver a mascotas</a>
 
-      <!-- Foto principal -->
-      <div class="foto-principal">
-        {m.foto_url
-          ? <a href={m.foto_url} target="_blank" rel="noopener noreferrer">
-              <img src={m.foto_url} alt={m.nombre ?? 'mascota'} class="foto-main-img" style="cursor:zoom-in" />
-            </a>
-          : <div class="foto-placeholder" aria-label="Sin foto">🐾</div>
-        }
-        <span class={`badge-tipo tipo-${(m.tipo ?? 'perdido').toLowerCase()}`}>
-          {m.tipo === 'encontrado' ? 'ENCONTRADO' : 'PERDIDO'}
-        </span>
+    <!-- Reunido banner -->
+    {reunido && (
+      <div class="banner-reunido" role="status">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        Ya fue reunido con su familia
       </div>
+    )}
 
-      <!-- Fotos adicionales -->
-      {(m.foto_url_2 || m.foto_url_3) && (
-        <div class="fotos-extra">
-          {m.foto_url_2 && (
-            <a href={m.foto_url_2} target="_blank" rel="noopener noreferrer">
-              <img src={m.foto_url_2} alt="Foto adicional" class="foto-thumb" loading="lazy" style="cursor:zoom-in" />
-            </a>
-          )}
-          {m.foto_url_3 && (
-            <a href={m.foto_url_3} target="_blank" rel="noopener noreferrer">
-              <img src={m.foto_url_3} alt="Foto adicional" class="foto-thumb" loading="lazy" style="cursor:zoom-in" />
-            </a>
-          )}
-        </div>
-      )}
+    <!-- Photo hero -->
+    {m.foto_url
+      ? (
+        <a href={m.foto_url} target="_blank" rel="noopener noreferrer">
+          <img class="hero-photo" src={m.foto_url} alt={m.nombre ?? 'mascota'} />
+        </a>
+      ) : (
+        <div class="foto-placeholder" aria-label="Sin foto">🐾</div>
+      )
+    }
+
+    <!-- Thumbnail row -->
+    {(m.foto_url_2 || m.foto_url_3) && (
+      <div class="thumbnail-row">
+        {m.foto_url_2 && (
+          <a href={m.foto_url_2} target="_blank" rel="noopener noreferrer">
+            <img src={m.foto_url_2} alt="Foto adicional" height="72" style="border-radius:10px;object-fit:cover;cursor:zoom-in;display:block" loading="lazy" />
+          </a>
+        )}
+        {m.foto_url_3 && (
+          <a href={m.foto_url_3} target="_blank" rel="noopener noreferrer">
+            <img src={m.foto_url_3} alt="Foto adicional" height="72" style="border-radius:10px;object-fit:cover;cursor:zoom-in;display:block" loading="lazy" />
+          </a>
+        )}
+      </div>
+    )}
+
+    <!-- Content card (glass) -->
+    <div class="content-card">
+
+      <!-- Badge estado -->
+      <span class={`badge-estado badge-${m.tipo ?? 'perdido'}`}>
+        {m.tipo === 'encontrado' ? 'Encontrado' : 'Perdido'}
+      </span>
 
       <!-- Nombre -->
-      <div class="pet-header">
-        <h1 class="pet-nombre">{m.nombre ?? 'Sin nombre'}</h1>
-      </div>
+      <h1 class="pet-nombre">{m.nombre ?? 'Sin nombre'}</h1>
 
-      <!-- Datos -->
-      <dl class="datos-list">
-        <div class="dato-row">
-          <dt class="dato-label">Animal</dt>
-          <dd class="dato-val">{m.especie}</dd>
+      <!-- Data table -->
+      <dl class="data-table glass-card">
+        <div class="data-row">
+          <dt class="data-label">Especie</dt>
+          <dd class="data-val">{m.especie}</dd>
         </div>
         {m.color && (
-          <div class="dato-row">
-            <dt class="dato-label">Color</dt>
-            <dd class="dato-val">{m.color}</dd>
+          <div class="data-row">
+            <dt class="data-label">Color</dt>
+            <dd class="data-val">{m.color}</dd>
           </div>
         )}
         {m.tamanio && (
-          <div class="dato-row">
-            <dt class="dato-label">Tamaño</dt>
-            <dd class="dato-val">{m.tamanio}</dd>
+          <div class="data-row">
+            <dt class="data-label">Tamaño</dt>
+            <dd class="data-val">{m.tamanio}</dd>
           </div>
         )}
-        <div class="dato-row">
-          <dt class="dato-label">Dónde fue visto</dt>
-          <dd class="dato-val">📍 {m.zona}</dd>
+        <div class="data-row">
+          <dt class="data-label">Zona</dt>
+          <dd class="data-val">{m.zona}</dd>
         </div>
         {mapsHref && (
-          <div class="dato-row">
-            <dt class="dato-label">Mapa</dt>
-            <dd class="dato-val"><a href={mapsHref} target="_blank" rel="noopener noreferrer" class="maps-link">Ver en Google Maps →</a></dd>
+          <div class="data-row">
+            <dt class="data-label">Mapa</dt>
+            <dd class="data-val">
+              <a href={mapsHref} target="_blank" rel="noopener noreferrer" class="maps-link">Ver en Google Maps →</a>
+            </dd>
+          </div>
+        )}
+        {m.descripcion && (
+          <div class="data-row data-row--desc">
+            <dt class="data-label">Descripción</dt>
+            <dd class="data-val data-val--desc">{m.descripcion}</dd>
           </div>
         )}
       </dl>
 
-      <!-- Descripción -->
-      {m.descripcion && (
-        <div class="descripcion-section">
-          <p class="desc-label">Descripción</p>
-          <p class="desc-text">{m.descripcion}</p>
-        </div>
-      )}
-
-      <!-- Acciones -->
-      <div class="acciones">
-        {waHref
-          ? (
-            <a href={waHref} class="btn-action btn-wa" target="_blank" rel="noopener noreferrer">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.119.553 4.107 1.516 5.836L.057 23.447a.5.5 0 00.611.612l5.638-1.471A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.891 0-3.666-.5-5.197-1.373l-.371-.22-3.847 1.003 1.022-3.737-.242-.384A9.942 9.942 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
-              WhatsApp directo
-            </a>
-          ) : (
-            <div class="btn-action btn-no-wa">Sin número de contacto</div>
-          )
-        }
-
+      <!-- Actions -->
+      <div class="actions">
+        {waHref && (
+          <a href={waHref} class="btn-wa" target="_blank" rel="noopener noreferrer">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.119.553 4.107 1.516 5.836L.057 23.447a.5.5 0 00.611.612l5.638-1.471A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.891 0-3.666-.5-5.197-1.373l-.371-.22-3.847 1.003 1.022-3.737-.242-.384A9.942 9.942 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+            WhatsApp directo
+          </a>
+        )}
         <button
-          class="btn-action btn-compartir"
+          class="btn-share"
           id="btnCompartir"
           data-nombre={m.nombre ?? 'Mascota'}
         >
@@ -142,147 +138,241 @@ const mapsHref = (m.latitud && m.longitud)
         </button>
       </div>
 
+      <!-- Fecha -->
       <p class="fecha-reporte">Reportado el {fechaStr}</p>
 
-      <!-- CTA footer -->
-      <div class="cta-final">
-        <p class="cta-txt">¿También tienes información?</p>
-        <a href="/reportar" class="btn-cta-reportar">Reportar →</a>
-      </div>
-    </main>
-  </div>
+    </div><!-- /content-card -->
+
+  </div><!-- /detail-page -->
 </Base>
 
 <style>
-.page { min-height: 100dvh; display: flex; flex-direction: column; }
-
-.page-header {
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px 16px;
-  background: var(--blanco); border-bottom: 1px solid var(--border);
-  position: sticky; top: 0; z-index: 20;
+/* ─── Layout ─── */
+.detail-page {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0 0 80px;
+  width: 100%;
 }
-.back-btn {
-  width: 44px; height: 44px;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 10px; background: var(--gris-bg); color: var(--marron);
-  text-decoration: none; transition: background .15s; flex-shrink: 0;
+
+/* ─── Back link ─── */
+.back-link {
+  display: block;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--marron);
+  text-decoration: none;
+  padding: 16px;
 }
-.back-btn:hover { background: var(--border); }
-.brand { font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 17px; color: var(--marron); }
+.back-link:hover { text-decoration: underline; }
 
-.content { padding: 0 0 100px; max-width: 600px; margin: 0 auto; width: 100%; }
-
-/* ─── Banner reunido ─── */
+/* ─── Reunido banner ─── */
 .banner-reunido {
-  display: flex; align-items: center; gap: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 14px 16px;
-  background: #f0fdf4; border-bottom: 1px solid #bbf7d0;
-  font-size: 14px; font-weight: 700; color: var(--verde);
+  margin: 0 16px 12px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--radius-sm);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--verde);
 }
 
-/* ─── Foto principal ─── */
-.foto-principal { position: relative; background: var(--gris-bg); border-radius: 12px; overflow: hidden; margin: 0 16px; }
-.foto-main-img { width: 100%; max-height: 280px; object-fit: cover; display: block; border-radius: 12px; }
+/* ─── Hero photo ─── */
+.hero-photo {
+  width: 100%;
+  max-height: 320px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+  display: block;
+}
+
 .foto-placeholder {
+  width: 100%;
   height: 220px;
-  display: flex; align-items: center; justify-content: center; font-size: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64px;
+  background: var(--gris-bg);
+  border-radius: var(--radius);
+  margin-bottom: 12px;
 }
 
-.badge-tipo {
-  position: absolute; top: 12px; left: 16px;
-  font-size: 11px; font-weight: 700; letter-spacing: .07em;
-  padding: 4px 10px; border-radius: 6px; text-transform: uppercase;
+/* ─── Thumbnail row ─── */
+.thumbnail-row {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  padding: 0 0 12px;
 }
-.tipo-perdido    { background: var(--rojo); color: #fff; }
-.tipo-encontrado { background: var(--azul); color: #fff; }
 
-/* ─── Fotos extra ─── */
-.fotos-extra { display: flex; gap: 8px; padding: 10px 16px; background: var(--gris-bg); }
-.foto-thumb {
-  width: 80px; height: 80px; object-fit: cover;
-  border-radius: 8px; border: 1.5px solid var(--border); flex-shrink: 0; display: block;
+/* ─── Content card (glass) ─── */
+.content-card {
+  background: var(--card);
+  backdrop-filter: var(--card-blur);
+  -webkit-backdrop-filter: var(--card-blur);
+  border: var(--card-border);
+  box-shadow: var(--card-shadow);
+  border-radius: var(--radius);
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
+
+/* ─── Badge estado ─── */
+.badge-estado {
+  display: inline-block;
+  align-self: flex-start;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+.badge-perdido    { background: var(--rojo); color: #fff; }
+.badge-encontrado { background: var(--azul); color: #fff; }
 
 /* ─── Nombre ─── */
-.pet-header { padding: 20px 16px 0; }
 .pet-nombre {
-  font-family: 'Fredoka', sans-serif; font-weight: 700;
-  font-size: clamp(26px, 6vw, 36px); color: var(--marron);
-  line-height: 1.1; text-wrap: balance;
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
+  font-size: 28px;
+  color: var(--marron);
+  line-height: 1.15;
+  margin: 0;
+  text-wrap: balance;
 }
 
-/* ─── Datos ─── */
-.datos-list {
-  margin: 16px 16px 0; padding: 0;
-  background: var(--blanco); border-radius: 14px;
-  border: 1.5px solid var(--border); overflow: hidden;
+/* ─── Data table ─── */
+.data-table {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
-.dato-row {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 13px 16px; border-bottom: 1px solid var(--border);
+
+.glass-card {
+  background: var(--card);
+  backdrop-filter: var(--card-blur);
+  -webkit-backdrop-filter: var(--card-blur);
+  border: var(--card-border);
+  box-shadow: var(--card-shadow);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
 }
-.dato-row:last-child { border-bottom: none; }
-.dato-label { font-size: 13px; color: var(--gris-txt); font-weight: 500; }
-.dato-val   { font-size: 14px; color: var(--marron); font-weight: 700; text-align: right; }
-.maps-link  { color: var(--azul); text-decoration: none; font-size: 13px; }
+
+.data-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(229, 221, 208, 0.6);
+}
+.data-row:last-child { border-bottom: none; }
+
+.data-row--desc { flex-direction: column; gap: 6px; }
+
+.data-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gris-txt);
+  flex-shrink: 0;
+}
+.data-val {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--marron);
+  text-align: right;
+}
+.data-val--desc {
+  text-align: left;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--marron);
+}
+.maps-link {
+  color: var(--azul);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+}
 .maps-link:hover { text-decoration: underline; }
 
-/* ─── Descripción ─── */
-.descripcion-section { padding: 20px 16px 0; }
-.desc-label {
-  font-size: 11px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .06em; color: var(--gris-txt); margin-bottom: 8px;
-}
-.desc-text {
-  font-size: 15px; color: var(--marron); line-height: 1.65;
-  background: var(--blanco); border-radius: 12px;
-  padding: 14px 16px; border: 1.5px solid var(--border);
+/* ─── Actions ─── */
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-/* ─── Acciones ─── */
-.acciones { padding: 24px 16px 0; display: flex; flex-direction: column; gap: 10px; }
-.btn-action {
-  display: flex; align-items: center; justify-content: center; gap: 10px;
-  width: 100%; min-height: 52px; border-radius: 14px; border: none;
-  font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 700;
-  text-decoration: none; cursor: pointer;
-  transition: opacity .15s, transform .1s;
+.btn-wa {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  border-radius: var(--radius-sm);
+  background: #25D366;
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: var(--transition);
   -webkit-tap-highlight-color: transparent;
 }
-.btn-action:active { transform: scale(.98); }
-.btn-wa    { background: #25D366; color: #fff; }
-.btn-wa:hover { opacity: .9; }
-.btn-compartir { background: var(--azul); color: #fff; }
-.btn-compartir:hover { opacity: .9; }
-.btn-no-wa { background: var(--gris-bg); color: var(--gris-txt); font-size: 14px; cursor: default; }
+.btn-wa:hover { opacity: 0.9; }
+.btn-wa:active { transform: scale(0.98); }
+
+.btn-share {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.80);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1.5px solid var(--marron);
+  color: var(--marron);
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-share:hover { opacity: 0.85; }
+.btn-share:active { transform: scale(0.98); }
 
 /* ─── Fecha ─── */
 .fecha-reporte {
-  padding: 16px 16px 0;
-  font-size: 12px; color: var(--gris-txt); text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--gris-txt);
+  text-align: center;
+  margin: 0;
 }
-
-/* ─── CTA final ─── */
-.cta-final {
-  margin: 24px 16px 0; padding: 20px;
-  background: var(--gris-bg); border-radius: 14px;
-  border: 1.5px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; flex-wrap: wrap;
-}
-.cta-txt { font-size: 14px; color: var(--gris-txt); }
-.btn-cta-reportar {
-  display: inline-flex; align-items: center;
-  padding: 10px 20px; border-radius: 10px;
-  background: var(--amarillo); color: var(--marron);
-  font-size: 14px; font-weight: 700; text-decoration: none;
-  min-height: 44px; transition: opacity .15s; white-space: nowrap;
-}
-.btn-cta-reportar:hover { opacity: .85; }
 
 @media (prefers-reduced-motion: reduce) {
-  .btn-action { transition: none; }
+  .btn-wa, .btn-share { transition: none; }
 }
 </style>
 
