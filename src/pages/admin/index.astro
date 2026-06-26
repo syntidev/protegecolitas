@@ -159,6 +159,46 @@ if (Astro.request.method === 'POST') {
     })
     return J(!error, error?.message)
   }
+  if (action === 'editar_mascota') {
+    const { error } = await supabaseAdmin.from('mascotas').update({
+      nombre:     form.get('nombre')?.toString().trim()     || null,
+      especie:    form.get('especie')?.toString()            ?? '',
+      tipo:       form.get('tipo')?.toString()               || null,
+      zona:       form.get('zona')?.toString().trim()        ?? '',
+      color:      form.get('color')?.toString().trim()       || null,
+      descripcion:form.get('descripcion')?.toString().trim() || null,
+      whatsapp:   form.get('whatsapp')?.toString().trim()    ?? '',
+      foto_url:   form.get('foto_url')?.toString().trim()    || null,
+    }).eq('id', getId())
+    return J(!error, error?.message)
+  }
+  if (action === 'editar_vet') {
+    const { error } = await supabaseAdmin.from('vets').update({
+      nombre:    form.get('nombre')?.toString().trim()    ?? '',
+      zona:      form.get('zona')?.toString().trim()      ?? '',
+      whatsapp:  form.get('whatsapp')?.toString().trim()  ?? '',
+      servicios: form.get('servicios')?.toString().trim() || null,
+      horario:   form.get('horario')?.toString().trim()   || null,
+    }).eq('id', getId())
+    return J(!error, error?.message)
+  }
+  if (action === 'editar_insumo') {
+    const item      = form.get('item')?.toString().trim()
+    const recibida  = parseInt(form.get('cantidad_recibida')?.toString()  ?? '0', 10)
+    const requerida = parseInt(form.get('cantidad_requerida')?.toString() ?? '1', 10)
+    const prioridad = form.get('prioridad')?.toString() ?? 'urgente'
+    if (!item || isNaN(recibida) || isNaN(requerida)) return J(false, 'Datos inválidos')
+    const { error } = await supabaseAdmin.from('necesidades').update({
+      item, cantidad_recibida: recibida, cantidad_requerida: requerida, prioridad,
+      updated_at: new Date().toISOString()
+    }).eq('id', getId())
+    return J(!error, error?.message)
+  }
+  if (action === 'eliminar_insumo') {
+    const { error } = await supabaseAdmin.from('necesidades').delete().eq('id', getId())
+    return J(!error, error?.message)
+  }
+
   // IMPORTANTE: crear bucket 'banners' en Supabase Storage → public
   // IMPORTANTE: crear bucket 'mascotas' en Supabase Storage → public
   if (action === 'banner') {
@@ -204,6 +244,7 @@ if (Astro.request.method === 'POST') {
 type Mascota = {
   id: string; nombre: string | null; especie: string; zona: string
   tipo: string | null; whatsapp: string | null; foto_url: string | null
+  color: string | null; descripcion: string | null
   status: string; created_at: string; moderado_at: string | null
 }
 type Vet = {
@@ -225,8 +266,8 @@ let stats = { pendientes: 0, publicadas: 0, reunidas: 0, vets: 0 }
 
 if (isAuth) {
   const [mp, mpub, mreu, mv, mf, mn, sp, spub, sreu, sv, mb] = await Promise.all([
-    supabaseAdmin.from('mascotas').select('id,nombre,especie,zona,tipo,whatsapp,foto_url,status,created_at,moderado_at').eq('status','pendiente').order('created_at',{ascending:true}),
-    supabaseAdmin.from('mascotas').select('id,nombre,especie,zona,tipo,whatsapp,foto_url,status,created_at,moderado_at').eq('status','publicado').order('created_at',{ascending:false}).limit(50),
+    supabaseAdmin.from('mascotas').select('id,nombre,especie,zona,tipo,whatsapp,foto_url,color,descripcion,status,created_at,moderado_at').eq('status','pendiente').order('created_at',{ascending:true}),
+    supabaseAdmin.from('mascotas').select('id,nombre,especie,zona,tipo,whatsapp,foto_url,color,descripcion,status,created_at,moderado_at').eq('status','publicado').order('created_at',{ascending:false}).limit(50),
     supabaseAdmin.from('mascotas').select('id,nombre,especie,zona,tipo,foto_url,status,created_at,moderado_at').eq('status','reunido').order('moderado_at',{ascending:false}).limit(20),
     supabaseAdmin.from('vets').select('id,nombre,zona,whatsapp,servicios,horario,gratuito,created_at').order('created_at',{ascending:false}),
     supabaseAdmin.from('feed').select('id,tipo,titulo,cuerpo,published_at').order('published_at',{ascending:false}).limit(50),
@@ -349,6 +390,18 @@ if (isAuth) {
                     <td class="td-actions">
                       <button class="btn btn-verde" data-action="aprobar" data-id={m.id} data-row={`row-${m.id}`}>✓ Aprobar</button>
                       <button class="btn btn-rojo"  data-action="rechazar" data-id={m.id} data-row={`row-${m.id}`} data-confirm="¿Rechazar este reporte?">✗ Rechazar</button>
+                      <button class="btn btn-outline btn-icon btn-edit-mascota"
+                        data-id={m.id}
+                        data-nombre={m.nombre ?? ''}
+                        data-especie={m.especie}
+                        data-tipo={m.tipo ?? 'perdido'}
+                        data-zona={m.zona}
+                        data-color={m.color ?? ''}
+                        data-descripcion={m.descripcion ?? ''}
+                        data-whatsapp={m.whatsapp ?? ''}
+                        data-fotourl={m.foto_url ?? ''}
+                        title="Editar"
+                      >✏️</button>
                     </td>
                   </tr>
                 ))}
@@ -405,6 +458,18 @@ if (isAuth) {
                     <td class="td-time">{rel(m.created_at)}</td>
                     <td class="td-actions">
                       <button class="btn btn-azul" data-action="reunir" data-id={m.id} data-row={`row-${m.id}`}>✓ Reunida</button>
+                      <button class="btn btn-outline btn-icon btn-edit-mascota"
+                        data-id={m.id}
+                        data-nombre={m.nombre ?? ''}
+                        data-especie={m.especie}
+                        data-tipo={m.tipo ?? 'perdido'}
+                        data-zona={m.zona}
+                        data-color={m.color ?? ''}
+                        data-descripcion={m.descripcion ?? ''}
+                        data-whatsapp={m.whatsapp ?? ''}
+                        data-fotourl={m.foto_url ?? ''}
+                        title="Editar"
+                      >✏️</button>
                       <button class="btn btn-rojo btn-icon" data-action="eliminar_mascota" data-id={m.id} data-row={`row-${m.id}`} data-confirm="¿Eliminar mascota?">✕</button>
                     </td>
                   </tr>
@@ -512,7 +577,16 @@ if (isAuth) {
                     <td class="td-gris">{v.horario ?? '—'}</td>
                     <td class="td-time">{rel(v.created_at)}</td>
                     <td class="td-actions">
-                      <button class="btn btn-verde"    data-action="aprobar_vet" data-id={v.id} data-row={`row-${v.id}`}>✓ Aprobar</button>
+                      <button class="btn btn-verde" data-action="aprobar_vet" data-id={v.id} data-row={`row-${v.id}`}>✓ Aprobar</button>
+                      <button class="btn btn-outline btn-icon btn-edit-vet"
+                        data-id={v.id}
+                        data-nombre={v.nombre}
+                        data-zona={v.zona}
+                        data-whatsapp={v.whatsapp ?? ''}
+                        data-servicios={v.servicios ?? ''}
+                        data-horario={v.horario ?? ''}
+                        title="Editar"
+                      >✏️</button>
                       <button class="btn btn-rojo btn-icon" data-action="rechazar_vet" data-id={v.id} data-row={`row-${v.id}`} data-confirm="¿Eliminar veterinario?">✕</button>
                     </td>
                   </tr>
@@ -591,6 +665,21 @@ if (isAuth) {
                   <input type="number" name="cantidad_requerida" value={n.cantidad_requerida} min="1" max="9999" class="insumo-input" aria-label={`Requerida ${n.item}`} />
                   <button type="submit" class="btn btn-amarillo btn-sm">✓ Guardar</button>
                 </form>
+                <button class="btn btn-outline btn-icon btn-sm btn-edit-insumo"
+                  data-id={n.id}
+                  data-item={n.item}
+                  data-cantidad_recibida={n.cantidad_recibida}
+                  data-cantidad_requerida={n.cantidad_requerida}
+                  data-prioridad={n.prioridad}
+                  title="Editar insumo"
+                >✏️</button>
+                <button class="btn btn-rojo btn-icon btn-sm"
+                  data-action="eliminar_insumo"
+                  data-id={n.id}
+                  data-row={`insumo-${n.id}`}
+                  data-confirm="¿Eliminar este insumo?"
+                  title="Eliminar"
+                >✕</button>
               </div>
             ))}
           </div>
@@ -704,7 +793,136 @@ if (isAuth) {
       {banners.length === 0 && <p class="empty-msg mt-sm">No hay banners creados</p>}
     </div>
 
+  <!-- ── MODAL DE EDICIÓN ───────────────────────────────────── -->
+  <div id="edit-modal" class="modal-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-heading">
+    <div class="modal-box">
+      <div class="modal-hdr">
+        <span class="modal-title" id="modal-heading">Editar registro</span>
+        <button type="button" class="modal-close" id="modal-close" aria-label="Cerrar">✕</button>
+      </div>
+
+      <!-- Mascota -->
+      <form id="modal-mascota" class="modal-form" style="display:none">
+        <input type="hidden" name="action" value="editar_mascota" />
+        <input type="hidden" name="id" id="em-id" />
+        <div class="modal-grid">
+          <label class="modal-field">
+            <span class="modal-lbl">Nombre</span>
+            <input type="text" name="nombre" id="em-nombre" class="modal-input" />
+          </label>
+          <label class="modal-field">
+            <span class="modal-lbl">Animal *</span>
+            <select name="especie" id="em-especie" class="modal-input">
+              <option value="Perro">Perro</option>
+              <option value="Gato">Gato</option>
+              <option value="Ave">Ave</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </label>
+          <label class="modal-field">
+            <span class="modal-lbl">Tipo *</span>
+            <select name="tipo" id="em-tipo" class="modal-input">
+              <option value="perdido">perdido</option>
+              <option value="encontrado">encontrado</option>
+            </select>
+          </label>
+          <label class="modal-field">
+            <span class="modal-lbl">Zona *</span>
+            <input type="text" name="zona" id="em-zona" class="modal-input" />
+          </label>
+          <label class="modal-field">
+            <span class="modal-lbl">Color</span>
+            <input type="text" name="color" id="em-color" class="modal-input" />
+          </label>
+          <label class="modal-field">
+            <span class="modal-lbl">WhatsApp</span>
+            <input type="text" name="whatsapp" id="em-whatsapp" class="modal-input" />
+          </label>
+          <label class="modal-field modal-field--full">
+            <span class="modal-lbl">URL Foto</span>
+            <input type="text" name="foto_url" id="em-fotourl" class="modal-input" placeholder="https://…" />
+          </label>
+          <label class="modal-field modal-field--full">
+            <span class="modal-lbl">Descripción</span>
+            <textarea name="descripcion" id="em-descripcion" class="modal-input modal-textarea" rows="3"></textarea>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="submit" class="btn-submit">Guardar cambios</button>
+          <button type="button" class="modal-cancel btn btn-outline">Cancelar</button>
+        </div>
+      </form>
+
+      <!-- Veterinario -->
+      <form id="modal-vet" class="modal-form" style="display:none">
+        <input type="hidden" name="action" value="editar_vet" />
+        <input type="hidden" name="id" id="ev-id" />
+        <div class="modal-grid">
+          <label class="modal-field">
+            <span class="modal-lbl">Nombre *</span>
+            <input type="text" name="nombre" id="ev-nombre" class="modal-input" required />
+          </label>
+          <label class="modal-field">
+            <span class="modal-lbl">Zona *</span>
+            <input type="text" name="zona" id="ev-zona" class="modal-input" required />
+          </label>
+          <label class="modal-field">
+            <span class="modal-lbl">WhatsApp *</span>
+            <input type="text" name="whatsapp" id="ev-whatsapp" class="modal-input" required />
+          </label>
+          <label class="modal-field">
+            <span class="modal-lbl">Servicios</span>
+            <input type="text" name="servicios" id="ev-servicios" class="modal-input" />
+          </label>
+          <label class="modal-field modal-field--full">
+            <span class="modal-lbl">Horario</span>
+            <input type="text" name="horario" id="ev-horario" class="modal-input" />
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="submit" class="btn-submit">Guardar cambios</button>
+          <button type="button" class="modal-cancel btn btn-outline">Cancelar</button>
+        </div>
+      </form>
+
+      <!-- Insumo -->
+      <form id="modal-insumo" class="modal-form" style="display:none">
+        <input type="hidden" name="action" value="editar_insumo" />
+        <input type="hidden" name="id" id="ei-id" />
+        <div class="modal-grid">
+          <label class="modal-field modal-field--full">
+            <span class="modal-lbl">Nombre del insumo *</span>
+            <input type="text" name="item" id="ei-item" class="modal-input" required />
+          </label>
+          <label class="modal-field">
+            <span class="modal-lbl">Cant. recibida</span>
+            <input type="number" name="cantidad_recibida" id="ei-recibida" class="modal-input" min="0" />
+          </label>
+          <label class="modal-field">
+            <span class="modal-lbl">Cant. requerida *</span>
+            <input type="number" name="cantidad_requerida" id="ei-requerida" class="modal-input" min="1" required />
+          </label>
+          <label class="modal-field modal-field--full">
+            <span class="modal-lbl">Prioridad</span>
+            <select name="prioridad" id="ei-prioridad" class="modal-input">
+              <option value="critico">🔴 Crítico</option>
+              <option value="urgente">🟡 Urgente</option>
+              <option value="cubierto">🟢 Cubierto</option>
+            </select>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="submit" class="btn-submit">Guardar cambios</button>
+          <button type="button" class="modal-cancel btn btn-outline">Cancelar</button>
+        </div>
+      </form>
+
+    </div>
+
   </div>
+
+  </div>
+
 )}
 
 </body>
@@ -1027,6 +1245,61 @@ if (isAuth) {
     .tab { padding: .625rem .75rem; font-size: .75rem; }
     .feed-row { flex-direction: column; }
   }
+
+  /* ── Edit Modal ──────────────────────────────────────────── */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,.65); backdrop-filter: blur(3px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 1rem;
+    animation: fadeIn .15s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+  .modal-box {
+    background: #1a1d27; border: 1px solid #2d3148; border-radius: 12px;
+    padding: 20px; width: min(100%, 560px); max-height: 90dvh;
+    overflow-y: auto; display: flex; flex-direction: column; gap: .75rem;
+    animation: slideUp .18s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(10px); opacity: 0 } to { transform: none; opacity: 1 } }
+  .modal-hdr {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: .75rem;
+  }
+  .modal-title {
+    font-size: .975rem; font-weight: 700; color: #F5A623;
+  }
+  .modal-close {
+    background: transparent; border: none; color: var(--gris);
+    font-size: 1.1rem; cursor: pointer; padding: .25rem .375rem; line-height: 1;
+    border-radius: 4px; transition: color .15s, background .15s;
+  }
+  .modal-close:hover { color: var(--texto); background: rgba(255,255,255,.06); }
+  .modal-form { display: flex; flex-direction: column; gap: .75rem; }
+  .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .625rem; }
+  .modal-field { display: flex; flex-direction: column; gap: .3rem; }
+  .modal-field--full { grid-column: 1 / -1; }
+  .modal-lbl {
+    font-size: .68rem; font-weight: 700; color: #94A3B8;
+    text-transform: uppercase; letter-spacing: .05em;
+  }
+  .modal-input {
+    background: #0f1117; border: 1px solid #374151; border-radius: 8px;
+    color: #fff; padding: 10px 12px; font-size: .875rem;
+    font-family: inherit; width: 100%; transition: border-color .15s;
+  }
+  .modal-input:focus { outline: none; border-color: #F5A623; }
+  .modal-input option { background: #0f1117; }
+  .modal-textarea { resize: vertical; min-height: 76px; }
+  .modal-actions { display: flex; gap: .5rem; margin-top: .125rem; }
+
+  @media (max-width: 480px) {
+    .modal-grid { grid-template-columns: 1fr; }
+    .modal-field--full { grid-column: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .modal-overlay, .modal-box { animation: none; }
+  }
 </style>
 
 <script>
@@ -1187,4 +1460,113 @@ if (isAuth) {
       } catch(e) { alert('Error de red'); if (btn) btn.disabled = false }
     })
   }
+
+  // ── Edit Modal ────────────────────────────────────────────
+  var modal        = document.getElementById('edit-modal')
+  var modalClose   = document.getElementById('modal-close')
+  var formMascota  = document.getElementById('modal-mascota')
+  var formVet      = document.getElementById('modal-vet')
+  var formInsumo   = document.getElementById('modal-insumo')
+
+  function openModal(type) {
+    [formMascota, formVet, formInsumo].forEach(function(f) { if (f) f.style.display = 'none' })
+    if      (type === 'mascota' && formMascota) formMascota.style.display = 'flex'
+    else if (type === 'vet'     && formVet)     formVet.style.display     = 'flex'
+    else if (type === 'insumo'  && formInsumo)  formInsumo.style.display  = 'flex'
+    modal.style.display = 'flex'
+    var first = modal.querySelector('.modal-input, button')
+    if (first) first.focus()
+  }
+
+  function closeModal() {
+    modal.style.display = 'none'
+    ;[formMascota, formVet, formInsumo].forEach(function(f) { if (f) f.style.display = 'none' })
+  }
+
+  if (modalClose) modalClose.addEventListener('click', closeModal)
+  if (modal) modal.addEventListener('click', function(e) { if (e.target === modal) closeModal() })
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && modal && modal.style.display !== 'none') closeModal()
+  })
+  document.querySelectorAll('.modal-cancel').forEach(function(b) {
+    b.addEventListener('click', closeModal)
+  })
+
+  // Abrir modal de mascota
+  document.querySelectorAll('.btn-edit-mascota').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.getElementById('em-id').value          = btn.dataset.id        || ''
+      document.getElementById('em-nombre').value      = btn.dataset.nombre    || ''
+      document.getElementById('em-zona').value        = btn.dataset.zona      || ''
+      document.getElementById('em-color').value       = btn.dataset.color     || ''
+      document.getElementById('em-whatsapp').value    = btn.dataset.whatsapp  || ''
+      document.getElementById('em-fotourl').value     = btn.dataset.fotourl   || ''
+      document.getElementById('em-descripcion').value = btn.dataset.descripcion || ''
+      var selEsp = document.getElementById('em-especie')
+      var selTip = document.getElementById('em-tipo')
+      for (var i = 0; i < selEsp.options.length; i++) {
+        if (selEsp.options[i].value === btn.dataset.especie) { selEsp.selectedIndex = i; break }
+      }
+      for (var j = 0; j < selTip.options.length; j++) {
+        if (selTip.options[j].value === btn.dataset.tipo) { selTip.selectedIndex = j; break }
+      }
+      openModal('mascota')
+    })
+  })
+
+  // Abrir modal de vet
+  document.querySelectorAll('.btn-edit-vet').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.getElementById('ev-id').value        = btn.dataset.id        || ''
+      document.getElementById('ev-nombre').value    = btn.dataset.nombre    || ''
+      document.getElementById('ev-zona').value      = btn.dataset.zona      || ''
+      document.getElementById('ev-whatsapp').value  = btn.dataset.whatsapp  || ''
+      document.getElementById('ev-servicios').value = btn.dataset.servicios || ''
+      document.getElementById('ev-horario').value   = btn.dataset.horario   || ''
+      openModal('vet')
+    })
+  })
+
+  // Abrir modal de insumo
+  document.querySelectorAll('.btn-edit-insumo').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.getElementById('ei-id').value        = btn.dataset.id                 || ''
+      document.getElementById('ei-item').value      = btn.dataset.item               || ''
+      document.getElementById('ei-recibida').value  = btn.dataset.cantidad_recibida  || '0'
+      document.getElementById('ei-requerida').value = btn.dataset.cantidad_requerida || '1'
+      var selPrio = document.getElementById('ei-prioridad')
+      for (var i = 0; i < selPrio.options.length; i++) {
+        if (selPrio.options[i].value === btn.dataset.prioridad) { selPrio.selectedIndex = i; break }
+      }
+      openModal('insumo')
+    })
+  })
+
+  // Submit handler genérico para los tres formularios del modal
+  function handleModalForm(form) {
+    if (!form) return
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault()
+      var fd  = new FormData(form)
+      var btn = form.querySelector('button[type="submit"]')
+      if (btn) btn.disabled = true
+      try {
+        var r = await fetch('/admin', { method: 'POST', body: fd })
+        var j = await r.json()
+        if (!j.ok) {
+          alert('Error: ' + (j.error || 'desconocido'))
+          if (btn) btn.disabled = false
+        } else {
+          closeModal()
+          window.location.reload()
+        }
+      } catch(err) {
+        alert('Error de red')
+        if (btn) btn.disabled = false
+      }
+    })
+  }
+  handleModalForm(formMascota)
+  handleModalForm(formVet)
+  handleModalForm(formInsumo)
 </script>
