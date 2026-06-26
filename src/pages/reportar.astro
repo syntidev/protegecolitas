@@ -18,7 +18,7 @@ import Base from '../layouts/Base.astro'
 
     <div class="type-cards">
       <button class="type-card card-perdido" data-tipo="perdido" aria-label="Perdí a mi mascota">
-        <span class="card-icon">🐾</span>
+        <span class="card-icon">🔍</span>
         <span class="card-label">Perdí a mi<br /><strong>mascota</strong></span>
         <span class="card-hint">La vi por última vez antes del sismo</span>
       </button>
@@ -346,18 +346,16 @@ import Base from '../layouts/Base.astro'
   transform: scale(.97);
 }
 .card-perdido {
-  background: rgba(61,28,2,0.88);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255,255,255,0.15);
+  background: linear-gradient(135deg, #F5A623 0%, #E8901A 100%);
+  border: none;
   border-radius: 20px;
-  box-shadow: 0 8px 32px rgba(61,28,2,0.20);
+  box-shadow: 0 8px 24px rgba(245,166,35,0.30);
 }
 .card-encontrado {
-  background: rgba(245,166,35,0.90);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255,255,255,0.3);
+  background: linear-gradient(135deg, #16A34A 0%, #15803D 100%);
+  border: none;
   border-radius: 20px;
-  box-shadow: 0 8px 32px rgba(245,166,35,0.25);
+  box-shadow: 0 8px 24px rgba(22,163,74,0.30);
 }
 .card-icon {
   font-size: 32px;
@@ -373,18 +371,18 @@ import Base from '../layouts/Base.astro'
   display: block;
   margin-bottom: 4px;
 }
-.card-perdido .card-label { color: rgba(255,255,255,.8); }
-.card-perdido .card-label strong { color: #fff; font-weight: 700; }
-.card-encontrado .card-label { color: rgba(61,28,2,0.75); }
-.card-encontrado .card-label strong { color: #3D1C02; font-weight: 700; }
+.card-perdido .card-label { color: #3D1C02; }
+.card-perdido .card-label strong { color: #3D1C02; font-weight: 700; }
+.card-encontrado .card-label { color: #FFFFFF; }
+.card-encontrado .card-label strong { color: #FFFFFF; font-weight: 700; }
 .card-hint {
   font-family: 'Inter', sans-serif;
   font-size: 13px;
   font-weight: 500;
   display: block;
 }
-.card-perdido .card-hint { color: rgba(255,255,255,.5); }
-.card-encontrado .card-hint { color: rgba(61,28,2,0.5); }
+.card-perdido .card-hint { color: rgba(61,28,2,0.65); }
+.card-encontrado .card-hint { color: rgba(255,255,255,0.75); }
 
 /* ─── Screen 2: Formulario ─── */
 .rpt-form {
