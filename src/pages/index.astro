@@ -145,6 +145,9 @@ function feedDate(iso: string | null): { day: string; mon: string } {
     }
 
     /* ══ 1. BANNER ══ */
+    .banner-img-wrap { line-height: 0; }
+    .banner-img-wrap a { display: block; }
+    .banner-img { width: 100%; max-height: 200px; object-fit: cover; display: block; }
     .banner-dyn {
       background: var(--marron); color: #fff; padding: 14px 16px;
     }
@@ -467,16 +470,35 @@ function feedDate(iso: string | null): { day: string; mon: string } {
 
   <!-- 1. BANNER (solo si hay uno activo en DB) -->
   {banner && (
-    <div class="banner-dyn">
-      <div class="banner-dyn-inner">
-        <div class="banner-dyn-title">
-          <i class="ph-bold ph-megaphone" aria-hidden="true"></i>
-          <span>{banner.titulo}</span>
+    banner.imagen_url
+      ? (
+        <div class="banner-img-wrap">
+          {banner.link
+            ? <a href={banner.link} target="_blank" rel="noopener noreferrer" aria-label={banner.titulo}>
+                <picture>
+                  <source media="(max-width:640px)" srcset={banner.imagen_url_mobile ?? banner.imagen_url} />
+                  <img src={banner.imagen_url} alt={banner.titulo} class="banner-img" />
+                </picture>
+              </a>
+            : <picture>
+                <source media="(max-width:640px)" srcset={banner.imagen_url_mobile ?? banner.imagen_url} />
+                <img src={banner.imagen_url} alt={banner.titulo} class="banner-img" />
+              </picture>
+          }
         </div>
-        {banner.descripcion && <p class="banner-dyn-desc">{banner.descripcion}</p>}
-        {banner.link && <a href={banner.link} class="banner-dyn-link">Ver más →</a>}
-      </div>
-    </div>
+      )
+      : (
+        <div class="banner-dyn">
+          <div class="banner-dyn-inner">
+            <div class="banner-dyn-title">
+              <i class="ph-bold ph-megaphone" aria-hidden="true"></i>
+              <span>{banner.titulo}</span>
+            </div>
+            {banner.descripcion && <p class="banner-dyn-desc">{banner.descripcion}</p>}
+            {banner.link && <a href={banner.link} class="banner-dyn-link">Ver más →</a>}
+          </div>
+        </div>
+      )
   )}
 
   <!-- 2. HEADER -->

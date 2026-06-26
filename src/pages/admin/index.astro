@@ -159,14 +159,35 @@ if (Astro.request.method === 'POST') {
     })
     return J(!error, error?.message)
   }
+  // IMPORTANTE: crear bucket 'banners' en Supabase Storage → public
+  // IMPORTANTE: crear bucket 'mascotas' en Supabase Storage → public
   if (action === 'banner') {
     const titulo      = form.get('titulo')?.toString().trim() ?? ''
     const descripcion = form.get('descripcion')?.toString().trim() || null
     const link        = form.get('link')?.toString().trim() || null
-    const imagen_url  = form.get('imagen_url')?.toString().trim() || null
     const activo      = form.get('activo') === 'on'
     if (!titulo) return J(false, 'Título requerido')
-    const { error } = await supabaseAdmin.from('banners').insert({ titulo, descripcion, link, imagen_url, activo })
+
+    const uploadImg = async (field: string): Promise<string | null> => {
+      const file = form.get(field) as File | null
+      if (!file || file.size === 0) return null
+      const ext = file.name.split('.').pop() ?? 'jpg'
+      const filename = `${field}-${Date.now()}.${ext}`
+      const buffer = await file.arrayBuffer()
+      const { data: upload } = await supabaseAdmin.storage
+        .from('banners')
+        .upload(filename, buffer, { contentType: file.type, upsert: true })
+      if (!upload) return null
+      const { data: urlData } = supabaseAdmin.storage.from('banners').getPublicUrl(filename)
+      return urlData.publicUrl
+    }
+
+    const imagen_url        = await uploadImg('banner_img')
+    const imagen_url_mobile = await uploadImg('banner_img_mobile')
+
+    const { error } = await supabaseAdmin.from('banners').insert({
+      titulo, descripcion, link, imagen_url, imagen_url_mobile, activo
+    })
     return J(!error, error?.message)
   }
   if (action === 'toggle_banner') {
@@ -191,6 +212,7 @@ type Vet = {
 }
 type FeedItem = { id: string; tipo: string; titulo: string; cuerpo: string; published_at: string }
 type Necesidad = { id: string; item: string; cantidad_requerida: number; cantidad_recibida: number; prioridad: string }
+type Banner    = { id: string; titulo: string; descripcion: string | null; imagen_url: string | null; imagen_url_mobile: string | null; link: string | null; activo: boolean; created_at: string }
 
 let pendientes:  Mascota[]   = []
 let publicadas:  Mascota[]   = []
@@ -198,10 +220,11 @@ let reunidas:    Mascota[]   = []
 let vets:        Vet[]       = []
 let feedItems:   FeedItem[]  = []
 let necesidades: Necesidad[] = []
+let banners:     Banner[]    = []
 let stats = { pendientes: 0, publicadas: 0, reunidas: 0, vets: 0 }
 
 if (isAuth) {
-  const [mp, mpub, mreu, mv, mf, mn, sp, spub, sreu, sv] = await Promise.all([
+  const [mp, mpub, mreu, mv, mf, mn, sp, spub, sreu, sv, mb] = await Promise.all([
     supabaseAdmin.from('mascotas').select('id,nombre,especie,zona,tipo,whatsapp,foto_url,status,created_at,moderado_at').eq('status','pendiente').order('created_at',{ascending:true}),
     supabaseAdmin.from('mascotas').select('id,nombre,especie,zona,tipo,whatsapp,foto_url,status,created_at,moderado_at').eq('status','publicado').order('created_at',{ascending:false}).limit(50),
     supabaseAdmin.from('mascotas').select('id,nombre,especie,zona,tipo,foto_url,status,created_at,moderado_at').eq('status','reunido').order('moderado_at',{ascending:false}).limit(20),
@@ -212,6 +235,7 @@ if (isAuth) {
     supabaseAdmin.from('mascotas').select('*',{count:'exact',head:true}).eq('status','publicado'),
     supabaseAdmin.from('mascotas').select('*',{count:'exact',head:true}).eq('status','reunido'),
     supabaseAdmin.from('vets').select('*',{count:'exact',head:true}),
+    supabaseAdmin.from('banners').select('id,titulo,descripcion,imagen_url,imagen_url_mobile,link,activo,created_at').order('created_at',{ascending:false}),
   ])
   pendientes  = (mp.data   ?? []) as Mascota[]
   publicadas  = (mpub.data ?? []) as Mascota[]
@@ -219,6 +243,7 @@ if (isAuth) {
   vets        = (mv.data   ?? []) as Vet[]
   feedItems   = (mf.data   ?? []) as FeedItem[]
   necesidades = (mn.data   ?? []) as Necesidad[]
+  banners     = (mb.data   ?? []) as Banner[]
   stats = { pendientes: sp.count ?? 0, publicadas: spub.count ?? 0, reunidas: sreu.count ?? 0, vets: sv.count ?? 0 }
 }
 ---
@@ -236,7 +261,7 @@ if (isAuth) {
 {!isAuth ? (
   <div class="login-wrap">
     <div class="login-box">
-      <p class="login-logo">🐾</p>
+      <img src="/logo.png" alt="Protege Colitas" width="80" style="display:block;margin:0 auto 16px" />
       <h1 class="login-title">Protege Colitas</h1>
       <p class="login-sub">Centro de control</p>
       {loginError && <p class="login-err" role="alert">{loginError}</p>}
@@ -274,6 +299,7 @@ if (isAuth) {
       <button class="tab" data-tab="vets" role="tab" aria-selected="false">Veterinarios</button>
       <button class="tab" data-tab="feed" role="tab" aria-selected="false">Feed</button>
       <button class="tab" data-tab="insumos" role="tab" aria-selected="false">Insumos</button>
+      <button class="tab" data-tab="banners" role="tab" aria-selected="false">Banners</button>
     </nav>
 
     <!-- TAB 1: PENDIENTES -->
@@ -540,6 +566,72 @@ if (isAuth) {
       </div>
     </div>
 
+    <!-- TAB 6: BANNERS -->
+    <div id="tab-banners" class="tab-pane">
+      <h4 class="form-section-title" style="margin-bottom:.75rem">Nuevo banner</h4>
+      <form id="form-banner" class="nuevo-form" enctype="multipart/form-data">
+        <div class="nuevo-form-grid">
+          <input type="text" name="titulo" placeholder="Título *" required class="feed-input" />
+          <input type="text" name="descripcion" placeholder="Descripción (opcional)" class="feed-input" />
+          <input type="text" name="link" placeholder="Link (opcional)" class="feed-input" />
+        </div>
+        <div class="banner-uploads">
+          <label class="upload-label">
+            <span class="upload-lbl-txt">Banner Desktop (1200×400)</span>
+            <input type="file" name="banner_img" accept="image/*" class="upload-input" />
+          </label>
+          <label class="upload-label">
+            <span class="upload-lbl-txt">Banner Mobile (390×200)</span>
+            <input type="file" name="banner_img_mobile" accept="image/*" capture="environment" class="upload-input" />
+          </label>
+        </div>
+        <div style="display:flex;align-items:center;gap:.5rem;margin-top:.375rem">
+          <input type="checkbox" name="activo" id="banner-activo" checked />
+          <label for="banner-activo" style="font-size:.8rem;color:var(--gris)">Activar inmediatamente</label>
+        </div>
+        <button type="submit" class="btn btn-azul" style="margin-top:.625rem">+ Publicar banner</button>
+      </form>
+
+      {banners.length > 0 && (
+        <div class="table-wrap mt">
+          <table>
+            <thead>
+              <tr><th>Img</th><th>Título</th><th>Link</th><th>Estado</th><th>Hace</th><th>Eliminar</th></tr>
+            </thead>
+            <tbody>
+              {banners.map(b => (
+                <tr id={`row-${b.id}`}>
+                  <td>
+                    {b.imagen_url
+                      ? <img src={b.imagen_url} alt={b.titulo} style="height:50px;object-fit:cover;border-radius:4px;max-width:80px;display:block" loading="lazy" />
+                      : <span class="td-gris">—</span>
+                    }
+                  </td>
+                  <td class="td-name">{b.titulo}</td>
+                  <td class="td-truncate">{b.link ?? '—'}</td>
+                  <td>
+                    <button
+                      class={`btn btn-sm ${b.activo ? 'btn-verde' : 'btn-gris'}`}
+                      data-action="toggle_banner"
+                      data-id={b.id}
+                      data-activo={b.activo ? 'false' : 'true'}
+                    >
+                      {b.activo ? '● Activo' : '○ Inactivo'}
+                    </button>
+                  </td>
+                  <td class="td-time">{rel(b.created_at)}</td>
+                  <td>
+                    <button class="btn btn-rojo btn-icon" data-action="eliminar_banner" data-id={b.id} data-row={`row-${b.id}`} data-confirm="¿Eliminar banner?">✕</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {banners.length === 0 && <p class="empty-msg mt-sm">No hay banners creados</p>}
+    </div>
+
   </div>
 )}
 
@@ -588,7 +680,7 @@ if (isAuth) {
     flex-direction: column;
     gap: .75rem;
   }
-  .login-logo  { font-size: 2rem; text-align: center; }
+  .login-logo  { font-size: 2rem; text-align: center; }  /* fallback, replaced by img */
   .login-title { font-size: 1.25rem; font-weight: 700; text-align: center; }
   .login-sub   { font-size: .8rem; color: var(--gris); text-align: center; }
   .login-err   { background: rgba(239,68,68,.12); color: var(--rojo); border: 1px solid rgba(239,68,68,.35); border-radius: 6px; padding: .625rem .875rem; font-size: .8rem; }
@@ -759,6 +851,19 @@ if (isAuth) {
   }
   .insumo-input:focus { outline: none; border-color: var(--azul); }
 
+  /* ── Banners ─────────────────────────────────────────────────────── */
+  .btn-gris { background: rgba(148,163,184,.2); color: var(--gris); }
+  .banner-uploads { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: .5rem; }
+  .upload-label { display: flex; flex-direction: column; gap: .25rem; flex: 1; min-width: 200px; }
+  .upload-lbl-txt { font-size: .72rem; font-weight: 600; color: var(--gris); }
+  .upload-input {
+    background: var(--surface); border: 1px dashed var(--border);
+    border-radius: 6px; color: var(--gris);
+    padding: .5rem; font-size: .8rem; font-family: inherit; cursor: pointer;
+    width: 100%;
+  }
+  .upload-input:hover { border-color: var(--azul); }
+
   /* ── Nuevo forms ─────────────────────────────────────────────────── */
   .nuevo-section { border-top: 1px solid var(--border); padding-top: .875rem; }
   .form-section-title {
@@ -833,7 +938,9 @@ if (isAuth) {
       var conf   = btn.dataset.confirm
       if (!action || !id) return
       btn.disabled = true
-      var ok = await doAction({ action: action, id: id }, row, conf || null)
+      var params = { action: action, id: id }
+      if (btn.dataset.activo !== undefined) params.activo = btn.dataset.activo
+      var ok = await doAction(params, row, conf || null)
       if (!ok) btn.disabled = false
     })
   })
@@ -884,6 +991,24 @@ if (isAuth) {
       if (btn) btn.disabled = false
     })
   })
+
+  // ── Banner form (multipart con archivo)
+  var formBanner = document.getElementById('form-banner')
+  if (formBanner) {
+    formBanner.addEventListener('submit', async function(e) {
+      e.preventDefault()
+      var fd  = new FormData(formBanner)
+      fd.append('action', 'banner')
+      var btn = formBanner.querySelector('button[type="submit"]')
+      if (btn) btn.disabled = true
+      try {
+        var r = await fetch('/admin', { method: 'POST', body: fd })
+        var j = await r.json()
+        if (!j.ok) { alert('Error: ' + (j.error || 'desconocido')); if (btn) btn.disabled = false }
+        else { window.location.reload() }
+      } catch(e) { alert('Error de red'); if (btn) btn.disabled = false }
+    })
+  }
 
   // ── Nuevo insumo
   var formNuevoInsumo = document.getElementById('form-nuevo-insumo')
