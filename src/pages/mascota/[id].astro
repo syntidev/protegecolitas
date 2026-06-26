@@ -52,9 +52,7 @@ const mapsHref = (m.latitud && m.longitud)
     <!-- Photo hero -->
     {m.foto_url
       ? (
-        <a href={m.foto_url} target="_blank" rel="noopener noreferrer">
-          <img class="hero-photo" src={m.foto_url} alt={m.nombre ?? 'mascota'} />
-        </a>
+        <img id="foto-principal" class="hero-photo" src={m.foto_url} alt={m.nombre ?? 'mascota'} style="cursor:zoom-in" />
       ) : (
         <div class="foto-placeholder" aria-label="Sin foto">🐾</div>
       )
@@ -64,14 +62,10 @@ const mapsHref = (m.latitud && m.longitud)
     {(m.foto_url_2 || m.foto_url_3) && (
       <div class="thumbnail-row">
         {m.foto_url_2 && (
-          <a href={m.foto_url_2} target="_blank" rel="noopener noreferrer">
-            <img src={m.foto_url_2} alt="Foto adicional" height="72" style="border-radius:10px;object-fit:cover;cursor:zoom-in;display:block" loading="lazy" />
-          </a>
+          <img src={m.foto_url_2} alt="Foto adicional 2" class="thumb-mini" loading="lazy" />
         )}
         {m.foto_url_3 && (
-          <a href={m.foto_url_3} target="_blank" rel="noopener noreferrer">
-            <img src={m.foto_url_3} alt="Foto adicional" height="72" style="border-radius:10px;object-fit:cover;cursor:zoom-in;display:block" loading="lazy" />
-          </a>
+          <img src={m.foto_url_3} alt="Foto adicional 3" class="thumb-mini" loading="lazy" />
         )}
       </div>
     )}
@@ -233,6 +227,20 @@ const mapsHref = (m.latitud && m.longitud)
   padding: 0 0 12px;
 }
 
+.thumb-mini {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.15s;
+  flex-shrink: 0;
+  display: block;
+}
+.thumb-mini:hover,
+.thumb-mini--active { border-color: var(--amarillo); }
+
 /* ─── Content card (glass) ─── */
 .content-card {
   background: var(--card);
@@ -393,11 +401,44 @@ const mapsHref = (m.latitud && m.longitud)
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .btn-wa, .btn-share { transition: none; }
+  .btn-wa, .btn-share, .thumb-mini { transition: none; }
 }
 </style>
 
 <script>
+// ── Galería: miniaturas + lightbox
+(function () {
+  const principal = document.getElementById('foto-principal') as HTMLImageElement | null
+  if (!principal) return
+
+  // Lightbox al hacer click en foto principal
+  principal.addEventListener('click', function () {
+    const overlay = document.createElement('div')
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out'
+    overlay.setAttribute('role', 'dialog')
+    overlay.setAttribute('aria-label', 'Vista ampliada de la foto')
+    const img = document.createElement('img')
+    img.src = this.src
+    img.style.cssText = 'max-width:95vw;max-height:95vh;object-fit:contain;border-radius:8px'
+    overlay.appendChild(img)
+    const close = () => overlay.remove()
+    overlay.addEventListener('click', close)
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey) } }
+    document.addEventListener('keydown', onKey)
+    document.body.appendChild(overlay)
+  })
+
+  // Miniaturas: swap sin abrir pestaña
+  document.querySelectorAll<HTMLImageElement>('.thumb-mini').forEach(thumb => {
+    thumb.addEventListener('click', function () {
+      principal.src = this.src
+      document.querySelectorAll('.thumb-mini').forEach(t => t.classList.remove('thumb-mini--active'))
+      this.classList.add('thumb-mini--active')
+    })
+  })
+})()
+
+// ── Compartir
 (function () {
   const btn = document.getElementById('btnCompartir')
   const label = document.getElementById('compartirLabel')
