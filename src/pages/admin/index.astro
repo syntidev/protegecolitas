@@ -404,6 +404,7 @@ let vets:        Vet[]       = []
 let feedItems:   FeedItem[]  = []
 let necesidades: Necesidad[] = []
 let banners:     Banner[]    = []
+let adopcion:    Mascota[]   = []
 let stats = { pendientes: 0, publicadas: 0, reunidas: 0, vets: 0 }
 
 let visitasHoy:    number         = 0
@@ -437,7 +438,7 @@ if (isAuth) {
   necesidades = (mn.data   ?? []) as Necesidad[]
   banners     = (mb.data   ?? []) as Banner[]
   stats = { pendientes: sp.count ?? 0, publicadas: spub.count ?? 0, reunidas: sreu.count ?? 0, vets: sv.count ?? 0 }
-  const adopcion = publicadas.filter((m: Mascota) => m.tipo === 'adopcion')
+  adopcion = publicadas.filter((m: Mascota) => m.tipo === 'adopcion')
 
   // Analytics queries
   const now     = new Date()
