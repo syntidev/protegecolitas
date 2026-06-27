@@ -1798,11 +1798,18 @@ if (isAuth) {
     var mod = document.getElementById('mod-' + id)
     if (mod) {
       mod.removeAttribute('hidden')
-      mod.querySelector('.mod-body').scrollTop = 0
+      var body = mod.querySelector('.mod-body')
+      if (body) body.scrollTop = 0
     }
     history.replaceState(null,'','/admin#' + id)
     window.scrollTo(0,0)
   }
+
+  // Este <script> es un módulo ES: sus funciones NO son globales. Los botones del
+  // menú usan onclick="showModule(...)" y los "← Inicio" usan onclick="showHome()",
+  // que corren en scope global → hay que publicarlas en window o no hacen nada.
+  ;(window as any).showModule = showModule
+  ;(window as any).showHome = showHome
 
   // ── Handle initial hash
   ;(function() {
