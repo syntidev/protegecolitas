@@ -138,6 +138,26 @@ if (Astro.request.method === 'POST') {
     const { error } = await supabaseAdmin.from('feed').delete().eq('id', getId())
     return J(!error, error?.message)
   }
+  if (action === 'editar_feed') {
+    const id = form.get('id')?.toString() ?? ''
+    if (!id) return J(false, 'ID requerido')
+    const feedImg = form.get('feed_img_edit') as File | null
+    let imagen_url_update: string | null = null
+    if (feedImg && feedImg.size > 0) {
+      const fname = `feed/feed-${Date.now()}.jpg`
+      await supabaseAdmin.storage.from('banners').upload(fname, await feedImg.arrayBuffer(), { contentType: feedImg.type, upsert: true })
+      const { data: ud } = supabaseAdmin.storage.from('banners').getPublicUrl(fname)
+      imagen_url_update = ud.publicUrl
+    }
+    const updateData: Record<string, unknown> = {
+      tipo:   form.get('tipo')?.toString() ?? 'info',
+      titulo: form.get('titulo')?.toString().trim() ?? '',
+      cuerpo: form.get('cuerpo')?.toString().trim() ?? '',
+    }
+    if (imagen_url_update) updateData.imagen_url = imagen_url_update
+    const { error } = await supabaseAdmin.from('feed').update(updateData).eq('id', id)
+    return J(!error, error?.message)
+  }
   if (action === 'insumo') {
     const recibida  = parseInt(form.get('cantidad_recibida')?.toString() ?? '0', 10)
     const requerida = parseInt(form.get('cantidad_requerida')?.toString() ?? '1', 10)
@@ -693,7 +713,7 @@ if (isAuth) {
         <div class="table-wrap mt">
           <table>
             <thead>
-              <tr><th>Tipo</th><th>Título</th><th>Texto</th><th>Hace</th><th>Eliminar</th></tr>
+              <tr><th>Tipo</th><th>Título</th><th>Texto</th><th>Hace</th><th>Acciones</th></tr>
             </thead>
             <tbody>
               {feedItems.map(f => (
@@ -702,7 +722,13 @@ if (isAuth) {
                   <td class="td-name">{f.titulo}</td>
                   <td class="td-truncate">{f.cuerpo.slice(0, 80)}{f.cuerpo.length > 80 ? '…' : ''}</td>
                   <td class="td-time">{rel(f.published_at)}</td>
-                  <td>
+                  <td style="display:flex;gap:4px">
+                    <button class="btn btn-outline btn-icon btn-edit-feed"
+                      data-id={f.id}
+                      data-tipo={f.tipo}
+                      data-titulo={f.titulo}
+                      data-cuerpo={f.cuerpo}
+                      title="Editar">✏</button>
                     <button class="btn btn-rojo btn-icon" data-action="eliminar_feed" data-id={f.id} data-row={`row-${f.id}`} data-confirm="¿Eliminar publicación?">✕</button>
                   </td>
                 </tr>
@@ -1060,6 +1086,40 @@ if (isAuth) {
               <option value="urgente">🟡 Urgente</option>
               <option value="cubierto">🟢 Cubierto</option>
             </select>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="submit" class="btn-submit">Guardar cambios</button>
+          <button type="button" class="modal-cancel btn btn-outline">Cancelar</button>
+        </div>
+      </form>
+
+      <!-- Feed edit -->
+      <form id="modal-feed" class="modal-form" enctype="multipart/form-data" style="display:none">
+        <input type="hidden" name="action" value="editar_feed" />
+        <input type="hidden" name="id" id="ef-id" />
+        <div class="modal-grid">
+          <label class="modal-field">
+            <span class="modal-lbl">Tipo</span>
+            <select name="tipo" id="ef-tipo" class="modal-input">
+              <option value="info">Info</option>
+              <option value="alerta">Alerta</option>
+              <option value="rescate">Rescate</option>
+              <option value="buenas">Buenas</option>
+              <option value="voluntario">Voluntarios</option>
+            </select>
+          </label>
+          <label class="modal-field">
+            <span class="modal-lbl">Título *</span>
+            <input type="text" name="titulo" id="ef-titulo" class="modal-input" required maxlength="150" />
+          </label>
+          <label class="modal-field modal-field--full">
+            <span class="modal-lbl">Texto *</span>
+            <textarea name="cuerpo" id="ef-cuerpo" class="modal-input modal-textarea" rows="4" required></textarea>
+          </label>
+          <label class="modal-field modal-field--full">
+            <span class="modal-lbl">Imagen nueva (opcional)</span>
+            <input type="file" name="feed_img_edit" accept="image/*" class="upload-input" />
           </label>
         </div>
         <div class="modal-actions">
@@ -1661,12 +1721,14 @@ if (isAuth) {
   var formMascota  = document.getElementById('modal-mascota')
   var formVet      = document.getElementById('modal-vet')
   var formInsumo   = document.getElementById('modal-insumo')
+  var formFeedEdit = document.getElementById('modal-feed')
 
   function openModal(type) {
-    [formMascota, formVet, formInsumo].forEach(function(f) { if (f) f.style.display = 'none' })
-    if      (type === 'mascota' && formMascota) formMascota.style.display = 'flex'
-    else if (type === 'vet'     && formVet)     formVet.style.display     = 'flex'
-    else if (type === 'insumo'  && formInsumo)  formInsumo.style.display  = 'flex'
+    [formMascota, formVet, formInsumo, formFeedEdit].forEach(function(f) { if (f) f.style.display = 'none' })
+    if      (type === 'mascota' && formMascota)  formMascota.style.display  = 'flex'
+    else if (type === 'vet'     && formVet)      formVet.style.display      = 'flex'
+    else if (type === 'insumo'  && formInsumo)   formInsumo.style.display   = 'flex'
+    else if (type === 'feed'    && formFeedEdit) formFeedEdit.style.display  = 'flex'
     modal.style.display = 'flex'
     var first = modal.querySelector('.modal-input, button')
     if (first) first.focus()
@@ -1674,7 +1736,7 @@ if (isAuth) {
 
   function closeModal() {
     modal.style.display = 'none'
-    ;[formMascota, formVet, formInsumo].forEach(function(f) { if (f) f.style.display = 'none' })
+    ;[formMascota, formVet, formInsumo, formFeedEdit].forEach(function(f) { if (f) f.style.display = 'none' })
   }
 
   if (modalClose) modalClose.addEventListener('click', closeModal)
@@ -1762,6 +1824,21 @@ if (isAuth) {
   handleModalForm(formMascota)
   handleModalForm(formVet)
   handleModalForm(formInsumo)
+  handleModalForm(formFeedEdit)
+
+  // Abrir modal de feed
+  document.querySelectorAll('.btn-edit-feed').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.getElementById('ef-id').value    = btn.dataset.id     || ''
+      document.getElementById('ef-titulo').value = btn.dataset.titulo || ''
+      document.getElementById('ef-cuerpo').value = btn.dataset.cuerpo || ''
+      var selTipo = document.getElementById('ef-tipo')
+      for (var i = 0; i < selTipo.options.length; i++) {
+        if (selTipo.options[i].value === btn.dataset.tipo) { selTipo.selectedIndex = i; break }
+      }
+      openModal('feed')
+    })
+  })
 
   // ── Search filters (tiempo real, sin reload)
   function setupSearch(inputId, tbodyId, rowClass) {
