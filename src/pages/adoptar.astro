@@ -166,6 +166,15 @@ function waAdoptHref(whatsapp: string | null, nombre: string | null): string | n
                 <div class="card-body">
                   <p class="pet-name">{m.nombre ?? 'Sin nombre'}</p>
                   <p class="pet-meta">{m.especie}{m.zona ? ` · ${m.zona}` : ''}</p>
+                  <button
+                    class="btn-share"
+                    data-url={`https://protegecolitas.org/mascota/${m.id}`}
+                    data-nombre={m.nombre ?? 'Mascota en adopción'}
+                    aria-label={`Compartir ${m.nombre ?? 'esta mascota'}`}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                    Compartir
+                  </button>
 
                   {(m.color || m.tamanio) && (
                     <div class="tags-row">
@@ -588,6 +597,28 @@ function waAdoptHref(whatsapp: string | null, nombre: string | null): string | n
   text-overflow: ellipsis;
 }
 
+/* ─── Share btn ─── */
+.btn-share {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gris);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+  min-height: 30px;
+  align-self: flex-start;
+}
+.btn-share:hover { background: rgba(61,28,2,0.06); color: var(--marron); border-color: rgba(61,28,2,0.3); }
+
 /* ─── Adopt button (z-index above stretch link) ─── */
 .btn-adopt {
   position: relative;
@@ -689,3 +720,30 @@ function waAdoptHref(whatsapp: string | null, nombre: string | null): string | n
   .adopt-card:hover .pet-img { transform: none; }
 }
 </style>
+
+<script>
+(function () {
+  document.querySelectorAll('.btn-share').forEach(function (btn) {
+    btn.addEventListener('click', async function () {
+      var url    = btn.dataset.url    || ('https://protegecolitas.org' + window.location.pathname)
+      var nombre = btn.dataset.nombre || 'Mascota en adopción'
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: nombre + ' — Protege Colitas',
+            text: '🏠 ' + nombre + ' busca un hogar permanente en Protege Colitas. ¿Puedes adoptarlo?',
+            url: url,
+          })
+          return
+        } catch (_) {}
+      }
+      try {
+        await navigator.clipboard.writeText(url)
+        var orig = btn.textContent
+        btn.textContent = '✓ Copiado'
+        setTimeout(function () { btn.textContent = orig }, 2000)
+      } catch (_) {}
+    })
+  })
+})()
+</script>
