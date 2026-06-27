@@ -110,6 +110,38 @@ if (Astro.request.method === 'POST') {
     const { error } = await supabaseAdmin.from('mascotas').update({ tipo: 'adopcion' }).eq('id', getId())
     return J(!error, error?.message)
   }
+  if (action === 'nueva_mascota') {
+    const nombre        = form.get('nombre')?.toString().trim()           || null
+    const especie       = form.get('especie')?.toString()                  ?? 'Perro'
+    const color         = form.get('color')?.toString().trim()             || null
+    const tamanio       = form.get('tamanio')?.toString()                  || null
+    const zona          = form.get('zona')?.toString().trim()              ?? ''
+    const descripcion   = form.get('descripcion')?.toString().trim()       || null
+    const senias        = form.get('senias')?.toString().trim()            || null
+    const whatsapp      = form.get('whatsapp')?.toString().trim()          ?? ''
+    const contacto_nombre = form.get('contacto_nombre')?.toString().trim() || null
+    const tipo          = form.get('tipo')?.toString()                     ?? 'perdido'
+    const status        = form.get('status')?.toString()                   ?? 'publicado'
+    if (!especie || !zona || !whatsapp) return J(false, 'Especie, zona y WhatsApp son requeridos')
+    const { data: nueva, error: insErr } = await supabaseAdmin
+      .from('mascotas')
+      .insert({ nombre, especie, color, tamanio, zona, descripcion, senias, whatsapp, contacto_nombre, tipo, status, created_at: new Date().toISOString() })
+      .select('id')
+      .single()
+    if (insErr) return J(false, insErr.message)
+    const foto = form.get('foto') as File | null
+    if (foto && foto.size > 0 && nueva?.id) {
+      const path = `${nueva.id}/foto_1.jpg`
+      const { error: upErr } = await supabaseAdmin.storage
+        .from('mascotas')
+        .upload(path, await foto.arrayBuffer(), { contentType: foto.type, upsert: true })
+      if (!upErr) {
+        const { data: urlData } = supabaseAdmin.storage.from('mascotas').getPublicUrl(path)
+        await supabaseAdmin.from('mascotas').update({ foto_url: urlData.publicUrl }).eq('id', nueva.id)
+      }
+    }
+    return J(true, undefined)
+  }
   if (action === 'aprobar_vet') {
     const { error } = await supabaseAdmin.from('vets').update({ aprobado: true }).eq('id', getId())
     return J(!error, error?.message)
@@ -445,6 +477,7 @@ if (isAuth) {
 
     <nav class="tabs-nav" role="tablist" aria-label="Secciones del panel">
       <button class="tab active" data-tab="publicadas" role="tab" aria-selected="true">Publicadas</button>
+      <button class="tab tab-agregar" data-tab="agregar" role="tab" aria-selected="false">➕ Agregar</button>
       <button class="tab" data-tab="pendientes" role="tab" aria-selected="false">
         Mascotas pendientes
         <span class={`tab-badge${pendientes.length === 0 ? ' zero' : ''}`}>{pendientes.length}</span>
@@ -648,6 +681,112 @@ if (isAuth) {
       {publicadas.length === 0 && reunidas.length === 0 && (
         <p class="empty-msg">No hay mascotas publicadas</p>
       )}
+    </div>
+
+    <!-- TAB AGREGAR: NUEVA MASCOTA -->
+    <div id="tab-agregar" class="tab-pane">
+      <div class="nuevo-section" style="max-width:760px">
+        <h4 class="form-section-title">Registrar nueva mascota</h4>
+        <form id="form-nueva-mascota" class="nuevo-form" enctype="multipart/form-data">
+
+          <!-- Row 1: especie · tipo · status -->
+          <div class="nuevo-form-grid">
+            <label class="form-field">
+              <span class="form-lbl">Especie *</span>
+              <select name="especie" required class="feed-select">
+                <option value="Perro">🐕 Perro</option>
+                <option value="Gato">🐈 Gato</option>
+                <option value="Ave">🐦 Ave</option>
+                <option value="Otro">🐾 Otro</option>
+              </select>
+            </label>
+            <label class="form-field">
+              <span class="form-lbl">Tipo *</span>
+              <select name="tipo" required class="feed-select">
+                <option value="perdido">🔴 Perdido</option>
+                <option value="encontrado">🔵 Encontrado</option>
+                <option value="adopcion">🏠 En adopción</option>
+              </select>
+            </label>
+            <label class="form-field">
+              <span class="form-lbl">Estado</span>
+              <select name="status" class="feed-select">
+                <option value="publicado">✓ Publicado</option>
+                <option value="pendiente">⏳ Pendiente</option>
+              </select>
+            </label>
+          </div>
+
+          <!-- Row 2: nombre · color · tamanio -->
+          <div class="nuevo-form-grid">
+            <label class="form-field">
+              <span class="form-lbl">Nombre</span>
+              <input type="text" name="nombre" maxlength="100" placeholder="Toby, Luna…" class="feed-input" />
+            </label>
+            <label class="form-field">
+              <span class="form-lbl">Color</span>
+              <input type="text" name="color" maxlength="80" placeholder="Marrón, blanco y negro…" class="feed-input" />
+            </label>
+            <label class="form-field">
+              <span class="form-lbl">Tamaño</span>
+              <select name="tamanio" class="feed-select">
+                <option value="">— sin especificar —</option>
+                <option value="Pequeño">Pequeño</option>
+                <option value="Mediano">Mediano</option>
+                <option value="Grande">Grande</option>
+              </select>
+            </label>
+          </div>
+
+          <!-- Row 3: zona (full) -->
+          <label class="form-field" style="width:100%">
+            <span class="form-lbl">Zona * (mín. 5 caracteres)</span>
+            <input type="text" name="zona" required minlength="5" maxlength="120" placeholder="Porlamar, Nueva Esparta" class="feed-input" />
+          </label>
+
+          <!-- Row 4: whatsapp · contacto -->
+          <div class="nuevo-form-grid">
+            <label class="form-field">
+              <span class="form-lbl">WhatsApp * (04XX-XXXXXXX)</span>
+              <input type="tel" name="whatsapp" required pattern="04[0-9]{2}[0-9]{7}" maxlength="11" placeholder="04140000000" class="feed-input" id="nm-wa" />
+            </label>
+            <label class="form-field">
+              <span class="form-lbl">Nombre del contacto</span>
+              <input type="text" name="contacto_nombre" maxlength="100" placeholder="María, Cruz Roja…" class="feed-input" />
+            </label>
+          </div>
+          <p id="nm-wa-hint" class="nm-hint" aria-live="polite"></p>
+
+          <!-- Row 5: descripcion -->
+          <label class="form-field" style="width:100%">
+            <span class="form-lbl">Descripción</span>
+            <textarea name="descripcion" rows="3" maxlength="600" placeholder="Características físicas, comportamiento, contexto del encuentro…" class="feed-textarea"></textarea>
+          </label>
+
+          <!-- Row 6: senias -->
+          <label class="form-field" style="width:100%">
+            <span class="form-lbl">Señas particulares</span>
+            <textarea name="senias" rows="2" maxlength="300" placeholder="Cicatriz en la pata delantera, collar rojo, mancha en el ojo…" class="feed-textarea"></textarea>
+          </label>
+
+          <!-- Row 7: foto -->
+          <label class="form-field" style="width:100%">
+            <span class="form-lbl">Foto principal (opcional · máx 5MB)</span>
+            <input type="file" name="foto" accept="image/*" class="upload-input" id="nm-foto" />
+          </label>
+
+          <!-- Preview foto -->
+          <div id="nm-preview-wrap" style="display:none">
+            <img id="nm-preview" alt="Vista previa" class="nm-preview-img" />
+          </div>
+
+          <div style="display:flex;align-items:center;gap:1rem;margin-top:.25rem">
+            <button type="submit" class="btn-submit" id="nm-submit">Crear mascota</button>
+            <span id="nm-msg" class="nm-success" aria-live="polite"></span>
+          </div>
+
+        </form>
+      </div>
     </div>
 
     <!-- TAB 3: VETERINARIOS -->
@@ -1551,6 +1690,23 @@ if (isAuth) {
   .mt-sm { margin-top: .75rem; }
   .empty-msg { color: var(--gris); padding: 2rem; text-align: center; font-size: .875rem; }
 
+  /* ── Tab agregar highlight ─────────────────────────────────────────── */
+  .tab-agregar { color: #4ADE80; }
+  .tab-agregar.active { color: #4ADE80; border-bottom-color: #4ADE80; }
+
+  /* ── Nueva mascota form extras ────────────────────────────────────── */
+  .nm-hint {
+    font-size: .72rem; color: var(--gris); margin-top: -.375rem;
+    min-height: 1rem;
+  }
+  .nm-hint.valid { color: #4ADE80; }
+  .nm-hint.invalid { color: #FCA5A5; }
+  .nm-success { font-size: .8rem; font-weight: 700; color: #4ADE80; }
+  .nm-preview-img {
+    width: 140px; height: 140px; object-fit: cover;
+    border-radius: 10px; border: 2px solid #374151;
+  }
+
   /* ── Feed form ────────────────────────────────────────────────────── */
   .feed-form {
     display: flex; flex-direction: column; gap: .75rem; max-width: 680px;
@@ -2055,6 +2211,78 @@ if (isAuth) {
         if (!j.ok) { alert('Error: ' + (j.error || 'desconocido')); if (btn) btn.disabled = false }
         else { window.location.reload() }
       } catch(e) { alert('Error de red'); if (btn) btn.disabled = false }
+    })
+  }
+
+  // ── Nueva mascota form
+  var formNuevaMascota = document.getElementById('form-nueva-mascota')
+  if (formNuevaMascota) {
+    // WA live validator
+    var nmWa = document.getElementById('nm-wa')
+    var nmHint = document.getElementById('nm-wa-hint')
+    if (nmWa && nmHint) {
+      nmWa.addEventListener('input', function() {
+        var val = nmWa.value.replace(/\D/g, '')
+        if (val.length === 0) {
+          nmHint.textContent = ''
+          nmHint.className = 'nm-hint'
+        } else if (/^04[0-9]{9}$/.test(val)) {
+          nmHint.textContent = '✓ Formato válido'
+          nmHint.className = 'nm-hint valid'
+        } else {
+          nmHint.textContent = 'Debe ser 04XXXXXXXXX (11 dígitos)'
+          nmHint.className = 'nm-hint invalid'
+        }
+      })
+    }
+    // Photo preview
+    var nmFoto = document.getElementById('nm-foto')
+    var nmPreviewWrap = document.getElementById('nm-preview-wrap')
+    var nmPreview = document.getElementById('nm-preview')
+    if (nmFoto && nmPreviewWrap && nmPreview) {
+      nmFoto.addEventListener('change', function() {
+        var file = nmFoto.files && nmFoto.files[0]
+        if (file) {
+          var reader = new FileReader()
+          reader.onload = function(e) {
+            nmPreview.src = e.target.result
+            nmPreviewWrap.style.display = 'block'
+          }
+          reader.readAsDataURL(file)
+        } else {
+          nmPreviewWrap.style.display = 'none'
+        }
+      })
+    }
+    // Submit
+    formNuevaMascota.addEventListener('submit', async function(e) {
+      e.preventDefault()
+      var fd  = new FormData(formNuevaMascota)
+      fd.append('action', 'nueva_mascota')
+      var btn = document.getElementById('nm-submit')
+      var msg = document.getElementById('nm-msg')
+      if (btn) { btn.disabled = true; btn.textContent = 'Guardando…' }
+      if (msg) msg.textContent = ''
+      try {
+        var r = await fetch('/admin', { method: 'POST', body: fd })
+        var j = await r.json()
+        if (!j.ok) {
+          alert('Error: ' + (j.error || 'desconocido'))
+          if (btn) { btn.disabled = false; btn.textContent = 'Crear mascota' }
+        } else {
+          formNuevaMascota.reset()
+          if (nmPreviewWrap) nmPreviewWrap.style.display = 'none'
+          if (nmHint) { nmHint.textContent = ''; nmHint.className = 'nm-hint' }
+          if (btn) { btn.disabled = false; btn.textContent = 'Crear mascota' }
+          if (msg) {
+            msg.textContent = '✓ Mascota creada'
+            setTimeout(function() { if (msg) msg.textContent = '' }, 3000)
+          }
+        }
+      } catch(err) {
+        alert('Error de red')
+        if (btn) { btn.disabled = false; btn.textContent = 'Crear mascota' }
+      }
     })
   }
 
