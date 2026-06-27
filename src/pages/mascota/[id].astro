@@ -34,7 +34,8 @@ const mapsHref = (m.latitud && m.longitud)
   title={`${m.nombre ?? 'Mascota'} — Protege Colitas`}
   ogTitle={`${m.nombre ?? 'Mascota'} · ${m.tipo === 'perdido' ? 'Se busca' : 'Encontrada'} en ${m.zona}`}
   ogDescription={m.descripcion ?? `${m.especie} ${m.tipo === 'perdido' ? 'perdido' : 'encontrado'} en ${m.zona}. ¿Lo has visto?`}
-  ogImage={m.foto_url ?? 'https://protegecolitas.org/logo.png'}
+  ogImage={m.foto_url ?? 'https://protegecolitas.org/banner_mobile.png'}
+  ogUrl={`https://protegecolitas.org/mascota/${m.id}`}
 >
   <div class="detail-page">
 

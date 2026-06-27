@@ -14,6 +14,9 @@ const _ogTitle = ogTitle ?? 'Protege Colitas · Emergencia Venezuela 2026'
 const _ogDesc  = ogDescription ?? 'Reporta mascotas perdidas o encontradas tras el terremoto. Juntos los reunimos.'
 const _ogImg   = ogImage ?? 'https://protegecolitas.org/banner_mobile.png'
 const _ogUrl   = ogUrl ?? 'https://protegecolitas.org'
+// Solo el banner por defecto tiene proporción conocida (390×200). Para fotos de
+// mascotas/noticias omitimos las dimensiones para que WhatsApp mida la imagen real.
+const _ogImgIsDefault = !ogImage
 ---
 <!DOCTYPE html>
 <html lang="es">
@@ -24,8 +27,8 @@ const _ogUrl   = ogUrl ?? 'https://protegecolitas.org'
   <meta property="og:title" content={_ogTitle} />
   <meta property="og:description" content={_ogDesc} />
   <meta property="og:image" content={_ogImg} />
-  <meta property="og:image:width" content="390" />
-  <meta property="og:image:height" content="200" />
+  {_ogImgIsDefault && <meta property="og:image:width" content="390" />}
+  {_ogImgIsDefault && <meta property="og:image:height" content="200" />}
   <meta property="og:url" content={_ogUrl} />
   <meta property="og:type" content="website" />
   <meta name="twitter:card" content="summary_large_image" />
