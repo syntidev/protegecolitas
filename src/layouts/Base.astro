@@ -12,7 +12,7 @@ const path = Astro.url?.pathname ?? '/'
 const active = (href: string) => href === '/' ? path === '/' : path.startsWith(href)
 const _ogTitle = ogTitle ?? 'Protege Colitas · Emergencia Venezuela 2026'
 const _ogDesc  = ogDescription ?? 'Reporta mascotas perdidas o encontradas tras el terremoto. Juntos los reunimos.'
-const _ogImg   = ogImage ?? 'https://protegecolitas.org/banner.png'
+const _ogImg   = ogImage ?? 'https://protegecolitas.org/banner_mobile.png'
 const _ogUrl   = ogUrl ?? 'https://protegecolitas.org'
 ---
 <!DOCTYPE html>
@@ -24,9 +24,12 @@ const _ogUrl   = ogUrl ?? 'https://protegecolitas.org'
   <meta property="og:title" content={_ogTitle} />
   <meta property="og:description" content={_ogDesc} />
   <meta property="og:image" content={_ogImg} />
+  <meta property="og:image:width" content="390" />
+  <meta property="og:image:height" content="200" />
   <meta property="og:url" content={_ogUrl} />
   <meta property="og:type" content="website" />
   <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content={_ogImg} />
   <meta name="description" content={_ogDesc} />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
@@ -45,12 +48,12 @@ const _ogUrl   = ogUrl ?? 'https://protegecolitas.org'
         <span class="brand-name">Protege Colitas</span>
       </a>
       <nav class="top-nav__links" aria-label="Navegación principal">
-        <a href="/mascotas"    class={`top-link${active('/mascotas')    ? ' top-link--on' : ''}`} aria-current={active('/mascotas')    ? 'page' : undefined}>Mascotas</a>
+        <a href="/mascotas"     class={`top-link${active('/mascotas')     ? ' top-link--on' : ''}`} aria-current={active('/mascotas')     ? 'page' : undefined}>Mascotas</a>
+        <a href="/adoptar"      class={`top-link${active('/adoptar')      ? ' top-link--on' : ''}`} aria-current={active('/adoptar')      ? 'page' : undefined}>Adoptar</a>
         <a href="/veterinarios" class={`top-link${active('/veterinarios') ? ' top-link--on' : ''}`} aria-current={active('/veterinarios') ? 'page' : undefined}>Vets</a>
-        <a href="/insumos"     class={`top-link${active('/insumos')     ? ' top-link--on' : ''}`} aria-current={active('/insumos')     ? 'page' : undefined}>Insumos</a>
-        <a href="/acopio"      class={`top-link${active('/acopio')      ? ' top-link--on' : ''}`} aria-current={active('/acopio')      ? 'page' : undefined}>Acopio</a>
-        <a href="/noticias"    class={`top-link${active('/noticias')    ? ' top-link--on' : ''}`} aria-current={active('/noticias')    ? 'page' : undefined}>Noticias</a>
-        <a href="/adoptar"     class={`top-link${active('/adoptar')     ? ' top-link--on' : ''}`} aria-current={active('/adoptar')     ? 'page' : undefined}>Adoptar</a>
+        <a href="/insumos"      class={`top-link${active('/insumos')      ? ' top-link--on' : ''}`} aria-current={active('/insumos')      ? 'page' : undefined}>Insumos</a>
+        <a href="/noticias"     class={`top-link${active('/noticias')     ? ' top-link--on' : ''}`} aria-current={active('/noticias')     ? 'page' : undefined}>Noticias</a>
+        <a href="/acopio"       class={`top-link${active('/acopio')       ? ' top-link--on' : ''}`} aria-current={active('/acopio')       ? 'page' : undefined}>Acopio</a>
         <a href="/reportar" class="top-cta">Reportar</a>
       </nav>
       <div class="nav-badge" role="status" aria-live="polite">
@@ -90,14 +93,14 @@ const _ogUrl   = ogUrl ?? 'https://protegecolitas.org'
       </a>
     </div>
 
-    <a href="/veterinarios" class={`bnav-item${active('/veterinarios') ? ' bnav-on' : ''}`} aria-label="Veterinarios" aria-current={active('/veterinarios') ? 'page' : undefined}>
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-      <span class="bnav-label">Vets</span>
-    </a>
-
     <a href="/adoptar" class={`bnav-item${active('/adoptar') ? ' bnav-on' : ''}`} aria-label="Adoptar" aria-current={active('/adoptar') ? 'page' : undefined}>
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1v-9.5z"/><path d="M9 21v-8h6v8"/></svg>
       <span class="bnav-label">Adoptar</span>
+    </a>
+
+    <a href="/veterinarios" class={`bnav-item${active('/veterinarios') ? ' bnav-on' : ''}`} aria-label="Veterinarios" aria-current={active('/veterinarios') ? 'page' : undefined}>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      <span class="bnav-label">Vets</span>
     </a>
 
   </nav>
