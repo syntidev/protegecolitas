@@ -313,9 +313,19 @@ type Vet = {
   id: string; nombre: string; zona: string; whatsapp: string | null
   servicios: string | null; horario: string | null; gratuito: boolean; created_at: string
 }
-type FeedItem = { id: string; tipo: string; titulo: string; cuerpo: string; published_at: string }
-type Necesidad = { id: string; item: string; cantidad_requerida: number; cantidad_recibida: number; prioridad: string }
-type Banner    = { id: string; titulo: string; descripcion: string | null; imagen_url: string | null; imagen_url_mobile: string | null; link: string | null; activo: boolean; created_at: string }
+type FeedItem    = { id: string; tipo: string; titulo: string; cuerpo: string; published_at: string }
+type Necesidad   = { id: string; item: string; cantidad_requerida: number; cantidad_recibida: number; prioridad: string }
+type Banner      = { id: string; titulo: string; descripcion: string | null; imagen_url: string | null; imagen_url_mobile: string | null; link: string | null; activo: boolean; created_at: string }
+type VisitaCount = { key: string; count: number }
+
+function groupCount(rows: any[] | null | undefined, key: string): VisitaCount[] {
+  const counts: Record<string, number> = {}
+  rows?.forEach((r: Record<string, string | null>) => {
+    const k = r[key] || 'Otro'
+    counts[k] = (counts[k] ?? 0) + 1
+  })
+  return Object.entries(counts).map(([k, c]) => ({ key: k, count: c })).sort((a, b) => b.count - a.count)
+}
 
 let pendientes:  Mascota[]   = []
 let publicadas:  Mascota[]   = []
@@ -325,6 +335,15 @@ let feedItems:   FeedItem[]  = []
 let necesidades: Necesidad[] = []
 let banners:     Banner[]    = []
 let stats = { pendientes: 0, publicadas: 0, reunidas: 0, vets: 0 }
+
+let visitasHoy:    number         = 0
+let visitasSemana: number         = 0
+let visitasTotal:  number         = 0
+let porDispositivo: VisitaCount[] = []
+let porOs:          VisitaCount[] = []
+let porBrowser:     VisitaCount[] = []
+let porPagina:      VisitaCount[] = []
+let porFuente:      VisitaCount[] = []
 
 if (isAuth) {
   const [mp, mpub, mreu, mv, mf, mn, sp, spub, sreu, sv, mb] = await Promise.all([
@@ -348,6 +367,32 @@ if (isAuth) {
   necesidades = (mn.data   ?? []) as Necesidad[]
   banners     = (mb.data   ?? []) as Banner[]
   stats = { pendientes: sp.count ?? 0, publicadas: spub.count ?? 0, reunidas: sreu.count ?? 0, vets: sv.count ?? 0 }
+
+  // Analytics queries
+  const now     = new Date()
+  const dayAgo  = new Date(now.getTime() - 86_400_000).toISOString()
+  const weekAgo = new Date(now.getTime() - 7 * 86_400_000).toISOString()
+
+  const [vaHoy, vaSem, vaTotal, vaDisp, vaOs, vaBro, vaPag, vaFue] = await Promise.all([
+    supabaseAdmin.from('visitas').select('*', { count: 'exact', head: true }).gte('created_at', dayAgo),
+    supabaseAdmin.from('visitas').select('*', { count: 'exact', head: true }).gte('created_at', weekAgo),
+    supabaseAdmin.from('visitas').select('*', { count: 'exact', head: true }),
+    supabaseAdmin.from('visitas').select('dispositivo').limit(5000),
+    supabaseAdmin.from('visitas').select('os').limit(5000),
+    supabaseAdmin.from('visitas').select('browser').limit(5000),
+    supabaseAdmin.from('visitas').select('pagina').limit(10000),
+    supabaseAdmin.from('visitas').select('referrer').not('referrer', 'is', null).limit(5000),
+  ])
+
+  visitasHoy    = vaHoy.count   ?? 0
+  visitasSemana = vaSem.count   ?? 0
+  visitasTotal  = vaTotal.count ?? 0
+
+  porDispositivo = groupCount(vaDisp.data, 'dispositivo')
+  porOs          = groupCount(vaOs.data,   'os')
+  porBrowser     = groupCount(vaBro.data,  'browser')
+  porPagina      = groupCount(vaPag.data,  'pagina').slice(0, 10)
+  porFuente      = groupCount(vaFue.data,  'referrer').slice(0, 5)
 }
 ---
 <!DOCTYPE html>
@@ -402,6 +447,7 @@ if (isAuth) {
       <button class="tab" data-tab="vets" role="tab" aria-selected="false">Veterinarios</button>
       <button class="tab" data-tab="feed" role="tab" aria-selected="false">Feed</button>
       <button class="tab" data-tab="insumos" role="tab" aria-selected="false">Insumos</button>
+      <button class="tab" data-tab="analytics" role="tab" aria-selected="false">Analíticas</button>
       <button class="tab" data-tab="gemini" role="tab" aria-selected="false">📸 Desde foto</button>
       <button class="tab" data-tab="banners" role="tab" aria-selected="false">Banners</button>
     </nav>
@@ -798,6 +844,162 @@ if (isAuth) {
           </div>
           <button type="submit" class="btn-submit" style="margin-top:.75rem">+ Agregar insumo</button>
         </form>
+      </div>
+    </div>
+
+    <!-- TAB: ANALÍTICAS -->
+    <div id="tab-analytics" class="tab-pane">
+      <div class="analytics-wrap">
+
+        <!-- KPIs -->
+        <div class="an-kpi-row">
+          <div class="an-kpi">
+            <span class="an-kpi-label">Hoy</span>
+            <span class="an-kpi-num">{visitasHoy.toLocaleString('es-VE')}</span>
+            <span class="an-kpi-sub">páginas vistas</span>
+          </div>
+          <div class="an-kpi">
+            <span class="an-kpi-label">Esta semana</span>
+            <span class="an-kpi-num">{visitasSemana.toLocaleString('es-VE')}</span>
+            <span class="an-kpi-sub">páginas vistas</span>
+          </div>
+          <div class="an-kpi">
+            <span class="an-kpi-label">Total</span>
+            <span class="an-kpi-num">{visitasTotal.toLocaleString('es-VE')}</span>
+            <span class="an-kpi-sub">páginas vistas</span>
+          </div>
+        </div>
+
+        <!-- Dispositivos -->
+        <div class="an-section">
+          <h3 class="an-section-title">Dispositivos</h3>
+          {porDispositivo.length > 0 ? (
+            <div class="an-bars">
+              {porDispositivo.map(item => {
+                const pct = visitasTotal > 0 ? Math.round((item.count / visitasTotal) * 100) : 0
+                const color = item.key === 'mobile' ? '#3B82F6' : item.key === 'desktop' ? '#F59E0B' : '#22C55E'
+                return (
+                  <div class="an-bar-row">
+                    <span class="an-bar-label">{item.key}</span>
+                    <div class="an-bar-track">
+                      <div class="an-bar-fill" style={`width:${pct}%;background:${color}`}></div>
+                    </div>
+                    <span class="an-bar-pct">{pct}%</span>
+                    <span class="an-bar-count">{item.count}</span>
+                  </div>
+                )
+              })}
+            </div>
+          ) : <p class="an-empty">Sin datos aún — las visitas aparecerán aquí en tiempo real</p>}
+        </div>
+
+        <!-- OS y Browser -->
+        <div class="an-two-col">
+          <div class="an-section">
+            <h3 class="an-section-title">Sistemas operativos</h3>
+            {porOs.length > 0 ? (
+              <div class="an-list">
+                {(() => {
+                  const max = porOs[0]?.count ?? 1
+                  return porOs.map(item => (
+                    <div class="an-list-row">
+                      <span class="an-list-name">{item.key}</span>
+                      <div class="an-bar-track an-bar-track--sm">
+                        <div class="an-bar-fill" style={`width:${Math.round((item.count / max) * 100)}%;background:#3B82F6`}></div>
+                      </div>
+                      <span class="an-list-count">{item.count}</span>
+                    </div>
+                  ))
+                })()}
+              </div>
+            ) : <p class="an-empty">Sin datos aún</p>}
+          </div>
+          <div class="an-section">
+            <h3 class="an-section-title">Navegadores</h3>
+            {porBrowser.length > 0 ? (
+              <div class="an-list">
+                {(() => {
+                  const max = porBrowser[0]?.count ?? 1
+                  return porBrowser.map(item => (
+                    <div class="an-list-row">
+                      <span class="an-list-name">{item.key}</span>
+                      <div class="an-bar-track an-bar-track--sm">
+                        <div class="an-bar-fill" style={`width:${Math.round((item.count / max) * 100)}%;background:#22C55E`}></div>
+                      </div>
+                      <span class="an-list-count">{item.count}</span>
+                    </div>
+                  ))
+                })()}
+              </div>
+            ) : <p class="an-empty">Sin datos aún</p>}
+          </div>
+        </div>
+
+        <!-- Páginas más visitadas -->
+        <div class="an-section">
+          <h3 class="an-section-title">Páginas más visitadas</h3>
+          {porPagina.length > 0 ? (
+            <div class="table-wrap">
+              <table class="an-table">
+                <thead>
+                  <tr><th>Página</th><th class="an-th-r">Visitas</th><th>Relativo</th></tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const max = porPagina[0]?.count ?? 1
+                    return porPagina.map(item => (
+                      <tr>
+                        <td class="an-td-url">{item.key}</td>
+                        <td class="an-td-num">{item.count}</td>
+                        <td class="an-td-bar">
+                          <div class="an-bar-track">
+                            <div class="an-bar-fill" style={`width:${Math.round((item.count / max) * 100)}%;background:#F59E0B`}></div>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          ) : <p class="an-empty">Sin datos aún</p>}
+        </div>
+
+        <!-- Fuentes de tráfico -->
+        <div class="an-section">
+          <h3 class="an-section-title">Fuentes de tráfico</h3>
+          {porFuente.length > 0 ? (
+            <div class="table-wrap">
+              <table class="an-table">
+                <thead>
+                  <tr><th>Referrer</th><th class="an-th-r">Visitas</th></tr>
+                </thead>
+                <tbody>
+                  {porFuente.map(item => (
+                    <tr>
+                      <td class="an-td-url">{item.key}</td>
+                      <td class="an-td-num">{item.count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : <p class="an-empty">Sin referrers registrados — el tráfico directo no incluye referrer</p>}
+        </div>
+
+        <!-- Cloudflare Web Analytics -->
+        <div class="an-section an-cf-section">
+          <div class="cf-embed-header">
+            <h3 class="an-section-title" style="margin-bottom:0">Cloudflare Web Analytics</h3>
+            <a
+              href="https://dash.cloudflare.com/5c9a348c5ce0a207a73b74d9232a6512/protegecolitas.org/analytics"
+              target="_blank" rel="noopener noreferrer"
+              class="btn-cf-link"
+            >Abrir Cloudflare Analytics →</a>
+          </div>
+          <p class="an-cf-note">Cloudflare no permite embed por iframe — abre en nueva pestaña con un click.</p>
+        </div>
+
       </div>
     </div>
 
@@ -1536,6 +1738,176 @@ if (isAuth) {
   }
   @media (prefers-reduced-motion: reduce) {
     .modal-overlay, .modal-box { animation: none; }
+  }
+
+  /* ── Analytics tab ──────────────────────────────────────────── */
+  .analytics-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    padding: 4px 0 32px;
+    max-width: 900px;
+  }
+
+  /* KPIs */
+  .an-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  @media (max-width: 600px) { .an-kpi-row { grid-template-columns: 1fr; } }
+
+  .an-kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .an-kpi-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gris);
+  }
+  .an-kpi-num {
+    font-size: 38px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--texto);
+    letter-spacing: -0.02em;
+  }
+  .an-kpi-sub {
+    font-size: 11px;
+    color: var(--gris);
+  }
+
+  /* Sections */
+  .an-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .an-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gris);
+    margin-bottom: 2px;
+  }
+
+  .an-two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  @media (max-width: 640px) { .an-two-col { grid-template-columns: 1fr; } }
+
+  /* Bars */
+  .an-bars { display: flex; flex-direction: column; gap: 8px; }
+  .an-bar-row {
+    display: grid;
+    grid-template-columns: 76px 1fr 40px 44px;
+    align-items: center;
+    gap: 8px;
+  }
+  .an-bar-label {
+    font-size: 12px;
+    color: var(--texto);
+    font-weight: 500;
+    text-transform: capitalize;
+  }
+  .an-bar-track {
+    height: 6px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .an-bar-track--sm { height: 4px; }
+  .an-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+  }
+  .an-bar-pct {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--texto);
+    text-align: right;
+  }
+  .an-bar-count { font-size: 11px; color: var(--gris); }
+
+  /* List (OS / Browser) */
+  .an-list { display: flex; flex-direction: column; gap: 8px; }
+  .an-list-row {
+    display: grid;
+    grid-template-columns: 90px 1fr 36px;
+    align-items: center;
+    gap: 8px;
+  }
+  .an-list-name { font-size: 12px; color: var(--texto); font-weight: 500; }
+  .an-list-count { font-size: 11px; color: var(--gris); text-align: right; }
+
+  /* Analytics table */
+  .an-table { width: 100%; }
+  .an-table th { color: var(--gris); font-size: 11px; }
+  .an-th-r { text-align: right; }
+  .an-td-url {
+    color: var(--texto);
+    font-size: 12px;
+    font-family: 'Consolas', 'Fira Mono', monospace;
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .an-td-num {
+    color: var(--texto);
+    font-weight: 600;
+    text-align: right;
+    padding-right: 16px;
+    white-space: nowrap;
+    font-size: 12px;
+  }
+  .an-td-bar { width: 120px; }
+
+  .an-empty {
+    font-size: 12px;
+    color: var(--gris);
+    font-style: italic;
+    padding: 4px 0;
+  }
+
+  /* Cloudflare section */
+  .an-cf-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .cf-embed-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .btn-cf-link {
+    background: #F6821F;
+    color: #fff;
+    padding: 9px 18px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 13px;
+    display: inline-block;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+  }
+  .btn-cf-link:hover { opacity: 0.88; }
+  .an-cf-note {
+    font-size: 11.5px;
+    color: var(--gris);
+    margin-top: 10px;
   }
 
   /* ── Gemini Vision tab ───────────────────────────────────────── */
