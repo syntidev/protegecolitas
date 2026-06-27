@@ -36,6 +36,14 @@ function rel(iso: string): string {
   return `${Math.floor(m / 1440)}d`
 }
 
+function generarSlug(text: string): string {
+  return text.toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 60)
+}
+
 const cookies  = Astro.request.headers.get('cookie') ?? ''
 const ck       = getCookie(cookies, 'admin_session')
 const isAuth   = !!ck && validSession(ck)
@@ -325,19 +333,43 @@ if (Astro.request.method === 'POST') {
     return J(!error, error?.message)
   }
   if (action === 'publicar_gemini') {
-    const statusVal = form.get('status')?.toString() || 'pendiente'
+    const statusVal      = form.get('status')?.toString() || 'pendiente'
+    const senias         = form.get('senias')?.toString().trim() || null
+    const contactoNombre = form.get('contacto_nombre')?.toString().trim() || null
+    const descripBase    = form.get('descripcion')?.toString().trim() || null
+    const partes         = [descripBase, senias ? `Señas: ${senias}` : null, contactoNombre ? `Contacto: ${contactoNombre}` : null].filter(Boolean)
     const { error } = await supabaseAdmin.from('mascotas').insert({
       nombre:      form.get('nombre')?.toString().trim() || null,
       especie:     form.get('especie')?.toString() || 'Otro',
       color:       form.get('color')?.toString().trim() || null,
       zona:        form.get('zona')?.toString().trim() || '',
-      descripcion: form.get('descripcion')?.toString().trim() || null,
+      descripcion: partes.length ? partes.join(' | ') : null,
       whatsapp:    form.get('whatsapp')?.toString().trim() || '',
       tipo:        form.get('tipo')?.toString() || 'perdido',
       status:      statusVal,
     })
     if (error) return J(false, error.message)
-    return new Response(null, { status: 302, headers: { Location: '/admin' } })
+    return new Response(null, { status: 302, headers: { Location: '/admin#tab-gemini' } })
+  }
+  if (action === 'feed_gemini') {
+    const titulo = form.get('titulo')?.toString().trim() || ''
+    const cuerpo = form.get('cuerpo')?.toString().trim() || ''
+    const tipo   = form.get('tipo')?.toString() || 'info'
+    if (!titulo || !cuerpo) return J(false, 'Título y cuerpo son obligatorios')
+    const slug = generarSlug(titulo) + '-' + Date.now().toString(36)
+    const { error } = await supabaseAdmin.from('feed').insert({ tipo, titulo, cuerpo, slug })
+    if (error) return J(false, error.message)
+    return new Response(null, { status: 302, headers: { Location: '/admin#tab-gemini' } })
+  }
+  if (action === 'insumo_gemini') {
+    const item               = form.get('item')?.toString().trim() || ''
+    const cantidad_requerida = parseInt(form.get('cantidad_requerida')?.toString() || '0', 10)
+    const cantidad_recibida  = parseInt(form.get('cantidad_recibida')?.toString()  || '0', 10)
+    const prioridad          = form.get('prioridad')?.toString() || 'urgente'
+    if (!item || !cantidad_requerida) return J(false, 'Ítem y cantidad requerida son obligatorios')
+    const { error } = await supabaseAdmin.from('necesidades').insert({ item, cantidad_requerida, cantidad_recibida, prioridad })
+    if (error) return J(false, error.message)
+    return new Response(null, { status: 302, headers: { Location: '/admin#tab-gemini' } })
   }
 }
 
@@ -1154,13 +1186,20 @@ if (isAuth) {
     <!-- TAB 7: GEMINI VISION -->
     <div id="tab-gemini" class="tab-pane">
       <div class="nuevo-section" style="max-width:680px">
-        <h4 class="form-section-title">Registrar desde foto de cartel</h4>
-        <p style="color:#9ca3af;font-size:.875rem;margin:0 0 1.25rem">Sube una foto del cartel y Gemini extrae los datos automáticamente.</p>
+        <h4 class="form-section-title">Registrar desde foto</h4>
+        <p style="color:#9ca3af;font-size:.875rem;margin:0 0 1rem">Sube una foto y Gemini extrae los datos automáticamente.</p>
+
+        <!-- Selector de acción -->
+        <div class="gemini-actions" role="group" aria-label="Tipo de registro">
+          <button class="gem-action active" data-action="mascota" type="button">🐾 Mascota</button>
+          <button class="gem-action" data-action="feed" type="button">📰 Noticia</button>
+          <button class="gem-action" data-action="insumo" type="button">📦 Insumo</button>
+        </div>
 
         <input type="file" id="geminiImg" accept="image/*" style="display:none" />
-        <div id="geminiPreview" class="gemini-preview" tabindex="0" role="button" aria-label="Seleccionar imagen del cartel">
+        <div id="geminiPreview" class="gemini-preview" tabindex="0" role="button" aria-label="Seleccionar imagen">
           <span id="geminiPlaceholder" class="gemini-placeholder">📷 Toca para seleccionar imagen</span>
-          <img id="geminiPreviewImg" src="" alt="Vista previa del cartel" style="display:none;width:100%;height:100%;object-fit:contain;border-radius:6px" />
+          <img id="geminiPreviewImg" src="" alt="Vista previa" style="display:none;width:100%;height:100%;object-fit:contain;border-radius:6px" />
         </div>
         <div style="display:flex;gap:.75rem;margin-top:.75rem">
           <button type="button" id="btnSeleccionar" class="btn btn-outline" style="flex:1">📷 Seleccionar foto</button>
@@ -1169,10 +1208,10 @@ if (isAuth) {
 
         <div id="geminiMsg" style="display:none;padding:.625rem .875rem;border-radius:8px;margin:.875rem 0 0;font-size:.8rem;background:#1f2937;color:#e5e7eb;border:1px solid #374151"></div>
 
-        <form id="geminiForm" method="POST" action="/admin" style="display:none;margin-top:1.5rem">
+        <!-- FORM: MASCOTA -->
+        <form id="geminiFormMascota" method="POST" action="/admin" style="display:none;margin-top:1.5rem">
           <input type="hidden" name="action" value="publicar_gemini" />
           <input type="hidden" id="g-status-field" name="status" value="pendiente" />
-
           <div class="nuevo-form-grid">
             <label class="form-field">
               <span class="form-lbl">Nombre</span>
@@ -1200,18 +1239,26 @@ if (isAuth) {
               <select name="tipo" id="g-tipo" class="feed-input">
                 <option value="perdido">Perdido</option>
                 <option value="encontrado">Encontrado</option>
+                <option value="adopcion">En adopción</option>
               </select>
             </label>
             <label class="form-field">
               <span class="form-lbl">WhatsApp (04XXXXXXXXX)</span>
               <input type="tel" name="whatsapp" id="g-whatsapp" class="feed-input" pattern="04[0-9]{9}" />
             </label>
+            <label class="form-field">
+              <span class="form-lbl">Nombre del contacto</span>
+              <input type="text" name="contacto_nombre" id="g-contacto-nombre" class="feed-input" placeholder="Opcional" />
+            </label>
+            <label class="form-field">
+              <span class="form-lbl">Señas particulares</span>
+              <input type="text" name="senias" id="g-senias" class="feed-input" placeholder="Manchas, cicatrices…" />
+            </label>
           </div>
           <label class="form-field" style="margin-top:.625rem">
             <span class="form-lbl">Descripción</span>
             <textarea name="descripcion" id="g-descripcion" class="feed-input feed-textarea" rows="3"></textarea>
           </label>
-
           <div style="display:flex;gap:.75rem;margin-top:1.25rem;flex-wrap:wrap">
             <button type="submit" class="btn-submit"
               style="flex:1;min-width:160px;background:#16a34a;color:#fff"
@@ -1225,6 +1272,64 @@ if (isAuth) {
             </button>
           </div>
         </form>
+
+        <!-- FORM: FEED / NOTICIA -->
+        <form id="geminiFormFeed" method="POST" action="/admin" style="display:none;margin-top:1.5rem">
+          <input type="hidden" name="action" value="feed_gemini" />
+          <div class="nuevo-form-grid" style="grid-template-columns:1fr">
+            <label class="form-field">
+              <span class="form-lbl">Tipo de noticia *</span>
+              <select name="tipo" id="gf-tipo" class="feed-input" required>
+                <option value="info">Info</option>
+                <option value="alerta">Alerta</option>
+                <option value="rescate">Rescate</option>
+                <option value="voluntario">Voluntarios</option>
+              </select>
+            </label>
+            <label class="form-field">
+              <span class="form-lbl">Título *</span>
+              <input type="text" name="titulo" id="gf-titulo" class="feed-input" maxlength="80" required />
+            </label>
+          </div>
+          <label class="form-field" style="margin-top:.625rem">
+            <span class="form-lbl">Cuerpo *</span>
+            <textarea name="cuerpo" id="gf-cuerpo" class="feed-input feed-textarea" rows="4" required></textarea>
+          </label>
+          <button type="submit" class="btn-submit" style="margin-top:1.25rem;width:100%;background:#3b82f6;color:#fff">
+            ✓ Publicar noticia
+          </button>
+        </form>
+
+        <!-- FORM: INSUMO -->
+        <form id="geminiFormInsumo" method="POST" action="/admin" style="display:none;margin-top:1.5rem">
+          <input type="hidden" name="action" value="insumo_gemini" />
+          <div class="nuevo-form-grid">
+            <label class="form-field" style="grid-column:1/-1">
+              <span class="form-lbl">Ítem / artículo *</span>
+              <input type="text" name="item" id="gi-item" class="feed-input" required />
+            </label>
+            <label class="form-field">
+              <span class="form-lbl">Cantidad requerida *</span>
+              <input type="number" name="cantidad_requerida" id="gi-cantidad-req" class="feed-input" min="1" required />
+            </label>
+            <label class="form-field">
+              <span class="form-lbl">Cantidad recibida</span>
+              <input type="number" name="cantidad_recibida" id="gi-cantidad-rec" class="feed-input" min="0" value="0" />
+            </label>
+            <label class="form-field">
+              <span class="form-lbl">Prioridad</span>
+              <select name="prioridad" id="gi-prioridad" class="feed-input">
+                <option value="critico">Crítico</option>
+                <option value="urgente" selected>Urgente</option>
+                <option value="normal">Normal</option>
+              </select>
+            </label>
+          </div>
+          <button type="submit" class="btn-submit" style="margin-top:1.25rem;width:100%;background:#f59e0b;color:#1a1a1a">
+            ✓ Agregar insumo
+          </button>
+        </form>
+
       </div>
     </div>
 
@@ -2086,6 +2191,33 @@ if (isAuth) {
   }
 
   /* ── Gemini Vision tab ───────────────────────────────────────── */
+  .gemini-actions {
+    display: flex;
+    gap: .5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+  .gem-action {
+    flex: 1;
+    min-width: 90px;
+    padding: .5rem .75rem;
+    background: #1f2937;
+    color: #9ca3af;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: .8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+    white-space: nowrap;
+  }
+  .gem-action:hover { background: #374151; color: #e5e7eb; }
+  .gem-action.active {
+    background: #F5A623;
+    color: #1a1a1a;
+    border-color: #F5A623;
+  }
   .gemini-preview {
     height: 200px;
     background: #1f2937;
@@ -2481,15 +2613,34 @@ if (isAuth) {
 
   // ── Gemini Vision tab
   ;(function() {
-    var geminiImg   = document.getElementById('geminiImg')
+    var geminiImg    = document.getElementById('geminiImg')
     if (!geminiImg) return
-    var btnSel      = document.getElementById('btnSeleccionar')
-    var btnExtraer  = document.getElementById('btnExtraer')
-    var preview     = document.getElementById('geminiPreview')
-    var previewImg  = document.getElementById('geminiPreviewImg')
-    var placeholder = document.getElementById('geminiPlaceholder')
-    var geminiMsg   = document.getElementById('geminiMsg')
-    var geminiForm  = document.getElementById('geminiForm')
+    var btnSel       = document.getElementById('btnSeleccionar')
+    var btnExtraer   = document.getElementById('btnExtraer')
+    var preview      = document.getElementById('geminiPreview')
+    var previewImg   = document.getElementById('geminiPreviewImg')
+    var placeholder  = document.getElementById('geminiPlaceholder')
+    var geminiMsg    = document.getElementById('geminiMsg')
+    var formMascota  = document.getElementById('geminiFormMascota')
+    var formFeed     = document.getElementById('geminiFormFeed')
+    var formInsumo   = document.getElementById('geminiFormInsumo')
+    var currentAction = 'mascota'
+
+    function hideAllForms() {
+      formMascota.style.display = 'none'
+      formFeed.style.display    = 'none'
+      formInsumo.style.display  = 'none'
+    }
+
+    document.querySelectorAll('.gem-action').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.gem-action').forEach(function(b) { b.classList.remove('active') })
+        btn.classList.add('active')
+        currentAction = btn.dataset.action
+        hideAllForms()
+        geminiMsg.style.display = 'none'
+      })
+    })
 
     function showMsg(text, ok) {
       geminiMsg.style.display     = 'block'
@@ -2518,6 +2669,38 @@ if (isAuth) {
       if (this.files[0]) loadPreview(this.files[0])
     })
 
+    function setVal(id, val) { if (val) { var el = document.getElementById(id); if (el) el.value = val } }
+    function setSelect(id, val) {
+      if (!val) return
+      var sel = document.getElementById(id)
+      if (!sel) return
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === val) { sel.selectedIndex = i; break }
+      }
+    }
+    function fillMascota(data) {
+      setVal('g-nombre', data.nombre)
+      setSelect('g-especie', data.especie)
+      setVal('g-color', data.color)
+      setVal('g-zona', data.zona)
+      setVal('g-descripcion', data.descripcion)
+      setVal('g-senias', data.senias)
+      setVal('g-contacto-nombre', data.contacto_nombre)
+      setVal('g-whatsapp', data.whatsapp)
+      setSelect('g-tipo', data.tipo)
+    }
+    function fillFeed(data) {
+      setSelect('gf-tipo', data.tipo)
+      setVal('gf-titulo', data.titulo)
+      setVal('gf-cuerpo', data.cuerpo)
+    }
+    function fillInsumo(data) {
+      setVal('gi-item', data.item)
+      if (data.cantidad_requerida) { var elReq = document.getElementById('gi-cantidad-req'); if (elReq) elReq.value = data.cantidad_requerida }
+      if (data.cantidad_recibida !== undefined) { var elRec = document.getElementById('gi-cantidad-rec'); if (elRec) elRec.value = data.cantidad_recibida }
+      setSelect('gi-prioridad', data.prioridad)
+    }
+
     btnExtraer.addEventListener('click', async function() {
       var file = geminiImg.files[0]
       if (!file) return
@@ -2532,7 +2715,7 @@ if (isAuth) {
           var r = await fetch('/api/gemini-extract', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ base64: base64, mime: mime })
+            body: JSON.stringify({ base64: base64, mime: mime, action: currentAction })
           })
           var data = await r.json()
           if (!r.ok || data.error) {
@@ -2540,26 +2723,21 @@ if (isAuth) {
             btnExtraer.disabled = false
             return
           }
-          if (data.nombre)      document.getElementById('g-nombre').value = data.nombre
-          if (data.especie) {
-            var selEsp = document.getElementById('g-especie')
-            for (var i = 0; i < selEsp.options.length; i++) {
-              if (selEsp.options[i].value === data.especie) { selEsp.selectedIndex = i; break }
-            }
-          }
-          if (data.color)       document.getElementById('g-color').value = data.color
-          if (data.zona)        document.getElementById('g-zona').value = data.zona
-          if (data.descripcion) document.getElementById('g-descripcion').value = data.descripcion
-          if (data.whatsapp)    document.getElementById('g-whatsapp').value = data.whatsapp
-          if (data.tipo) {
-            var selTip = document.getElementById('g-tipo')
-            for (var j = 0; j < selTip.options.length; j++) {
-              if (selTip.options[j].value === data.tipo) { selTip.selectedIndex = j; break }
-            }
+          hideAllForms()
+          if (currentAction === 'mascota') {
+            fillMascota(data)
+            formMascota.style.display = 'block'
+            formMascota.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          } else if (currentAction === 'feed') {
+            fillFeed(data)
+            formFeed.style.display = 'block'
+            formFeed.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          } else if (currentAction === 'insumo') {
+            fillInsumo(data)
+            formInsumo.style.display = 'block'
+            formInsumo.scrollIntoView({ behavior: 'smooth', block: 'start' })
           }
           showMsg('✓ Datos extraídos. Revisa y edita antes de guardar.', true)
-          geminiForm.style.display = 'block'
-          geminiForm.scrollIntoView({ behavior: 'smooth', block: 'start' })
           btnExtraer.disabled = false
         } catch(err) {
           showMsg('❌ Error de red: ' + err.message, false)
