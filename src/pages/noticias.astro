@@ -4,7 +4,7 @@ import { supabaseAdmin } from '../lib/supabase'
 
 const { data: notas } = await supabaseAdmin
   .from('feed')
-  .select('id, titulo, cuerpo, tipo, published_at')
+  .select('id, titulo, cuerpo, tipo, published_at, imagen_url')
   .order('published_at', { ascending: false })
   .neq('tipo', 'voluntario')
 
@@ -22,13 +22,12 @@ function tiempoRelativo(dateStr: string): string {
 }
 
 const TIPO_META: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  alerta:  { label: 'Alerta',   color: '#DC2626', bg: '#fef2f2', border: '#fecaca' },
-  rescate: { label: 'Rescate',  color: '#2563EB', bg: '#eff6ff', border: '#bfdbfe' },
-  buenas:  { label: '¡Buenas!', color: '#16A34A', bg: '#f0fdf4', border: '#bbf7d0' },
-  info:    { label: 'Info',     color: '#6B7280', bg: '#f9fafb', border: '#e5e7eb' },
+  alerta:    { label: 'Alerta',    color: '#EF4444', bg: '#fef2f2', border: '#fecaca' },
+  rescate:   { label: 'Rescate',   color: '#16A34A', bg: '#f0fdf4', border: '#bbf7d0' },
+  buenas:    { label: '¡Buenas!',  color: '#16A34A', bg: '#f0fdf4', border: '#bbf7d0' },
+  info:      { label: 'Info',      color: '#3B82F6', bg: '#eff6ff', border: '#bfdbfe' },
+  voluntario:{ label: 'Voluntarios',color: '#F59E0B', bg: '#fffbeb', border: '#fde68a' },
 }
-
-const BASE_URL = 'https://protegecolitas.org'
 ---
 <Base title="Noticias — Protege Colitas">
   <div class="page-inner">
@@ -38,33 +37,41 @@ const BASE_URL = 'https://protegecolitas.org'
     </div>
 
     {notas && notas.length > 0 ? (
-      <div class="feed-glass">
-        {notas.map((nota, i) => {
+      <div class="notas-grid">
+        {notas.map(nota => {
           const meta = TIPO_META[nota.tipo] ?? TIPO_META['info']
-          const d = nota.published_at ? new Date(nota.published_at) : null
-          const day = d ? d.getDate().toString().padStart(2, '0') : '--'
-          const mon = d
-            ? d.toLocaleDateString('es-VE', { month: 'short' }).toUpperCase().replace('.', '')
-            : '---'
-          const isLast = i === notas.length - 1
+          const hasImg = !!nota.imagen_url
           return (
-            <div class:list={['feed-item', { 'feed-item--last': isLast }]}>
-              <div class="feed-date" aria-hidden="true">
-                <span class="feed-day">{day}</span>
-                <span class="feed-mon">{mon}</span>
+            <article
+              class={`nota-card ${hasImg ? 'nota-card--img' : 'nota-card--text'}`}
+              style={!hasImg ? `border-top: 3px solid ${meta.color}` : ''}
+            >
+              {hasImg && (
+                <div class="nota-img-wrap">
+                  <img
+                    src={nota.imagen_url}
+                    alt={nota.titulo}
+                    class="nota-img"
+                    loading="lazy"
+                  />
+                  <span
+                    class="nota-badge nota-badge--overlay"
+                    style={`background:${meta.color}`}
+                  >{meta.label}</span>
+                </div>
+              )}
+              <div class="nota-body">
+                {!hasImg && (
+                  <span
+                    class="nota-badge"
+                    style={`color:${meta.color};background:${meta.bg};border:1px solid ${meta.border}`}
+                  >{meta.label}</span>
+                )}
+                <h2 class="nota-titulo">{nota.titulo}</h2>
+                <p class="nota-cuerpo">{nota.cuerpo}</p>
+                <span class="nota-fecha">{tiempoRelativo(nota.published_at)}</span>
               </div>
-              <div class="feed-content">
-                <span
-                  class="feed-badge"
-                  style={`color:${meta.color};background:${meta.bg};border:1px solid ${meta.border}`}
-                >
-                  {meta.label}
-                </span>
-                <h2 class="feed-title">{nota.titulo}</h2>
-                <p class="feed-body">{nota.cuerpo}</p>
-                <span class="feed-time">{tiempoRelativo(nota.published_at)}</span>
-              </div>
-            </div>
+            </article>
           )
         })}
       </div>
@@ -79,14 +86,15 @@ const BASE_URL = 'https://protegecolitas.org'
 
 <style>
 .page-inner {
-  max-width: 640px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 24px 16px;
+  padding: 24px 16px 40px;
   width: 100%;
 }
 
 .page-hero {
-  padding-bottom: 24px;
+  padding-bottom: 28px;
+  max-width: 560px;
 }
 
 .page-title {
@@ -110,109 +118,129 @@ const BASE_URL = 'https://protegecolitas.org'
   line-height: 1.5;
 }
 
-/* Glass container */
-.feed-glass {
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  border-radius: 18px;
-  box-shadow: 0 8px 32px rgba(61, 28, 2, 0.10);
-  padding: 0 20px;
-}
-
-/* Feed items */
-.feed-item {
-  display: flex;
+/* ── Grid ── */
+.notas-grid {
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 16px;
-  padding: 18px 0;
-  border-bottom: 1px solid rgba(61, 28, 2, 0.08);
-  align-items: flex-start;
+  align-items: start;
 }
-.feed-item--last {
-  border-bottom: none;
+@media (min-width: 640px) {
+  .notas-grid { grid-template-columns: repeat(2, 1fr); gap: 18px; }
+}
+@media (min-width: 1024px) {
+  .notas-grid { grid-template-columns: repeat(3, 1fr); gap: 20px; }
 }
 
-.feed-date {
+/* ── Card base ── */
+.nota-card {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border, #E5DDD0);
+  box-shadow: 0 2px 8px rgba(61, 28, 2, 0.06);
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+.nota-card:hover {
+  box-shadow: 0 6px 20px rgba(61, 28, 2, 0.12);
+  transform: translateY(-2px);
+}
+
+/* ── Image card ── */
+.nota-card--img { border-top: none; }
+
+.nota-img-wrap {
+  position: relative;
+  overflow: hidden;
   flex-shrink: 0;
-  width: 52px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-top: 2px;
 }
-
-.feed-day {
-  font-family: 'Fredoka', sans-serif;
-  font-weight: 700;
-  font-size: 24px;
-  color: var(--amarillo, #F5A623);
-  line-height: 1;
+.nota-img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
   display: block;
+  transition: transform 0.3s ease;
 }
+.nota-card--img:hover .nota-img { transform: scale(1.03); }
 
-.feed-mon {
+.nota-badge--overlay {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  color: #fff;
   font-family: 'Inter', sans-serif;
-  font-weight: 700;
   font-size: 10px;
-  color: var(--gris, #6B7280);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  display: block;
-  margin-top: 2px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 20px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.15);
 }
 
-.feed-content {
-  flex: 1;
-  min-width: 0;
+/* ── Text card ── */
+.nota-card--text {
+  border-top-width: 3px;
+}
+
+/* ── Card body ── */
+.nota-body {
+  padding: 14px 16px 16px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  gap: 6px;
+  flex: 1;
 }
 
-.feed-badge {
+/* ── Inline badge (text cards) ── */
+.nota-badge {
   font-family: 'Inter', sans-serif;
   font-weight: 700;
   font-size: 10px;
-  padding: 3px 8px;
+  padding: 3px 10px;
   border-radius: 20px;
   display: inline-flex;
   align-items: center;
-  margin-bottom: 6px;
   letter-spacing: 0.03em;
+  flex-shrink: 0;
 }
 
-.feed-title {
-  font-family: 'Inter', sans-serif;
-  font-weight: 600;
-  font-size: 15px;
+/* ── Typography ── */
+.nota-titulo {
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
   color: var(--marron, #3D1C02);
-  margin: 0 0 4px 0;
-  line-height: 1.35;
+  margin: 0;
+  line-height: 1.3;
+  text-wrap: balance;
 }
 
-.feed-body {
+.nota-cuerpo {
   font-family: 'Inter', sans-serif;
   font-weight: 400;
-  font-size: 13px;
+  font-size: 13.5px;
   color: var(--gris, #6B7280);
-  line-height: 1.5;
+  line-height: 1.55;
+  margin: 0;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  margin: 0 0 6px 0;
+  text-wrap: pretty;
 }
 
-.feed-time {
+.nota-fecha {
   font-family: 'Inter', sans-serif;
-  font-weight: 400;
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--gris, #6B7280);
+  margin-top: auto;
+  padding-top: 4px;
 }
 
-/* Empty state */
+/* ── Empty state ── */
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -221,18 +249,17 @@ const BASE_URL = 'https://protegecolitas.org'
   padding: 64px 20px;
   text-align: center;
 }
-
-.empty-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-  display: block;
-}
-
+.empty-icon { font-size: 48px; margin-bottom: 16px; display: block; }
 .empty-msg {
   font-family: 'Fredoka', sans-serif;
   font-weight: 700;
   font-size: 20px;
   color: var(--marron, #3D1C02);
   margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nota-card, .nota-img { transition: none; }
+  .nota-card:hover { transform: none; }
 }
 </style>
