@@ -502,6 +502,7 @@ if (isAuth) {
         <span class="stat-pill stat-azul">{stats.reunidas} reunidas</span>
         <span class="stat-pill stat-gris">{stats.vets} vets</span>
       </div>
+      <a href="https://protegecolitas.org" target="_blank" rel="noopener noreferrer" class="hdr-ver-sitio">Ver sitio →</a>
       <form method="POST" class="logout-form">
         <input type="hidden" name="action" value="logout" />
         <button type="submit" class="btn-logout">Salir</button>
@@ -554,8 +555,8 @@ if (isAuth) {
                       <span>{m.nombre ?? 'Sin nombre'}</span>
                       <a href={`/mascota/${m.id}`} target="_blank" class="ficha-link">Ver ficha →</a>
                     </td>
-                    <td>{m.especie}</td>
-                    <td>
+                    <td class="td-especie">{m.especie}</td>
+                    <td class="td-tipo">
                       {m.tipo === 'perdido'
                         ? <span class="badge badge-rojo">perdido</span>
                         : m.tipo === 'encontrado'
@@ -564,7 +565,7 @@ if (isAuth) {
                       }
                     </td>
                     <td class="td-zona">{m.zona}</td>
-                    <td>
+                    <td class="td-wa">
                       {m.whatsapp
                         ? <a href={`https://wa.me/58${m.whatsapp.slice(1)}`} class="link-wa" target="_blank" rel="noreferrer">💬</a>
                         : <span>—</span>
@@ -630,8 +631,8 @@ if (isAuth) {
                       <span>{m.nombre ?? 'Sin nombre'}</span>
                       <a href={`/mascota/${m.id}`} target="_blank" class="ficha-link">Ver ficha →</a>
                     </td>
-                    <td>{m.especie}</td>
-                    <td>
+                    <td class="td-especie">{m.especie}</td>
+                    <td class="td-tipo">
                       {m.tipo === 'perdido'
                         ? <span class="badge badge-rojo">perdido</span>
                         : m.tipo === 'encontrado'
@@ -640,7 +641,7 @@ if (isAuth) {
                       }
                     </td>
                     <td class="td-zona">{m.zona}</td>
-                    <td>
+                    <td class="td-wa">
                       {m.whatsapp
                         ? <a href={`https://wa.me/58${m.whatsapp.slice(1)}`} class="link-wa" target="_blank" rel="noreferrer">💬</a>
                         : <span>—</span>
@@ -700,7 +701,7 @@ if (isAuth) {
                       <span>{m.nombre ?? 'Sin nombre'}</span>
                       <a href={`/mascota/${m.id}`} target="_blank" class="ficha-link">Ver ficha →</a>
                     </td>
-                    <td>{m.especie}</td>
+                    <td class="td-especie">{m.especie}</td>
                     <td class="td-zona">{m.zona}</td>
                     <td class="td-time">{m.moderado_at ? rel(m.moderado_at) : '—'}</td>
                     <td>
@@ -1666,11 +1667,12 @@ if (isAuth) {
 
   /* ── Header ───────────────────────────────────────────────────────── */
   .hdr {
-    display: flex; align-items: center; gap: .75rem;
+    display: flex; align-items: center; gap: .625rem;
     padding: .875rem 1.5rem;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
     flex-wrap: wrap;
+    position: sticky; top: 0; z-index: 100;
   }
   .hdr-title  { font-weight: 700; font-size: 1rem; flex-shrink: 0; }
   .hdr-stats  { display: flex; gap: .375rem; flex-wrap: wrap; flex: 1; min-width: 0; }
@@ -1686,26 +1688,38 @@ if (isAuth) {
     font-size: .75rem; font-family: inherit; transition: border-color .15s, color .15s;
   }
   .btn-logout:hover { border-color: var(--rojo); color: var(--rojo); }
+  .hdr-ver-sitio {
+    flex-shrink: 0;
+    font-size: .72rem; font-weight: 600;
+    color: #F5A623; text-decoration: none;
+    border: 1px solid #F5A623;
+    padding: .3rem .75rem; border-radius: 6px;
+    white-space: nowrap;
+    transition: background .15s, color .15s;
+  }
+  .hdr-ver-sitio:hover { background: #F5A623; color: #3D1C02; }
 
   /* ── Tabs nav ─────────────────────────────────────────────────────── */
   .tabs-nav {
     display: flex; background: var(--surface);
     border-bottom: 1px solid var(--border);
     overflow-x: auto; scrollbar-width: none;
-    padding: 0 1.5rem;
+    padding: .5rem .75rem;
+    gap: .375rem;
   }
   .tabs-nav::-webkit-scrollbar { display: none; }
   .tab {
-    background: transparent; border: none;
-    border-bottom: 2px solid transparent;
-    color: var(--gris); padding: .875rem 1rem;
-    font-size: .85rem; font-weight: 600; cursor: pointer;
+    background: #1f2937; border: none;
+    border-radius: 100px;
+    color: #94a3b8; padding: .5rem 1rem;
+    font-size: .8rem; font-weight: 600; cursor: pointer;
     font-family: inherit; white-space: nowrap;
-    transition: color .15s, border-color .15s;
+    transition: background .15s, color .15s;
     display: flex; align-items: center; gap: .35rem;
+    min-height: 38px; flex-shrink: 0;
   }
-  .tab:hover { color: var(--texto); }
-  .tab.active { color: var(--azul); border-bottom-color: var(--azul); }
+  .tab:hover { background: #374151; color: #e5e7eb; }
+  .tab.active { background: #F5A623; color: #3D1C02; }
   .tab-badge {
     display: inline-flex; align-items: center; justify-content: center;
     min-width: 22px; height: 22px; border-radius: 11px;
@@ -1808,9 +1822,12 @@ if (isAuth) {
   .mt-sm { margin-top: .75rem; }
   .empty-msg { color: var(--gris); padding: 2rem; text-align: center; font-size: .875rem; }
 
+  /* ── Tab badge con fondo activo ────────────────────────────────────── */
+  .tab.active .tab-badge { background: rgba(61,28,2,.3); color: #3D1C02; }
+
   /* ── Tab agregar highlight ─────────────────────────────────────────── */
   .tab-agregar { color: #4ADE80; }
-  .tab-agregar.active { color: #4ADE80; border-bottom-color: #4ADE80; }
+  .tab-agregar.active { background: #4ADE80; color: #052e16; }
 
   /* ── Nueva mascota form extras ────────────────────────────────────── */
   .nm-hint {
@@ -1835,7 +1852,8 @@ if (isAuth) {
   .feed-select, .feed-input, .feed-textarea {
     background: #1f2937; border: 1px solid #374151;
     border-radius: 8px; color: #fff;
-    padding: 10px 12px; font-size: .875rem; font-family: inherit;
+    padding: 12px 14px; font-size: 1rem; font-family: inherit;
+    min-height: 48px;
   }
   .feed-select { flex-shrink: 0; }
   .feed-input  { flex: 1; }
@@ -1862,9 +1880,9 @@ if (isAuth) {
   /* Botón submit amarillo */
   .btn-submit {
     background: #F5A623; color: #3D1C02; font-weight: 700;
-    border: none; border-radius: 6px;
-    padding: .45rem .875rem; font-size: .8rem; font-family: inherit;
-    cursor: pointer; min-height: 36px; transition: opacity .15s;
+    border: none; border-radius: 10px;
+    padding: .625rem 1rem; font-size: .9375rem; font-family: inherit;
+    cursor: pointer; min-height: 44px; transition: opacity .15s;
   }
   .btn-submit:hover { opacity: .85; }
 
@@ -1921,32 +1939,141 @@ if (isAuth) {
   /* ── Panel wrapper ────────────────────────────────────────────────── */
   .panel { max-width: 1200px; margin: 0 auto; }
 
-  /* ── Responsive ───────────────────────────────────────────────────── */
+  /* ── Responsive — Mobile-first cards ─────────────────────────────── */
   @media (max-width: 767px) {
     .tab-pane { padding: 1rem; }
-    .hdr      { padding: .75rem 1rem; }
-    .tabs-nav { padding: 0; }
-
-    /* Ocultar columnas Animal(3) y Hace(7) en mobile */
-    #tbl-pendientes th:nth-child(3), #tbl-pendientes td:nth-child(3),
-    #tbl-pendientes th:nth-child(7), #tbl-pendientes td:nth-child(7),
-    #tbl-publicadas th:nth-child(3), #tbl-publicadas td:nth-child(3),
-    #tbl-publicadas th:nth-child(7), #tbl-publicadas td:nth-child(7),
-    #tbl-reunidas   th:nth-child(3), #tbl-reunidas   td:nth-child(3),
-    #tbl-reunidas   th:nth-child(5), #tbl-reunidas   td:nth-child(5) { display: none; }
-
-    .td-photo { width: 68px; padding: .75rem .5rem; }
-    .thumb     { width: 56px !important; height: 56px !important; }
-    .thumb-empty { width: 56px !important; height: 56px !important; font-size: 1.4rem; }
-    td { height: 72px; }
-    .btn { min-width: 60px; font-size: .75rem; }
+    .hdr { padding: .625rem 1rem; gap: .5rem; }
+    .tabs-nav { padding: .375rem .5rem; }
     .nuevo-section { max-width: 100%; }
     .feed-form { max-width: 100%; }
+
+    /* ── Table → Card layout ────────────────────────────────────────── */
+    .table-wrap { border: none; overflow: visible; border-radius: 0; }
+    table { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+    thead { display: none; }
+    tbody { display: contents; }
+
+    tr {
+      display: flex;
+      flex-wrap: wrap;
+      align-content: flex-start;
+      gap: 6px;
+      padding: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      height: auto !important;
+    }
+    /* Reset alternating/hover tints inside cards */
+    tr:nth-child(even) td { background: transparent; }
+    tr:hover td { background: transparent; }
+
+    td {
+      height: auto !important;
+      border: none;
+      padding: 0;
+      display: flex;
+      align-items: center;
+    }
+
+    /* Photo — fixed 88px column */
+    .td-photo { width: 88px; flex-shrink: 0; align-self: flex-start; padding: 0; }
+    .thumb { width: 80px !important; height: 80px !important; }
+    .thumb-empty { width: 80px !important; height: 80px !important; font-size: 1.75rem; }
+
+    /* Name — fills space next to photo */
+    .td-name {
+      width: calc(100% - 100px);
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+      font-size: .9375rem;
+      max-width: none;
+      padding-bottom: 2px;
+      height: auto;
+    }
+
+    /* Especie chip */
+    .td-especie {
+      font-size: .75rem;
+      background: rgba(148,163,184,.12);
+      border-radius: 6px;
+      padding: 3px 8px;
+      color: var(--gris);
+      height: auto;
+    }
+
+    /* Tipo badge cell */
+    .td-tipo { height: auto; }
+
+    /* Zona — full width */
+    .td-zona {
+      width: 100%;
+      flex-shrink: 0;
+      max-width: 100%;
+      overflow: visible;
+      white-space: normal;
+      font-size: .8125rem;
+      padding: 2px 0;
+    }
+
+    /* WA */
+    .td-wa { font-size: 1rem; height: auto; }
+
+    /* Time — hide on mobile */
+    .td-time { display: none !important; }
+    .td-urgente { display: none !important; }
+
+    /* Actions — full-width stacked buttons */
+    .td-actions {
+      width: 100%;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-top: 10px;
+      white-space: normal;
+    }
+    .td-actions .btn {
+      width: 100%;
+      min-height: 48px;
+      font-size: .9rem;
+      border-radius: 10px;
+      justify-content: center;
+    }
+    .td-actions .btn + .btn { margin-left: 0; }
+
+    /* ── Modal mobile ───────────────────────────────────────────────── */
+    .modal-overlay { padding: .5rem; align-items: flex-end; }
+    .modal-box {
+      width: 95vw;
+      max-width: 95vw;
+      max-height: 85dvh;
+      border-radius: 16px 16px 10px 10px;
+    }
+    .modal-grid { grid-template-columns: 1fr; }
+    .modal-field--full { grid-column: 1; }
+    .modal-actions {
+      position: sticky;
+      bottom: 0;
+      background: #1a1d27;
+      padding: .75rem 0 .25rem;
+      flex-direction: column;
+      gap: .5rem;
+      margin-top: .25rem;
+    }
+    .modal-actions .btn-submit,
+    .modal-actions .btn { width: 100%; min-height: 48px; font-size: .9375rem; }
+
+    /* ── Submit buttons en forms ───────────────────────────────────── */
+    .btn-submit { width: 100%; }
+    .insumo-search-input { font-size: 1rem; }
   }
 
   @media (max-width: 480px) {
-    .hdr { gap: .5rem; }
-    .tab { padding: .625rem .75rem; font-size: .75rem; }
+    .hdr { gap: .375rem; }
     .feed-row { flex-direction: column; }
   }
 
@@ -2003,8 +2130,9 @@ if (isAuth) {
   }
   .modal-input {
     background: #0f1117; border: 1px solid #374151; border-radius: 8px;
-    color: #fff; padding: 10px 12px; font-size: .875rem;
+    color: #fff; padding: 12px 14px; font-size: 1rem;
     font-family: inherit; width: 100%; transition: border-color .15s;
+    min-height: 48px;
   }
   .modal-input:focus { outline: none; border-color: #F5A623; }
   .modal-input option { background: #0f1117; }
