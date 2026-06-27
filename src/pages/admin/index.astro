@@ -1,4 +1,4 @@
----
+﻿---
 import { supabaseAdmin } from '../../lib/supabase'
 import { createHmac, timingSafeEqual } from 'crypto'
 import * as dotenv from 'dotenv'
@@ -437,6 +437,7 @@ if (isAuth) {
   necesidades = (mn.data   ?? []) as Necesidad[]
   banners     = (mb.data   ?? []) as Banner[]
   stats = { pendientes: sp.count ?? 0, publicadas: spub.count ?? 0, reunidas: sreu.count ?? 0, vets: sv.count ?? 0 }
+  const adopcion = publicadas.filter((m: Mascota) => m.tipo === 'adopcion')
 
   // Analytics queries
   const now     = new Date()
@@ -494,87 +495,141 @@ if (isAuth) {
 ) : (
   <div class="panel">
 
-    <header class="hdr">
-      <span class="hdr-title">🐾 Centro de Control</span>
-      <div class="hdr-stats">
-        <span class="stat-pill stat-naranja">{stats.pendientes} pendientes</span>
-        <span class="stat-pill stat-verde">{stats.publicadas} publicadas</span>
-        <span class="stat-pill stat-azul">{stats.reunidas} reunidas</span>
-        <span class="stat-pill stat-gris">{stats.vets} vets</span>
+    <!-- ═══ HOME: GRID DE TILES ═══ -->
+    <div id="home">
+      <header class="hdr">
+        <div class="hdr-left">
+          <span class="hdr-logo">🐾</span>
+          <span class="hdr-title">Centro de Control</span>
+        </div>
+        <div class="hdr-badges">
+          {stats.pendientes > 0 && <span class="hdr-badge badge-rojo">{stats.pendientes} pendientes</span>}
+          <span class="hdr-badge badge-verde">{stats.publicadas} publicadas</span>
+          <span class="hdr-badge badge-azul">{stats.reunidas} reunidas</span>
+        </div>
+        <div class="hdr-right">
+          <a href="https://protegecolitas.org" target="_blank" rel="noopener" class="btn-sitio">Ver sitio →</a>
+          <form method="POST" style="display:inline">
+            <input type="hidden" name="action" value="logout" />
+            <button type="submit" class="btn-salir">Salir</button>
+          </form>
+        </div>
+      </header>
+
+      <div class="tile-grid">
+        <!-- 1. Pendientes -->
+        <button class="tile tile-pendiente" onclick="showModule('pendientes')">
+          <span class="tile-icon">⏳</span>
+          <span class="tile-label">Pendientes</span>
+          <span class="tile-count">
+            {stats.pendientes}
+            {stats.pendientes > 0 && <span class="pulse-dot"></span>}
+          </span>
+        </button>
+
+        <!-- 2. Publicadas -->
+        <button class="tile tile-publicadas" onclick="showModule('publicadas')">
+          <span class="tile-icon">🐾</span>
+          <span class="tile-label">Publicadas</span>
+          <span class="tile-count">{stats.publicadas}</span>
+        </button>
+
+        <!-- 3. Adopción -->
+        <button class="tile tile-adopcion" onclick="showModule('adopcion')">
+          <span class="tile-icon">🏠</span>
+          <span class="tile-label">En adopción</span>
+          <span class="tile-count">{adopcion.length}</span>
+        </button>
+
+        <!-- 4. Agregar -->
+        <button class="tile tile-agregar" onclick="showModule('agregar')">
+          <span class="tile-icon">➕</span>
+          <span class="tile-label">Agregar</span>
+          <span class="tile-sub">mascota directa</span>
+        </button>
+
+        <!-- 5. Gemini -->
+        <button class="tile tile-gemini" onclick="showModule('gemini')">
+          <span class="tile-icon">📸</span>
+          <span class="tile-label">Gemini</span>
+          <span class="tile-sub">desde foto</span>
+        </button>
+
+        <!-- 6. Vets -->
+        <button class="tile tile-vets" onclick="showModule('vets')">
+          <span class="tile-icon">🩺</span>
+          <span class="tile-label">Veterinarios</span>
+          <span class="tile-count">{stats.vets}</span>
+        </button>
+
+        <!-- 7. Feed -->
+        <button class="tile tile-feed" onclick="showModule('feed')">
+          <span class="tile-icon">📰</span>
+          <span class="tile-label">Feed</span>
+          <span class="tile-sub">noticias</span>
+        </button>
+
+        <!-- 8. Insumos -->
+        <button class="tile tile-insumos" onclick="showModule('insumos')">
+          <span class="tile-icon">📦</span>
+          <span class="tile-label">Insumos</span>
+          <span class="tile-count">{necesidades.length}</span>
+        </button>
+
+        <!-- 9. Analíticas -->
+        <button class="tile tile-analiticas" onclick="showModule('analiticas')">
+          <span class="tile-icon">📊</span>
+          <span class="tile-label">Analíticas</span>
+          <span class="tile-sub">hoy: {visitasHoy}</span>
+        </button>
+
+        <!-- 10. Banners -->
+        <button class="tile tile-banners" onclick="showModule('banners')">
+          <span class="tile-icon">🖼️</span>
+          <span class="tile-label">Banners</span>
+          <span class="tile-count">{banners.length}</span>
+        </button>
       </div>
-      <a href="https://protegecolitas.org" target="_blank" rel="noopener noreferrer" class="hdr-ver-sitio">Ver sitio →</a>
-      <form method="POST" class="logout-form">
-        <input type="hidden" name="action" value="logout" />
-        <button type="submit" class="btn-logout">Salir</button>
-      </form>
-    </header>
+    </div>
 
-    <nav class="tabs-nav" role="tablist" aria-label="Secciones del panel">
-      <button class="tab active" data-tab="publicadas" role="tab" aria-selected="true">Publicadas</button>
-      <button class="tab tab-agregar" data-tab="agregar" role="tab" aria-selected="false">➕ Agregar</button>
-      <button class="tab" data-tab="pendientes" role="tab" aria-selected="false">
-        Mascotas pendientes
-        <span class={`tab-badge${pendientes.length === 0 ? ' zero' : ''}`}>{pendientes.length}</span>
-      </button>
-      <button class="tab" data-tab="vets" role="tab" aria-selected="false">Veterinarios</button>
-      <button class="tab" data-tab="feed" role="tab" aria-selected="false">Feed</button>
-      <button class="tab" data-tab="insumos" role="tab" aria-selected="false">Insumos</button>
-      <button class="tab" data-tab="analytics" role="tab" aria-selected="false">Analíticas</button>
-      <button class="tab" data-tab="gemini" role="tab" aria-selected="false">📸 Desde foto</button>
-      <button class="tab" data-tab="banners" role="tab" aria-selected="false">Banners</button>
-    </nav>
-
-    <!-- TAB 1: PENDIENTES -->
-    <div id="tab-pendientes" class="tab-pane">
-      {pendientes.length === 0
-        ? <p class="empty-msg">No hay mascotas pendientes ✓</p>
-        : <Fragment>
-            <div class="admin-search-bar">
-              <input type="text" id="searchPendientes" placeholder="Buscar por nombre, zona, especie..." class="admin-search-input" />
-            </div>
-            <div class="table-wrap">
-            <table id="tbl-pendientes">
-              <thead>
-                <tr>
-                  <th>Foto</th><th>Nombre</th><th>Animal</th><th>Tipo</th>
-                  <th>Zona</th><th>WA</th><th>Hace</th><th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody id="tablaPendientes">
+    <!-- ═══ MÓDULO: PENDIENTES ═══ -->
+    <div id="mod-pendientes" class="module" hidden>
+      <div class="mod-hdr">
+        <button class="btn-back" onclick="showHome()">← Inicio</button>
+        <span class="mod-title">⏳ Pendientes</span>
+        <span></span>
+      </div>
+      <div class="mod-body">
+        {pendientes.length === 0
+          ? <p class="empty-msg">No hay mascotas pendientes ✓</p>
+          : <Fragment>
+              <div class="search-bar">
+                <input type="text" id="searchPendientes" placeholder="Buscar por nombre, zona, especie…" class="search-input" oninput="filterCards('searchPendientes','pendiente-card')" />
+              </div>
+              <div class="card-list" id="listaPendientes">
                 {pendientes.map(m => (
-                  <tr id={`row-${m.id}`} class="pendiente-row">
-                    <td class="td-photo">
+                  <div id={`row-${m.id}`} class="mcard pendiente-card">
+                    <div class="mcard-media">
                       {m.foto_url
                         ? <a href={m.foto_url} target="_blank" rel="noreferrer">
-                            <img src={m.foto_url} alt="" class="thumb" loading="lazy" />
+                            <img src={m.foto_url} alt="" class="mcard-img" loading="lazy" />
                           </a>
-                        : <div class="thumb-empty">🐾</div>
+                        : <div class="mcard-nofoto">🐾</div>
                       }
-                    </td>
-                    <td class="td-name">
-                      <span>{m.nombre ?? 'Sin nombre'}</span>
-                      <a href={`/mascota/${m.id}`} target="_blank" class="ficha-link">Ver ficha →</a>
-                    </td>
-                    <td class="td-especie">{m.especie}</td>
-                    <td class="td-tipo">
-                      {m.tipo === 'perdido'
-                        ? <span class="badge badge-rojo">perdido</span>
-                        : m.tipo === 'encontrado'
-                          ? <span class="badge badge-verde">encontrado</span>
-                          : <span class="badge badge-gris">—</span>
-                      }
-                    </td>
-                    <td class="td-zona">{m.zona}</td>
-                    <td class="td-wa">
-                      {m.whatsapp
-                        ? <a href={`https://wa.me/58${m.whatsapp.slice(1)}`} class="link-wa" target="_blank" rel="noreferrer">💬</a>
-                        : <span>—</span>
-                      }
-                    </td>
-                    <td class="td-time">{rel(m.created_at)}</td>
-                    <td class="td-actions">
+                    </div>
+                    <div class="mcard-info">
+                      <span class="mcard-name">{m.nombre ?? 'Sin nombre'}</span>
+                      <span class="mcard-meta">{m.especie} · {m.zona} · hace {rel(m.created_at)}</span>
+                      <div class="mcard-badges">
+                        {m.tipo === 'perdido' && <span class="badge badge-rojo">perdido</span>}
+                        {m.tipo === 'encontrado' && <span class="badge badge-verde">encontrado</span>}
+                        {m.tipo === 'adopcion' && <span class="badge badge-azul">adopción</span>}
+                        {m.descripcion && <span class="mcard-desc">{m.descripcion.slice(0,60)}{m.descripcion.length > 60 ? '…' : ''}</span>}
+                      </div>
+                    </div>
+                    <div class="mcard-actions">
                       <button class="btn btn-verde" data-action="aprobar" data-id={m.id} data-row={`row-${m.id}`}>✓ Aprobar</button>
-                      <button class="btn btn-rojo"  data-action="rechazar" data-id={m.id} data-row={`row-${m.id}`} data-confirm="¿Rechazar este reporte?">✗ Rechazar</button>
+                      <button class="btn btn-rojo" data-action="rechazar" data-id={m.id} data-row={`row-${m.id}`} data-confirm="¿Rechazar este reporte?">✗ Rechazar</button>
                       <button class="btn btn-outline btn-icon btn-edit-mascota"
                         data-id={m.id}
                         data-nombre={m.nombre ?? ''}
@@ -588,71 +643,53 @@ if (isAuth) {
                         data-fotourl={m.foto_url ?? ''}
                         title="Editar"
                       >✏️</button>
-                    </td>
-                  </tr>
+                      {m.whatsapp && <a href={`https://wa.me/58${m.whatsapp.slice(1)}`} class="btn btn-wa" target="_blank" rel="noreferrer">💬</a>}
+                      <a href={`/mascota/${m.id}`} target="_blank" class="btn btn-outline btn-sm">Ver →</a>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
-          </Fragment>
-      }
+              </div>
+            </Fragment>
+        }
+      </div>
     </div>
 
-    <!-- TAB 2: PUBLICADAS -->
-    <div id="tab-publicadas" class="tab-pane active">
-      {publicadas.length > 0 && (
-        <Fragment>
-          <h3 class="sub-title">Publicadas ({publicadas.length})</h3>
-          <div class="admin-search-bar">
-            <input type="text" id="searchPublicadas" placeholder="Buscar por nombre, zona, especie..." class="admin-search-input" />
-          </div>
-          <div class="table-wrap">
-            <table id="tbl-publicadas">
-              <thead>
-                <tr>
-                  <th>Foto</th><th>Nombre</th><th>Animal</th><th>Tipo</th>
-                  <th>Zona</th><th>WA</th><th>Hace</th><th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody id="tablaPublicadas">
-                {publicadas.map((m) => {
-                  const diasPub = Math.floor((Date.now() - new Date(m.created_at).getTime()) / 86400000)
-                  return (
-                  <tr id={`row-${m.id}`} class="mascota-row">
-                    <td class="td-photo">
+    <!-- ═══ MÓDULO: PUBLICADAS ═══ -->
+    <div id="mod-publicadas" class="module" hidden>
+      <div class="mod-hdr">
+        <button class="btn-back" onclick="showHome()">← Inicio</button>
+        <span class="mod-title">🐾 Publicadas ({publicadas.length})</span>
+        <span></span>
+      </div>
+      <div class="mod-body">
+        {publicadas.length === 0
+          ? <p class="empty-msg">No hay mascotas publicadas</p>
+          : <Fragment>
+              <div class="search-bar">
+                <input type="text" id="searchPublicadas" placeholder="Buscar por nombre, zona, especie…" class="search-input" oninput="filterCards('searchPublicadas','publicada-card')" />
+              </div>
+              <div class="card-list">
+                {publicadas.map(m => (
+                  <div id={`row-${m.id}`} class="mcard publicada-card">
+                    <div class="mcard-media">
                       {m.foto_url
                         ? <a href={m.foto_url} target="_blank" rel="noreferrer">
-                            <img src={m.foto_url} alt="" class="thumb" loading="lazy" />
+                            <img src={m.foto_url} alt="" class="mcard-img" loading="lazy" />
                           </a>
-                        : <div class="thumb-empty">🐾</div>
+                        : <div class="mcard-nofoto">🐾</div>
                       }
-                    </td>
-                    <td class="td-name">
-                      <span>{m.nombre ?? 'Sin nombre'}</span>
-                      <a href={`/mascota/${m.id}`} target="_blank" class="ficha-link">Ver ficha →</a>
-                    </td>
-                    <td class="td-especie">{m.especie}</td>
-                    <td class="td-tipo">
-                      {m.tipo === 'perdido'
-                        ? <span class="badge badge-rojo">perdido</span>
-                        : m.tipo === 'encontrado'
-                          ? <span class="badge badge-verde">encontrado</span>
-                          : <span class="badge badge-gris">—</span>
-                      }
-                    </td>
-                    <td class="td-zona">{m.zona}</td>
-                    <td class="td-wa">
-                      {m.whatsapp
-                        ? <a href={`https://wa.me/58${m.whatsapp.slice(1)}`} class="link-wa" target="_blank" rel="noreferrer">💬</a>
-                        : <span>—</span>
-                      }
-                    </td>
-                    <td class={`td-time${diasPub >= 3 ? ' td-urgente' : ''}`} title={diasPub >= 3 ? `Lleva ${diasPub} días sin resolver` : ''}>
-                      {rel(m.created_at)}
-                    </td>
-                    <td class="td-actions">
-                      <button class="btn btn-azul" data-action="reunir" data-id={m.id} data-row={`row-${m.id}`}>✓ Reunida</button>
-                      <button class="btn btn-verde btn-icon" data-action="adoptar_mascota" data-id={m.id} data-confirm="¿Marcar como EN ADOPCIÓN? Pasará a la sección /adoptar" data-reload="true" title="Marcar en adopción">🏠</button>
+                    </div>
+                    <div class="mcard-info">
+                      <span class="mcard-name">{m.nombre ?? 'Sin nombre'}</span>
+                      <span class="mcard-meta">{m.especie} · {m.zona} · hace {rel(m.created_at)}</span>
+                      <div class="mcard-badges">
+                        {m.tipo === 'perdido' && <span class="badge badge-rojo">perdido</span>}
+                        {m.tipo === 'encontrado' && <span class="badge badge-verde">encontrado</span>}
+                        {m.tipo === 'adopcion' && <span class="badge badge-azul">adopción</span>}
+                      </div>
+                    </div>
+                    <div class="mcard-actions">
+                      <button class="btn btn-azul" data-action="reunir" data-id={m.id} data-row={`row-${m.id}`} data-confirm="¿Marcar como reunida?">🤝 Reunida</button>
                       <button class="btn btn-outline btn-icon btn-edit-mascota"
                         data-id={m.id}
                         data-nombre={m.nombre ?? ''}
@@ -666,373 +703,430 @@ if (isAuth) {
                         data-fotourl={m.foto_url ?? ''}
                         title="Editar"
                       >✏️</button>
-                      <button class="btn btn-rojo btn-icon" data-action="eliminar_mascota" data-id={m.id} data-row={`row-${m.id}`} data-confirm="¿Eliminar mascota?">✕</button>
-                    </td>
-                  </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </Fragment>
-      )}
-      {reunidas.length > 0 && (
-        <Fragment>
-          <h3 class={`sub-title${publicadas.length > 0 ? ' mt' : ''}`}>Reunidas ({reunidas.length})</h3>
-          <div class="table-wrap">
-            <table id="tbl-reunidas">
-              <thead>
-                <tr>
-                  <th>Foto</th><th>Nombre</th><th>Animal</th><th>Zona</th><th>Reunida hace</th><th>Eliminar</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reunidas.map(m => (
-                  <tr id={`row-${m.id}`}>
-                    <td class="td-photo">
-                      {m.foto_url
-                        ? <a href={m.foto_url} target="_blank" rel="noreferrer">
-                            <img src={m.foto_url} alt="" class="thumb" loading="lazy" />
-                          </a>
-                        : <div class="thumb-empty">🐾</div>
-                      }
-                    </td>
-                    <td class="td-name">
-                      <span>{m.nombre ?? 'Sin nombre'}</span>
-                      <a href={`/mascota/${m.id}`} target="_blank" class="ficha-link">Ver ficha →</a>
-                    </td>
-                    <td class="td-especie">{m.especie}</td>
-                    <td class="td-zona">{m.zona}</td>
-                    <td class="td-time">{m.moderado_at ? rel(m.moderado_at) : '—'}</td>
-                    <td>
-                      <button class="btn btn-rojo btn-icon" data-action="eliminar_mascota" data-id={m.id} data-row={`row-${m.id}`} data-confirm="¿Eliminar mascota reunida?">✕</button>
-                    </td>
-                  </tr>
+                      <button class="btn btn-rojo btn-icon" data-action="eliminar_mascota" data-id={m.id} data-row={`row-${m.id}`} data-confirm="¿Eliminar esta mascota?">✕</button>
+                      {m.whatsapp && <a href={`https://wa.me/58${m.whatsapp.slice(1)}`} class="btn btn-wa" target="_blank" rel="noreferrer">💬</a>}
+                      <a href={`/mascota/${m.id}`} target="_blank" class="btn btn-outline btn-sm">Ver →</a>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </Fragment>
-      )}
-      {publicadas.length === 0 && reunidas.length === 0 && (
-        <p class="empty-msg">No hay mascotas publicadas</p>
-      )}
-    </div>
-
-    <!-- TAB AGREGAR: NUEVA MASCOTA -->
-    <div id="tab-agregar" class="tab-pane">
-      <div class="nuevo-section" style="max-width:760px">
-        <h4 class="form-section-title">Registrar nueva mascota</h4>
-        <form id="form-nueva-mascota" class="nuevo-form" enctype="multipart/form-data">
-
-          <!-- Row 1: especie · tipo · status -->
-          <div class="nuevo-form-grid">
-            <label class="form-field">
-              <span class="form-lbl">Especie *</span>
-              <select name="especie" required class="feed-select">
-                <option value="Perro">🐕 Perro</option>
-                <option value="Gato">🐈 Gato</option>
-                <option value="Ave">🐦 Ave</option>
-                <option value="Otro">🐾 Otro</option>
-              </select>
-            </label>
-            <label class="form-field">
-              <span class="form-lbl">Tipo *</span>
-              <select name="tipo" required class="feed-select">
-                <option value="perdido">🔴 Perdido</option>
-                <option value="encontrado">🔵 Encontrado</option>
-                <option value="adopcion">🏠 En adopción</option>
-              </select>
-            </label>
-            <label class="form-field">
-              <span class="form-lbl">Estado</span>
-              <select name="status" class="feed-select">
-                <option value="publicado">✓ Publicado</option>
-                <option value="pendiente">⏳ Pendiente</option>
-              </select>
-            </label>
-          </div>
-
-          <!-- Row 2: nombre · color · tamanio -->
-          <div class="nuevo-form-grid">
-            <label class="form-field">
-              <span class="form-lbl">Nombre</span>
-              <input type="text" name="nombre" maxlength="100" placeholder="Toby, Luna…" class="feed-input" />
-            </label>
-            <label class="form-field">
-              <span class="form-lbl">Color</span>
-              <input type="text" name="color" maxlength="80" placeholder="Marrón, blanco y negro…" class="feed-input" />
-            </label>
-            <label class="form-field">
-              <span class="form-lbl">Tamaño</span>
-              <select name="tamanio" class="feed-select">
-                <option value="">— sin especificar —</option>
-                <option value="Pequeño">Pequeño</option>
-                <option value="Mediano">Mediano</option>
-                <option value="Grande">Grande</option>
-              </select>
-            </label>
-          </div>
-
-          <!-- Row 3: zona (full) -->
-          <label class="form-field" style="width:100%">
-            <span class="form-lbl">Zona * (mín. 5 caracteres)</span>
-            <input type="text" name="zona" required minlength="5" maxlength="120" placeholder="Porlamar, Nueva Esparta" class="feed-input" />
-          </label>
-
-          <!-- Row 4: whatsapp · contacto -->
-          <div class="nuevo-form-grid">
-            <label class="form-field">
-              <span class="form-lbl">WhatsApp * (04XX-XXXXXXX)</span>
-              <input type="tel" name="whatsapp" required pattern="04[0-9]{2}[0-9]{7}" maxlength="11" placeholder="04140000000" class="feed-input" id="nm-wa" />
-            </label>
-            <label class="form-field">
-              <span class="form-lbl">Nombre del contacto</span>
-              <input type="text" name="contacto_nombre" maxlength="100" placeholder="María, Cruz Roja…" class="feed-input" />
-            </label>
-          </div>
-          <p id="nm-wa-hint" class="nm-hint" aria-live="polite"></p>
-
-          <!-- Row 5: descripcion -->
-          <label class="form-field" style="width:100%">
-            <span class="form-lbl">Descripción</span>
-            <textarea name="descripcion" rows="3" maxlength="600" placeholder="Características físicas, comportamiento, contexto del encuentro…" class="feed-textarea"></textarea>
-          </label>
-
-          <!-- Row 6: senias -->
-          <label class="form-field" style="width:100%">
-            <span class="form-lbl">Señas particulares</span>
-            <textarea name="senias" rows="2" maxlength="300" placeholder="Cicatriz en la pata delantera, collar rojo, mancha en el ojo…" class="feed-textarea"></textarea>
-          </label>
-
-          <!-- Row 7: foto -->
-          <label class="form-field" style="width:100%">
-            <span class="form-lbl">Foto principal (opcional · máx 5MB)</span>
-            <input type="file" name="foto" accept="image/*" class="upload-input" id="nm-foto" />
-          </label>
-
-          <!-- Preview foto -->
-          <div id="nm-preview-wrap" style="display:none">
-            <img id="nm-preview" alt="Vista previa" class="nm-preview-img" />
-          </div>
-
-          <div style="display:flex;align-items:center;gap:1rem;margin-top:.25rem">
-            <button type="submit" class="btn-submit" id="nm-submit">Crear mascota</button>
-            <span id="nm-msg" class="nm-success" aria-live="polite"></span>
-          </div>
-
-        </form>
-      </div>
-    </div>
-
-    <!-- TAB 3: VETERINARIOS -->
-    <div id="tab-vets" class="tab-pane">
-      <div class="nuevo-section">
-        <h4 class="form-section-title">Registrar veterinario</h4>
-        <form id="form-nuevo-vet" class="nuevo-form">
-          <div class="nuevo-form-grid">
-            <label class="form-field">
-              <span class="form-lbl">Nombre *</span>
-              <input type="text" name="nombre" required class="feed-input" />
-            </label>
-            <label class="form-field">
-              <span class="form-lbl">Zona *</span>
-              <input type="text" name="zona" required class="feed-input" />
-            </label>
-            <label class="form-field">
-              <span class="form-lbl">WhatsApp 04XX... *</span>
-              <input type="tel" name="whatsapp" required class="feed-input" />
-            </label>
-            <label class="form-field">
-              <span class="form-lbl">Servicios (opcional)</span>
-              <input type="text" name="servicios" class="feed-input" />
-            </label>
-            <label class="form-field">
-              <span class="form-lbl">Horario (opcional)</span>
-              <input type="text" name="horario" class="feed-input" />
-            </label>
-          </div>
-          <button type="submit" class="btn-submit" style="margin-top:.75rem">+ Registrar vet</button>
-        </form>
-      </div>
-      {vets.length === 0
-        ? <p class="empty-msg mt-sm">No hay veterinarios registrados aún</p>
-        : <Fragment>
-            <div class="admin-search-bar">
-              <input type="text" id="searchVets" placeholder="Buscar veterinario por nombre o zona..." class="admin-search-input" />
+              </div>
+            </Fragment>
+        }
+        {reunidas.length > 0 && (
+          <Fragment>
+            <h3 class="section-divider">✅ Reunidas ({reunidas.length})</h3>
+            <div class="card-list">
+              {reunidas.map(m => (
+                <div id={`row-${m.id}`} class="mcard mcard-reunida">
+                  <div class="mcard-media">
+                    {m.foto_url
+                      ? <img src={m.foto_url} alt="" class="mcard-img" loading="lazy" />
+                      : <div class="mcard-nofoto">✅</div>
+                    }
+                  </div>
+                  <div class="mcard-info">
+                    <span class="mcard-name">{m.nombre ?? 'Sin nombre'}</span>
+                    <span class="mcard-meta">{m.especie} · {m.zona} · reunida hace {m.moderado_at ? rel(m.moderado_at) : '—'}</span>
+                  </div>
+                  <div class="mcard-actions">
+                    <button class="btn btn-rojo btn-icon" data-action="eliminar_mascota" data-id={m.id} data-row={`row-${m.id}`} data-confirm="¿Eliminar mascota reunida?">✕</button>
+                    <a href={`/mascota/${m.id}`} target="_blank" class="btn btn-outline btn-sm">Ver →</a>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div class="table-wrap mt">
-            <table>
-              <thead>
-                <tr>
-                  <th>Nombre</th><th>Zona</th><th>WhatsApp</th>
-                  <th>Servicios</th><th>Horario</th><th>Hace</th><th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody id="tablaVets">
+          </Fragment>
+        )}
+      </div>
+    </div>
+
+    <!-- ═══ MÓDULO: ADOPCIÓN ═══ -->
+    <div id="mod-adopcion" class="module" hidden>
+      <div class="mod-hdr">
+        <button class="btn-back" onclick="showHome()">← Inicio</button>
+        <span class="mod-title">🏠 En adopción ({adopcion.length})</span>
+        <span></span>
+      </div>
+      <div class="mod-body">
+        {adopcion.length === 0
+          ? <p class="empty-msg">No hay mascotas en adopción publicadas</p>
+          : <div class="card-list">
+              {adopcion.map(m => (
+                <div id={`row-adop-${m.id}`} class="mcard">
+                  <div class="mcard-media">
+                    {m.foto_url
+                      ? <a href={m.foto_url} target="_blank" rel="noreferrer">
+                          <img src={m.foto_url} alt="" class="mcard-img" loading="lazy" />
+                        </a>
+                      : <div class="mcard-nofoto">🏠</div>
+                    }
+                  </div>
+                  <div class="mcard-info">
+                    <span class="mcard-name">{m.nombre ?? 'Sin nombre'}</span>
+                    <span class="mcard-meta">{m.especie} · {m.zona} · hace {rel(m.created_at)}</span>
+                    {m.descripcion && <span class="mcard-desc">{m.descripcion.slice(0,80)}{m.descripcion.length > 80 ? '…' : ''}</span>}
+                  </div>
+                  <div class="mcard-actions">
+                    <button class="btn btn-azul" data-action="reunir" data-id={m.id} data-row={`row-${m.id}`} data-confirm="¿Marcar como reunida (adoptada)?">🤝 Adoptada</button>
+                    <button class="btn btn-outline btn-icon btn-edit-mascota"
+                      data-id={m.id}
+                      data-nombre={m.nombre ?? ''}
+                      data-especie={m.especie}
+                      data-tipo={m.tipo ?? 'adopcion'}
+                      data-zona={m.zona}
+                      data-color={m.color ?? ''}
+                      data-tamanio={m.tamanio ?? ''}
+                      data-descripcion={m.descripcion ?? ''}
+                      data-whatsapp={m.whatsapp ?? ''}
+                      data-fotourl={m.foto_url ?? ''}
+                      title="Editar"
+                    >✏️</button>
+                    {m.whatsapp && <a href={`https://wa.me/58${m.whatsapp.slice(1)}`} class="btn btn-wa" target="_blank" rel="noreferrer">💬</a>}
+                    <a href={`/mascota/${m.id}`} target="_blank" class="btn btn-outline btn-sm">Ver →</a>
+                  </div>
+                </div>
+              ))}
+            </div>
+        }
+      </div>
+    </div>
+
+    <!-- ═══ MÓDULO: AGREGAR MASCOTA ═══ -->
+    <div id="mod-agregar" class="module" hidden>
+      <div class="mod-hdr">
+        <button class="btn-back" onclick="showHome()">← Inicio</button>
+        <span class="mod-title">➕ Agregar mascota</span>
+        <span></span>
+      </div>
+      <div class="mod-body">
+        <div class="form-wrap">
+          <form id="form-nueva-mascota" class="nuevo-form" enctype="multipart/form-data">
+            <div class="nuevo-form-grid">
+              <label class="form-field">
+                <span class="form-lbl">Especie *</span>
+                <select name="especie" required class="feed-select">
+                  <option value="Perro">🐕 Perro</option>
+                  <option value="Gato">🐈 Gato</option>
+                  <option value="Ave">🐦 Ave</option>
+                  <option value="Otro">🐾 Otro</option>
+                </select>
+              </label>
+              <label class="form-field">
+                <span class="form-lbl">Tipo *</span>
+                <select name="tipo" required class="feed-select">
+                  <option value="perdido">🔴 Perdido</option>
+                  <option value="encontrado">🔵 Encontrado</option>
+                  <option value="adopcion">🏠 En adopción</option>
+                </select>
+              </label>
+              <label class="form-field">
+                <span class="form-lbl">Estado</span>
+                <select name="status" class="feed-select">
+                  <option value="publicado">✓ Publicado</option>
+                  <option value="pendiente">⏳ Pendiente</option>
+                </select>
+              </label>
+            </div>
+            <div class="nuevo-form-grid">
+              <label class="form-field">
+                <span class="form-lbl">Nombre</span>
+                <input type="text" name="nombre" maxlength="100" placeholder="Toby, Luna…" class="feed-input" />
+              </label>
+              <label class="form-field">
+                <span class="form-lbl">Color</span>
+                <input type="text" name="color" maxlength="80" placeholder="Marrón, blanco y negro…" class="feed-input" />
+              </label>
+              <label class="form-field">
+                <span class="form-lbl">Tamaño</span>
+                <select name="tamanio" class="feed-select">
+                  <option value="">— sin especificar —</option>
+                  <option value="Pequeño">Pequeño</option>
+                  <option value="Mediano">Mediano</option>
+                  <option value="Grande">Grande</option>
+                </select>
+              </label>
+            </div>
+            <label class="form-field" style="width:100%">
+              <span class="form-lbl">Zona * (mín. 5 caracteres)</span>
+              <input type="text" name="zona" required minlength="5" maxlength="120" placeholder="Porlamar, Nueva Esparta" class="feed-input" />
+            </label>
+            <div class="nuevo-form-grid">
+              <label class="form-field">
+                <span class="form-lbl">WhatsApp * (04XX-XXXXXXX)</span>
+                <input type="tel" name="whatsapp" required pattern="04[0-9]{2}[0-9]{7}" maxlength="11" placeholder="04140000000" class="feed-input" id="nm-wa" />
+              </label>
+              <label class="form-field">
+                <span class="form-lbl">Nombre del contacto</span>
+                <input type="text" name="contacto_nombre" maxlength="100" placeholder="María, Cruz Roja…" class="feed-input" />
+              </label>
+            </div>
+            <p id="nm-wa-hint" class="nm-hint" aria-live="polite"></p>
+            <label class="form-field" style="width:100%">
+              <span class="form-lbl">Descripción</span>
+              <textarea name="descripcion" rows="3" maxlength="600" placeholder="Características físicas, comportamiento…" class="feed-textarea"></textarea>
+            </label>
+            <label class="form-field" style="width:100%">
+              <span class="form-lbl">Señas particulares</span>
+              <textarea name="senias" rows="2" maxlength="300" placeholder="Cicatriz en la pata, collar rojo…" class="feed-textarea"></textarea>
+            </label>
+            <label class="form-field" style="width:100%">
+              <span class="form-lbl">Foto principal (opcional · máx 5MB)</span>
+              <input type="file" name="foto" accept="image/*" class="upload-input" id="nm-foto" />
+            </label>
+            <div id="nm-preview-wrap" style="display:none">
+              <img id="nm-preview" alt="Vista previa" class="nm-preview-img" />
+            </div>
+            <div style="display:flex;align-items:center;gap:1rem;margin-top:.25rem">
+              <button type="submit" class="btn-submit" id="nm-submit">Crear mascota</button>
+              <span id="nm-msg" class="nm-success" aria-live="polite"></span>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ MÓDULO: GEMINI ═══ -->
+    <div id="mod-gemini" class="module" hidden>
+      <div class="mod-hdr">
+        <button class="btn-back" onclick="showHome()">← Inicio</button>
+        <span class="mod-title">📸 Gemini Vision</span>
+        <span></span>
+      </div>
+      <div class="mod-body">
+        <div class="form-wrap">
+          <p class="form-hint">Sube una foto y Gemini extrae los datos automáticamente.</p>
+          <div class="gemini-actions" role="group" aria-label="Tipo de registro">
+            <button class="gem-action active" data-action="mascota" type="button">🐾 Mascota</button>
+            <button class="gem-action" data-action="feed" type="button">📰 Noticia</button>
+            <button class="gem-action" data-action="insumo" type="button">📦 Insumo</button>
+          </div>
+          <input type="file" id="geminiImg" accept="image/*" style="display:none" />
+          <div id="geminiPreview" class="gemini-preview" tabindex="0" role="button" aria-label="Seleccionar imagen">
+            <span id="geminiPlaceholder" class="gemini-placeholder">📷 Toca para seleccionar imagen</span>
+            <img id="geminiPreviewImg" src="" alt="Vista previa" style="display:none;width:100%;height:100%;object-fit:contain;border-radius:6px" />
+          </div>
+          <div style="display:flex;gap:.75rem;margin-top:.75rem">
+            <button type="button" id="btnSeleccionar" class="btn btn-outline" style="flex:1">📷 Seleccionar foto</button>
+            <button type="button" id="btnExtraer" class="btn-submit" style="flex:1" disabled>🔍 Extraer datos</button>
+          </div>
+          <div id="geminiMsg" style="display:none;padding:.625rem .875rem;border-radius:8px;margin:.875rem 0 0;font-size:.8rem;background:#1a2a1a;color:#e5e7eb;border:1px solid #374151"></div>
+
+          <form id="geminiFormMascota" method="POST" action="/admin" style="display:none;margin-top:1.5rem">
+            <input type="hidden" name="action" value="publicar_gemini" />
+            <input type="hidden" id="g-status-field" name="status" value="pendiente" />
+            <div class="nuevo-form-grid">
+              <label class="form-field"><span class="form-lbl">Nombre</span><input type="text" name="nombre" id="g-nombre" class="feed-input" /></label>
+              <label class="form-field"><span class="form-lbl">Especie *</span><select name="especie" id="g-especie" class="feed-input" required><option value="Perro">Perro</option><option value="Gato">Gato</option><option value="Ave">Ave</option><option value="Otro">Otro</option></select></label>
+              <label class="form-field"><span class="form-lbl">Color</span><input type="text" name="color" id="g-color" class="feed-input" /></label>
+              <label class="form-field"><span class="form-lbl">Zona *</span><input type="text" name="zona" id="g-zona" class="feed-input" required minlength="5" /></label>
+              <label class="form-field"><span class="form-lbl">Tipo</span><select name="tipo" id="g-tipo" class="feed-input"><option value="perdido">Perdido</option><option value="encontrado">Encontrado</option><option value="adopcion">En adopción</option></select></label>
+              <label class="form-field"><span class="form-lbl">WhatsApp</span><input type="tel" name="whatsapp" id="g-whatsapp" class="feed-input" pattern="04[0-9]{9}" /></label>
+              <label class="form-field"><span class="form-lbl">Contacto</span><input type="text" name="contacto_nombre" id="g-contacto-nombre" class="feed-input" /></label>
+              <label class="form-field"><span class="form-lbl">Señas</span><input type="text" name="senias" id="g-senias" class="feed-input" /></label>
+            </div>
+            <label class="form-field" style="margin-top:.625rem"><span class="form-lbl">Descripción</span><textarea name="descripcion" id="g-descripcion" class="feed-input feed-textarea" rows="3"></textarea></label>
+            <div style="display:flex;gap:.75rem;margin-top:1.25rem;flex-wrap:wrap">
+              <button type="submit" class="btn-submit" style="flex:1;min-width:160px;background:#16a34a;color:#fff" onclick="document.getElementById('g-status-field').value='publicado'">✓ Publicar directamente</button>
+              <button type="submit" class="btn btn-outline" style="flex:1;min-width:160px" onclick="document.getElementById('g-status-field').value='pendiente'">⏳ Enviar como pendiente</button>
+            </div>
+          </form>
+
+          <form id="geminiFormFeed" method="POST" action="/admin" style="display:none;margin-top:1.5rem">
+            <input type="hidden" name="action" value="feed_gemini" />
+            <div class="nuevo-form-grid" style="grid-template-columns:1fr">
+              <label class="form-field"><span class="form-lbl">Tipo *</span><select name="tipo" id="gf-tipo" class="feed-input" required><option value="info">Info</option><option value="alerta">Alerta</option><option value="rescate">Rescate</option><option value="voluntario">Voluntarios</option></select></label>
+              <label class="form-field"><span class="form-lbl">Título *</span><input type="text" name="titulo" id="gf-titulo" class="feed-input" maxlength="80" required /></label>
+            </div>
+            <label class="form-field" style="margin-top:.625rem"><span class="form-lbl">Cuerpo *</span><textarea name="cuerpo" id="gf-cuerpo" class="feed-input feed-textarea" rows="4" required></textarea></label>
+            <button type="submit" class="btn-submit" style="margin-top:1.25rem;width:100%;background:#3b82f6;color:#fff">✓ Publicar noticia</button>
+          </form>
+
+          <form id="geminiFormInsumo" method="POST" action="/admin" style="display:none;margin-top:1.5rem">
+            <input type="hidden" name="action" value="insumo_gemini" />
+            <div class="nuevo-form-grid">
+              <label class="form-field" style="grid-column:1/-1"><span class="form-lbl">Ítem *</span><input type="text" name="item" id="gi-item" class="feed-input" required /></label>
+              <label class="form-field"><span class="form-lbl">Cant. requerida *</span><input type="number" name="cantidad_requerida" id="gi-cantidad-req" class="feed-input" min="1" required /></label>
+              <label class="form-field"><span class="form-lbl">Cant. recibida</span><input type="number" name="cantidad_recibida" id="gi-cantidad-rec" class="feed-input" min="0" value="0" /></label>
+              <label class="form-field"><span class="form-lbl">Prioridad</span><select name="prioridad" id="gi-prioridad" class="feed-input"><option value="critico">Crítico</option><option value="urgente" selected>Urgente</option><option value="normal">Normal</option></select></label>
+            </div>
+            <button type="submit" class="btn-submit" style="margin-top:1.25rem;width:100%;background:#f59e0b;color:#1a1a1a">✓ Agregar insumo</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ MÓDULO: VETERINARIOS ═══ -->
+    <div id="mod-vets" class="module" hidden>
+      <div class="mod-hdr">
+        <button class="btn-back" onclick="showHome()">← Inicio</button>
+        <span class="mod-title">🩺 Veterinarios</span>
+        <button class="btn-mod-action" onclick="document.getElementById('form-nuevo-vet').scrollIntoView({behavior:'smooth'})">+ Agregar</button>
+      </div>
+      <div class="mod-body">
+        {vets.length === 0
+          ? <p class="empty-msg">No hay veterinarios registrados aún</p>
+          : <Fragment>
+              <div class="search-bar">
+                <input type="text" id="searchVets" placeholder="Buscar vet por nombre o zona…" class="search-input" oninput="filterCards('searchVets','vet-card')" />
+              </div>
+              <div class="card-list">
                 {vets.map(v => (
-                  <tr id={`row-${v.id}`} class="vet-row">
-                    <td class="td-name">{v.nombre}</td>
-                    <td class="td-zona">{v.zona}</td>
-                    <td>
-                      {v.whatsapp
-                        ? <a href={`https://wa.me/58${v.whatsapp.slice(1)}`} class="link-wa-txt" target="_blank" rel="noreferrer">💬 {v.whatsapp}</a>
-                        : <span class="td-gris">—</span>
-                      }
-                    </td>
-                    <td class="td-truncate">{v.servicios ?? '—'}</td>
-                    <td class="td-gris">{v.horario ?? '—'}</td>
-                    <td class="td-time">{rel(v.created_at)}</td>
-                    <td class="td-actions">
+                  <div id={`row-${v.id}`} class="mcard vet-card">
+                    <div class="mcard-media"><div class="mcard-nofoto">🩺</div></div>
+                    <div class="mcard-info">
+                      <span class="mcard-name">{v.nombre}</span>
+                      <span class="mcard-meta">{v.zona}{v.horario ? ` · ${v.horario}` : ''}</span>
+                      {v.servicios && <span class="mcard-desc">{v.servicios}</span>}
+                    </div>
+                    <div class="mcard-actions">
                       <button class="btn btn-verde" data-action="aprobar_vet" data-id={v.id} data-row={`row-${v.id}`}>✓ Aprobar</button>
                       <button class="btn btn-outline btn-icon btn-edit-vet"
-                        data-id={v.id}
-                        data-nombre={v.nombre}
-                        data-zona={v.zona}
-                        data-whatsapp={v.whatsapp ?? ''}
-                        data-servicios={v.servicios ?? ''}
-                        data-horario={v.horario ?? ''}
-                        title="Editar"
-                      >✏️</button>
+                        data-id={v.id} data-nombre={v.nombre} data-zona={v.zona}
+                        data-whatsapp={v.whatsapp ?? ''} data-servicios={v.servicios ?? ''} data-horario={v.horario ?? ''}
+                        title="Editar">✏️</button>
                       <button class="btn btn-rojo btn-icon" data-action="rechazar_vet" data-id={v.id} data-row={`row-${v.id}`} data-confirm="¿Eliminar veterinario?">✕</button>
-                    </td>
-                  </tr>
+                      {v.whatsapp && <a href={`https://wa.me/58${v.whatsapp.slice(1)}`} class="btn btn-wa" target="_blank" rel="noreferrer">💬</a>}
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
-          </Fragment>
-      }
+              </div>
+            </Fragment>
+        }
+        <div class="form-wrap form-wrap--bordered" style="margin-top:1.5rem">
+          <h4 class="form-section-title">Registrar veterinario</h4>
+          <form id="form-nuevo-vet" class="nuevo-form">
+            <div class="nuevo-form-grid">
+              <label class="form-field"><span class="form-lbl">Nombre *</span><input type="text" name="nombre" required class="feed-input" /></label>
+              <label class="form-field"><span class="form-lbl">Zona *</span><input type="text" name="zona" required class="feed-input" /></label>
+              <label class="form-field"><span class="form-lbl">WhatsApp 04XX... *</span><input type="tel" name="whatsapp" required class="feed-input" /></label>
+              <label class="form-field"><span class="form-lbl">Servicios</span><input type="text" name="servicios" class="feed-input" /></label>
+              <label class="form-field"><span class="form-lbl">Horario</span><input type="text" name="horario" class="feed-input" /></label>
+            </div>
+            <button type="submit" class="btn-submit" style="margin-top:.75rem">+ Registrar vet</button>
+          </form>
+        </div>
+      </div>
     </div>
 
-    <!-- TAB 4: FEED -->
-    <div id="tab-feed" class="tab-pane">
-      <form id="form-feed" class="feed-form" enctype="multipart/form-data">
-        <h4 class="form-section-title">Publicar actualización</h4>
-        <div class="feed-row">
-          <label class="form-field" style="flex:0 0 auto;min-width:140px">
-            <span class="form-lbl">Tipo</span>
-            <select name="tipo" class="feed-select">
-              <option value="info">ℹ️ Info</option>
-              <option value="alerta">🔴 Alerta</option>
-              <option value="rescate">🐾 Rescate</option>
-              <option value="buenas">✅ Buenas noticias</option>
-              <option value="voluntario">🙌 Voluntarios</option>
-            </select>
-          </label>
-          <label class="form-field">
-            <span class="form-lbl">Título *</span>
-            <input type="text" name="titulo" required maxlength="150" class="feed-input" />
-          </label>
+    <!-- ═══ MÓDULO: FEED ═══ -->
+    <div id="mod-feed" class="module" hidden>
+      <div class="mod-hdr">
+        <button class="btn-back" onclick="showHome()">← Inicio</button>
+        <span class="mod-title">📰 Feed de noticias</span>
+        <span></span>
+      </div>
+      <div class="mod-body">
+        <div class="form-wrap form-wrap--bordered">
+          <h4 class="form-section-title">Publicar actualización</h4>
+          <form id="form-feed" class="nuevo-form" enctype="multipart/form-data">
+            <div class="nuevo-form-grid">
+              <label class="form-field" style="flex:0 0 auto;min-width:140px">
+                <span class="form-lbl">Tipo</span>
+                <select name="tipo" class="feed-select">
+                  <option value="info">ℹ️ Info</option>
+                  <option value="alerta">🔴 Alerta</option>
+                  <option value="rescate">🐾 Rescate</option>
+                  <option value="buenas">✅ Buenas noticias</option>
+                  <option value="voluntario">🙌 Voluntarios</option>
+                </select>
+              </label>
+              <label class="form-field">
+                <span class="form-lbl">Título *</span>
+                <input type="text" name="titulo" required maxlength="150" class="feed-input" />
+              </label>
+            </div>
+            <label class="form-field" style="width:100%"><span class="form-lbl">Texto *</span><textarea name="cuerpo" required rows="3" class="feed-textarea"></textarea></label>
+            <label class="form-field" style="width:100%"><span class="form-lbl">Imagen (opcional)</span><input type="file" name="feed_img" accept="image/*" class="upload-input" /></label>
+            <button type="submit" class="btn-submit">Publicar en feed</button>
+          </form>
         </div>
-        <label class="form-field" style="width:100%">
-          <span class="form-lbl">Texto *</span>
-          <textarea name="cuerpo" required rows="3" class="feed-textarea"></textarea>
-        </label>
-        <label class="form-field" style="width:100%">
-          <span class="form-lbl">Imagen (opcional)</span>
-          <input type="file" name="feed_img" accept="image/*" class="upload-input" />
-        </label>
-        <button type="submit" class="btn-submit">Publicar en feed</button>
-      </form>
 
-      {feedItems.length > 0 && (
-        <div class="table-wrap mt">
-          <table>
-            <thead>
-              <tr><th>Tipo</th><th>Título</th><th>Texto</th><th>Hace</th><th>Acciones</th></tr>
-            </thead>
-            <tbody>
-              {feedItems.map(f => (
-                <tr id={`row-${f.id}`}>
-                  <td><span class={`badge badge-tipo-${f.tipo}`}>{f.tipo}</span></td>
-                  <td class="td-name">{f.titulo}</td>
-                  <td class="td-truncate">{f.cuerpo.slice(0, 80)}{f.cuerpo.length > 80 ? '…' : ''}</td>
-                  <td class="td-time">{rel(f.published_at)}</td>
-                  <td style="display:flex;gap:4px">
-                    <button class="btn btn-outline btn-icon btn-edit-feed"
-                      data-id={f.id}
-                      data-tipo={f.tipo}
-                      data-titulo={f.titulo}
-                      data-cuerpo={f.cuerpo}
-                      title="Editar">✏</button>
-                    <button class="btn btn-rojo btn-icon" data-action="eliminar_feed" data-id={f.id} data-row={`row-${f.id}`} data-confirm="¿Eliminar publicación?">✕</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      {feedItems.length === 0 && <p class="empty-msg mt-sm">No hay publicaciones en el feed</p>}
-    </div>
-
-    <!-- TAB 5: INSUMOS -->
-    <div id="tab-insumos" class="tab-pane">
-      {necesidades.length === 0
-        ? <p class="empty-msg">No hay insumos registrados</p>
-        : <div class="insumos-list">
-            {necesidades.map(n => (
-              <div class="insumo-row" id={`insumo-${n.id}`}>
-                <span class={`prio-dot prio-${n.prioridad}`}></span>
-                <span class="insumo-name">{n.item}</span>
-                <form class="insumo-form" data-id={n.id}>
-                  <label class="insumo-lbl">Rec.</label>
-                  <input type="number" name="cantidad_recibida" value={n.cantidad_recibida} min="0" max="9999" class="insumo-input" aria-label={`Recibida ${n.item}`} />
-                  <label class="insumo-lbl">Req.</label>
-                  <input type="number" name="cantidad_requerida" value={n.cantidad_requerida} min="1" max="9999" class="insumo-input" aria-label={`Requerida ${n.item}`} />
-                  <button type="submit" class="btn btn-amarillo btn-sm">✓ Guardar</button>
-                </form>
-                <button class="btn btn-outline btn-icon btn-sm btn-edit-insumo"
-                  data-id={n.id}
-                  data-item={n.item}
-                  data-cantidad_recibida={n.cantidad_recibida}
-                  data-cantidad_requerida={n.cantidad_requerida}
-                  data-prioridad={n.prioridad}
-                  title="Editar insumo"
-                >✏️</button>
-                <button class="btn btn-rojo btn-icon btn-sm"
-                  data-action="eliminar_insumo"
-                  data-id={n.id}
-                  data-row={`insumo-${n.id}`}
-                  data-confirm="¿Eliminar este insumo?"
-                  title="Eliminar"
-                >✕</button>
+        {feedItems.length > 0 && (
+          <div class="card-list" style="margin-top:1.5rem">
+            {feedItems.map(f => (
+              <div id={`row-${f.id}`} class="mcard">
+                <div class="mcard-media"><div class={`mcard-tipo-icon tipo-${f.tipo}`}>{f.tipo === 'alerta' ? '🔴' : f.tipo === 'rescate' ? '🐾' : f.tipo === 'buenas' ? '✅' : f.tipo === 'voluntario' ? '🙌' : 'ℹ️'}</div></div>
+                <div class="mcard-info">
+                  <span class="mcard-name">{f.titulo}</span>
+                  <span class="mcard-meta">hace {rel(f.published_at)} · <span class={`badge badge-tipo-${f.tipo}`}>{f.tipo}</span></span>
+                  <span class="mcard-desc">{f.cuerpo.slice(0,100)}{f.cuerpo.length > 100 ? '…' : ''}</span>
+                </div>
+                <div class="mcard-actions">
+                  <button class="btn btn-outline btn-icon btn-edit-feed" data-id={f.id} data-tipo={f.tipo} data-titulo={f.titulo} data-cuerpo={f.cuerpo} title="Editar">✏️</button>
+                  <button class="btn btn-rojo btn-icon" data-action="eliminar_feed" data-id={f.id} data-row={`row-${f.id}`} data-confirm="¿Eliminar publicación?">✕</button>
+                </div>
               </div>
             ))}
           </div>
-      }
-      <div class="nuevo-section mt-sm">
-        <h4 class="form-section-title">Agregar insumo</h4>
-        <form id="form-nuevo-insumo" class="nuevo-form">
-          <div class="nuevo-form-grid">
-            <label class="form-field">
-              <span class="form-lbl">Nombre del insumo *</span>
-              <input type="text" name="item" required class="feed-input" />
-            </label>
-            <label class="form-field" style="flex:0 0 120px;min-width:auto">
-              <span class="form-lbl">Cantidad req. *</span>
-              <input type="number" name="cantidad_requerida" min="1" required class="feed-input" />
-            </label>
-            <label class="form-field" style="flex:0 0 140px;min-width:auto">
-              <span class="form-lbl">Prioridad</span>
-              <select name="prioridad" class="feed-select">
-                <option value="critico">🔴 Crítico</option>
-                <option value="urgente" selected>🟡 Urgente</option>
-                <option value="cubierto">🟢 Cubierto</option>
-              </select>
-            </label>
-          </div>
-          <button type="submit" class="btn-submit" style="margin-top:.75rem">+ Agregar insumo</button>
-        </form>
+        )}
+        {feedItems.length === 0 && <p class="empty-msg" style="margin-top:1rem">No hay publicaciones en el feed</p>}
       </div>
     </div>
 
-    <!-- TAB: ANALÍTICAS -->
-    <div id="tab-analytics" class="tab-pane">
-      <div class="analytics-wrap">
+    <!-- ═══ MÓDULO: INSUMOS ═══ -->
+    <div id="mod-insumos" class="module" hidden>
+      <div class="mod-hdr">
+        <button class="btn-back" onclick="showHome()">← Inicio</button>
+        <span class="mod-title">📦 Insumos</span>
+        <span></span>
+      </div>
+      <div class="mod-body">
+        {necesidades.length === 0
+          ? <p class="empty-msg">No hay insumos registrados</p>
+          : <div class="insumos-list">
+              {necesidades.map(n => (
+                <div class="insumo-row" id={`insumo-${n.id}`}>
+                  <span class={`prio-dot prio-${n.prioridad}`}></span>
+                  <span class="insumo-name">{n.item}</span>
+                  <form class="insumo-form" data-id={n.id}>
+                    <label class="insumo-lbl">Rec.</label>
+                    <input type="number" name="cantidad_recibida" value={n.cantidad_recibida} min="0" max="9999" class="insumo-input" />
+                    <label class="insumo-lbl">Req.</label>
+                    <input type="number" name="cantidad_requerida" value={n.cantidad_requerida} min="1" max="9999" class="insumo-input" />
+                    <button type="submit" class="btn btn-amarillo btn-sm">✓</button>
+                  </form>
+                  <button class="btn btn-outline btn-icon btn-sm btn-edit-insumo"
+                    data-id={n.id} data-item={n.item}
+                    data-cantidad_recibida={n.cantidad_recibida}
+                    data-cantidad_requerida={n.cantidad_requerida}
+                    data-prioridad={n.prioridad}
+                    title="Editar insumo">✏️</button>
+                  <button class="btn btn-rojo btn-icon btn-sm"
+                    data-action="eliminar_insumo" data-id={n.id}
+                    data-row={`insumo-${n.id}`} data-confirm="¿Eliminar este insumo?">✕</button>
+                </div>
+              ))}
+            </div>
+        }
+        <div class="form-wrap form-wrap--bordered" style="margin-top:1.5rem">
+          <h4 class="form-section-title">Agregar insumo</h4>
+          <form id="form-nuevo-insumo" class="nuevo-form">
+            <div class="nuevo-form-grid">
+              <label class="form-field"><span class="form-lbl">Nombre del insumo *</span><input type="text" name="item" required class="feed-input" /></label>
+              <label class="form-field" style="flex:0 0 120px;min-width:auto"><span class="form-lbl">Cant. req. *</span><input type="number" name="cantidad_requerida" min="1" required class="feed-input" /></label>
+              <label class="form-field" style="flex:0 0 140px;min-width:auto">
+                <span class="form-lbl">Prioridad</span>
+                <select name="prioridad" class="feed-select">
+                  <option value="critico">🔴 Crítico</option>
+                  <option value="urgente" selected>🟡 Urgente</option>
+                  <option value="cubierto">🟢 Cubierto</option>
+                </select>
+              </label>
+            </div>
+            <button type="submit" class="btn-submit" style="margin-top:.75rem">+ Agregar insumo</button>
+          </form>
+        </div>
+      </div>
+    </div>
 
-        <!-- KPIs -->
+    <!-- ═══ MÓDULO: ANALÍTICAS ═══ -->
+    <div id="mod-analiticas" class="module" hidden>
+      <div class="mod-hdr">
+        <button class="btn-back" onclick="showHome()">← Inicio</button>
+        <span class="mod-title">📊 Analíticas</span>
+        <span></span>
+      </div>
+      <div class="mod-body">
         <div class="an-kpi-row">
           <div class="an-kpi">
             <span class="an-kpi-label">Hoy</span>
@@ -1050,8 +1144,6 @@ if (isAuth) {
             <span class="an-kpi-sub">páginas vistas</span>
           </div>
         </div>
-
-        <!-- Dispositivos -->
         <div class="an-section">
           <h3 class="an-section-title">Dispositivos</h3>
           {porDispositivo.length > 0 ? (
@@ -1062,544 +1154,213 @@ if (isAuth) {
                 return (
                   <div class="an-bar-row">
                     <span class="an-bar-label">{item.key}</span>
-                    <div class="an-bar-track">
-                      <div class="an-bar-fill" style={`width:${pct}%;background:${color}`}></div>
-                    </div>
+                    <div class="an-bar-track"><div class="an-bar-fill" style={`width:${pct}%;background:${color}`}></div></div>
                     <span class="an-bar-pct">{pct}%</span>
                     <span class="an-bar-count">{item.count}</span>
                   </div>
                 )
               })}
             </div>
-          ) : <p class="an-empty">Sin datos aún — las visitas aparecerán aquí en tiempo real</p>}
+          ) : <p class="an-empty">Sin datos aún</p>}
         </div>
-
-        <!-- OS y Browser -->
         <div class="an-two-col">
           <div class="an-section">
             <h3 class="an-section-title">Sistemas operativos</h3>
             {porOs.length > 0 ? (
               <div class="an-list">
-                {(() => {
-                  const max = porOs[0]?.count ?? 1
-                  return porOs.map(item => (
-                    <div class="an-list-row">
-                      <span class="an-list-name">{item.key}</span>
-                      <div class="an-bar-track an-bar-track--sm">
-                        <div class="an-bar-fill" style={`width:${Math.round((item.count / max) * 100)}%;background:#3B82F6`}></div>
-                      </div>
-                      <span class="an-list-count">{item.count}</span>
-                    </div>
-                  ))
-                })()}
+                {(() => { const max = porOs[0]?.count ?? 1; return porOs.map(item => (
+                  <div class="an-list-row">
+                    <span class="an-list-name">{item.key}</span>
+                    <div class="an-bar-track an-bar-track--sm"><div class="an-bar-fill" style={`width:${Math.round((item.count/max)*100)}%;background:#3B82F6`}></div></div>
+                    <span class="an-list-count">{item.count}</span>
+                  </div>
+                ))})()}
               </div>
-            ) : <p class="an-empty">Sin datos aún</p>}
+            ) : <p class="an-empty">Sin datos</p>}
           </div>
           <div class="an-section">
             <h3 class="an-section-title">Navegadores</h3>
             {porBrowser.length > 0 ? (
               <div class="an-list">
-                {(() => {
-                  const max = porBrowser[0]?.count ?? 1
-                  return porBrowser.map(item => (
-                    <div class="an-list-row">
-                      <span class="an-list-name">{item.key}</span>
-                      <div class="an-bar-track an-bar-track--sm">
-                        <div class="an-bar-fill" style={`width:${Math.round((item.count / max) * 100)}%;background:#22C55E`}></div>
-                      </div>
-                      <span class="an-list-count">{item.count}</span>
-                    </div>
-                  ))
-                })()}
+                {(() => { const max = porBrowser[0]?.count ?? 1; return porBrowser.map(item => (
+                  <div class="an-list-row">
+                    <span class="an-list-name">{item.key}</span>
+                    <div class="an-bar-track an-bar-track--sm"><div class="an-bar-fill" style={`width:${Math.round((item.count/max)*100)}%;background:#22C55E`}></div></div>
+                    <span class="an-list-count">{item.count}</span>
+                  </div>
+                ))})()}
               </div>
-            ) : <p class="an-empty">Sin datos aún</p>}
+            ) : <p class="an-empty">Sin datos</p>}
           </div>
         </div>
-
-        <!-- Páginas más visitadas -->
         <div class="an-section">
           <h3 class="an-section-title">Páginas más visitadas</h3>
           {porPagina.length > 0 ? (
-            <div class="table-wrap">
-              <table class="an-table">
-                <thead>
-                  <tr><th>Página</th><th class="an-th-r">Visitas</th><th>Relativo</th></tr>
-                </thead>
-                <tbody>
-                  {(() => {
-                    const max = porPagina[0]?.count ?? 1
-                    return porPagina.map(item => (
-                      <tr>
-                        <td class="an-td-url">{item.key}</td>
-                        <td class="an-td-num">{item.count}</td>
-                        <td class="an-td-bar">
-                          <div class="an-bar-track">
-                            <div class="an-bar-fill" style={`width:${Math.round((item.count / max) * 100)}%;background:#F59E0B`}></div>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  })()}
-                </tbody>
-              </table>
+            <div class="an-list">
+              {(() => { const max = porPagina[0]?.count ?? 1; return porPagina.map(item => (
+                <div class="an-list-row">
+                  <span class="an-list-name">{item.key}</span>
+                  <div class="an-bar-track an-bar-track--sm"><div class="an-bar-fill" style={`width:${Math.round((item.count/max)*100)}%;background:#F59E0B`}></div></div>
+                  <span class="an-list-count">{item.count}</span>
+                </div>
+              ))})()}
             </div>
           ) : <p class="an-empty">Sin datos aún</p>}
         </div>
-
-        <!-- Fuentes de tráfico -->
         <div class="an-section">
           <h3 class="an-section-title">Fuentes de tráfico</h3>
           {porFuente.length > 0 ? (
-            <div class="table-wrap">
-              <table class="an-table">
-                <thead>
-                  <tr><th>Referrer</th><th class="an-th-r">Visitas</th></tr>
-                </thead>
-                <tbody>
-                  {porFuente.map(item => (
-                    <tr>
-                      <td class="an-td-url">{item.key}</td>
-                      <td class="an-td-num">{item.count}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : <p class="an-empty">Sin referrers registrados — el tráfico directo no incluye referrer</p>}
-        </div>
-
-        <!-- Cloudflare Web Analytics -->
-        <div class="an-section an-cf-section">
-          <div class="cf-embed-header">
-            <h3 class="an-section-title" style="margin-bottom:0">Cloudflare Web Analytics</h3>
-            <a
-              href="https://dash.cloudflare.com/5c9a348c5ce0a207a73b74d9232a6512/protegecolitas.org/analytics"
-              target="_blank" rel="noopener noreferrer"
-              class="btn-cf-link"
-            >Abrir Cloudflare Analytics →</a>
-          </div>
-          <p class="an-cf-note">Cloudflare no permite embed por iframe — abre en nueva pestaña con un click.</p>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- TAB 7: GEMINI VISION -->
-    <div id="tab-gemini" class="tab-pane">
-      <div class="nuevo-section" style="max-width:680px">
-        <h4 class="form-section-title">Registrar desde foto</h4>
-        <p style="color:#9ca3af;font-size:.875rem;margin:0 0 1rem">Sube una foto y Gemini extrae los datos automáticamente.</p>
-
-        <!-- Selector de acción -->
-        <div class="gemini-actions" role="group" aria-label="Tipo de registro">
-          <button class="gem-action active" data-action="mascota" type="button">🐾 Mascota</button>
-          <button class="gem-action" data-action="feed" type="button">📰 Noticia</button>
-          <button class="gem-action" data-action="insumo" type="button">📦 Insumo</button>
-        </div>
-
-        <input type="file" id="geminiImg" accept="image/*" style="display:none" />
-        <div id="geminiPreview" class="gemini-preview" tabindex="0" role="button" aria-label="Seleccionar imagen">
-          <span id="geminiPlaceholder" class="gemini-placeholder">📷 Toca para seleccionar imagen</span>
-          <img id="geminiPreviewImg" src="" alt="Vista previa" style="display:none;width:100%;height:100%;object-fit:contain;border-radius:6px" />
-        </div>
-        <div style="display:flex;gap:.75rem;margin-top:.75rem">
-          <button type="button" id="btnSeleccionar" class="btn btn-outline" style="flex:1">📷 Seleccionar foto</button>
-          <button type="button" id="btnExtraer" class="btn-submit" style="flex:1" disabled>🔍 Extraer datos</button>
-        </div>
-
-        <div id="geminiMsg" style="display:none;padding:.625rem .875rem;border-radius:8px;margin:.875rem 0 0;font-size:.8rem;background:#1f2937;color:#e5e7eb;border:1px solid #374151"></div>
-
-        <!-- FORM: MASCOTA -->
-        <form id="geminiFormMascota" method="POST" action="/admin" style="display:none;margin-top:1.5rem">
-          <input type="hidden" name="action" value="publicar_gemini" />
-          <input type="hidden" id="g-status-field" name="status" value="pendiente" />
-          <div class="nuevo-form-grid">
-            <label class="form-field">
-              <span class="form-lbl">Nombre</span>
-              <input type="text" name="nombre" id="g-nombre" class="feed-input" placeholder="Opcional" />
-            </label>
-            <label class="form-field">
-              <span class="form-lbl">Especie *</span>
-              <select name="especie" id="g-especie" class="feed-input" required>
-                <option value="Perro">Perro</option>
-                <option value="Gato">Gato</option>
-                <option value="Ave">Ave</option>
-                <option value="Otro">Otro</option>
-              </select>
-            </label>
-            <label class="form-field">
-              <span class="form-lbl">Color / descripción física</span>
-              <input type="text" name="color" id="g-color" class="feed-input" />
-            </label>
-            <label class="form-field">
-              <span class="form-lbl">Zona *</span>
-              <input type="text" name="zona" id="g-zona" class="feed-input" required minlength="5" />
-            </label>
-            <label class="form-field">
-              <span class="form-lbl">Tipo</span>
-              <select name="tipo" id="g-tipo" class="feed-input">
-                <option value="perdido">Perdido</option>
-                <option value="encontrado">Encontrado</option>
-                <option value="adopcion">En adopción</option>
-              </select>
-            </label>
-            <label class="form-field">
-              <span class="form-lbl">WhatsApp (04XXXXXXXXX)</span>
-              <input type="tel" name="whatsapp" id="g-whatsapp" class="feed-input" pattern="04[0-9]{9}" />
-            </label>
-            <label class="form-field">
-              <span class="form-lbl">Nombre del contacto</span>
-              <input type="text" name="contacto_nombre" id="g-contacto-nombre" class="feed-input" placeholder="Opcional" />
-            </label>
-            <label class="form-field">
-              <span class="form-lbl">Señas particulares</span>
-              <input type="text" name="senias" id="g-senias" class="feed-input" placeholder="Manchas, cicatrices…" />
-            </label>
-          </div>
-          <label class="form-field" style="margin-top:.625rem">
-            <span class="form-lbl">Descripción</span>
-            <textarea name="descripcion" id="g-descripcion" class="feed-input feed-textarea" rows="3"></textarea>
-          </label>
-          <div style="display:flex;gap:.75rem;margin-top:1.25rem;flex-wrap:wrap">
-            <button type="submit" class="btn-submit"
-              style="flex:1;min-width:160px;background:#16a34a;color:#fff"
-              onclick="document.getElementById('g-status-field').value='publicado'">
-              ✓ Publicar directamente
-            </button>
-            <button type="submit" class="btn btn-outline"
-              style="flex:1;min-width:160px"
-              onclick="document.getElementById('g-status-field').value='pendiente'">
-              ⏳ Enviar como pendiente
-            </button>
-          </div>
-        </form>
-
-        <!-- FORM: FEED / NOTICIA -->
-        <form id="geminiFormFeed" method="POST" action="/admin" style="display:none;margin-top:1.5rem">
-          <input type="hidden" name="action" value="feed_gemini" />
-          <div class="nuevo-form-grid" style="grid-template-columns:1fr">
-            <label class="form-field">
-              <span class="form-lbl">Tipo de noticia *</span>
-              <select name="tipo" id="gf-tipo" class="feed-input" required>
-                <option value="info">Info</option>
-                <option value="alerta">Alerta</option>
-                <option value="rescate">Rescate</option>
-                <option value="voluntario">Voluntarios</option>
-              </select>
-            </label>
-            <label class="form-field">
-              <span class="form-lbl">Título *</span>
-              <input type="text" name="titulo" id="gf-titulo" class="feed-input" maxlength="80" required />
-            </label>
-          </div>
-          <label class="form-field" style="margin-top:.625rem">
-            <span class="form-lbl">Cuerpo *</span>
-            <textarea name="cuerpo" id="gf-cuerpo" class="feed-input feed-textarea" rows="4" required></textarea>
-          </label>
-          <button type="submit" class="btn-submit" style="margin-top:1.25rem;width:100%;background:#3b82f6;color:#fff">
-            ✓ Publicar noticia
-          </button>
-        </form>
-
-        <!-- FORM: INSUMO -->
-        <form id="geminiFormInsumo" method="POST" action="/admin" style="display:none;margin-top:1.5rem">
-          <input type="hidden" name="action" value="insumo_gemini" />
-          <div class="nuevo-form-grid">
-            <label class="form-field" style="grid-column:1/-1">
-              <span class="form-lbl">Ítem / artículo *</span>
-              <input type="text" name="item" id="gi-item" class="feed-input" required />
-            </label>
-            <label class="form-field">
-              <span class="form-lbl">Cantidad requerida *</span>
-              <input type="number" name="cantidad_requerida" id="gi-cantidad-req" class="feed-input" min="1" required />
-            </label>
-            <label class="form-field">
-              <span class="form-lbl">Cantidad recibida</span>
-              <input type="number" name="cantidad_recibida" id="gi-cantidad-rec" class="feed-input" min="0" value="0" />
-            </label>
-            <label class="form-field">
-              <span class="form-lbl">Prioridad</span>
-              <select name="prioridad" id="gi-prioridad" class="feed-input">
-                <option value="critico">Crítico</option>
-                <option value="urgente" selected>Urgente</option>
-                <option value="normal">Normal</option>
-              </select>
-            </label>
-          </div>
-          <button type="submit" class="btn-submit" style="margin-top:1.25rem;width:100%;background:#f59e0b;color:#1a1a1a">
-            ✓ Agregar insumo
-          </button>
-        </form>
-
-      </div>
-    </div>
-
-    <!-- TAB 6: BANNERS -->
-    <div id="tab-banners" class="tab-pane">
-      <div class="nuevo-section" style="max-width:680px">
-        <h4 class="form-section-title">Nuevo banner</h4>
-      <form id="form-banner" class="nuevo-form" enctype="multipart/form-data">
-        <div class="nuevo-form-grid">
-          <label class="form-field">
-            <span class="form-lbl">Título *</span>
-            <input type="text" name="titulo" required class="feed-input" />
-          </label>
-          <label class="form-field">
-            <span class="form-lbl">Descripción (opcional)</span>
-            <input type="text" name="descripcion" class="feed-input" />
-          </label>
-          <label class="form-field">
-            <span class="form-lbl">Link (opcional)</span>
-            <input type="text" name="link" class="feed-input" />
-          </label>
-        </div>
-        <div class="banner-uploads">
-          <label class="upload-label">
-            <span class="upload-lbl-txt">Banner Desktop (1200×400)</span>
-            <input type="file" name="banner_img" accept="image/*" class="upload-input" />
-          </label>
-          <label class="upload-label">
-            <span class="upload-lbl-txt">Banner Mobile (390×200)</span>
-            <input type="file" name="banner_img_mobile" accept="image/*" class="upload-input" />
-          </label>
-        </div>
-        <div style="display:flex;align-items:center;gap:.5rem;margin-top:.375rem">
-          <input type="checkbox" name="activo" id="banner-activo" checked />
-          <label for="banner-activo" style="font-size:.8rem;color:var(--gris)">Activar inmediatamente</label>
-        </div>
-        <button type="submit" class="btn-submit" style="margin-top:.75rem">+ Publicar banner</button>
-      </form>
-      </div>
-
-      {banners.length > 0 && (
-        <div class="table-wrap mt">
-          <table>
-            <thead>
-              <tr><th>Desktop</th><th>Mobile</th><th>Título</th><th>Link</th><th>Estado</th><th>Hace</th><th>Eliminar</th></tr>
-            </thead>
-            <tbody>
-              {banners.map(b => (
-                <tr id={`row-${b.id}`}>
-                  <td>
-                    {b.imagen_url
-                      ? <img src={b.imagen_url} alt={b.titulo} style="height:50px;object-fit:cover;border-radius:4px;max-width:80px;display:block" loading="lazy" />
-                      : <span class="td-gris">—</span>
-                    }
-                  </td>
-                  <td>
-                    {b.imagen_url_mobile
-                      ? <img src={b.imagen_url_mobile} alt={`${b.titulo} mobile`} style="height:50px;object-fit:cover;border-radius:4px;max-width:80px;display:block" loading="lazy" />
-                      : <span class="td-gris">—</span>
-                    }
-                  </td>
-                  <td class="td-name">{b.titulo}</td>
-                  <td class="td-truncate">{b.link ?? '—'}</td>
-                  <td>
-                    <button
-                      class={`btn btn-sm ${b.activo ? 'btn-verde' : 'btn-gris'}`}
-                      data-action="toggle_banner"
-                      data-id={b.id}
-                      data-activo={b.activo ? 'false' : 'true'}
-                    >
-                      {b.activo ? '● Activo' : '○ Inactivo'}
-                    </button>
-                  </td>
-                  <td class="td-time">{rel(b.created_at)}</td>
-                  <td>
-                    <button class="btn btn-rojo btn-icon" data-action="eliminar_banner" data-id={b.id} data-row={`row-${b.id}`} data-confirm="¿Eliminar banner?">✕</button>
-                  </td>
-                </tr>
+            <div class="an-list">
+              {porFuente.map(item => (
+                <div class="an-list-row">
+                  <span class="an-list-name">{item.key}</span>
+                  <div class="an-bar-track an-bar-track--sm"><div class="an-bar-fill" style={`width:100%;background:#8B5CF6`}></div></div>
+                  <span class="an-list-count">{item.count}</span>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          ) : <p class="an-empty">Sin referrers registrados</p>}
         </div>
-      )}
-      {banners.length === 0 && <p class="empty-msg mt-sm">No hay banners creados</p>}
-    </div>
-
-  <!-- ── MODAL DE EDICIÓN ───────────────────────────────────── -->
-  <div id="edit-modal" class="modal-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-heading">
-    <div class="modal-box">
-      <div class="modal-hdr">
-        <span class="modal-title" id="modal-heading">Editar registro</span>
-        <button type="button" class="modal-close" id="modal-close" aria-label="Cerrar">✕</button>
+        <div class="an-section">
+          <a href="https://dash.cloudflare.com/5c9a348c5ce0a207a73b74d9232a6512/protegecolitas.org/analytics" target="_blank" rel="noopener noreferrer" class="btn-cf-link">Abrir Cloudflare Analytics →</a>
+        </div>
       </div>
+    </div>
 
-      <!-- Mascota -->
-      <form id="modal-mascota" class="modal-form" enctype="multipart/form-data" style="display:none">
-        <input type="hidden" name="action" value="editar_mascota" />
-        <input type="hidden" name="id" id="em-id" />
-        <div class="modal-grid">
-          <label class="modal-field">
-            <span class="modal-lbl">Nombre</span>
-            <input type="text" name="nombre" id="em-nombre" class="modal-input" />
-          </label>
-          <label class="modal-field">
-            <span class="modal-lbl">Animal *</span>
-            <select name="especie" id="em-especie" class="modal-input">
-              <option value="Perro">Perro</option>
-              <option value="Gato">Gato</option>
-              <option value="Ave">Ave</option>
-              <option value="Otro">Otro</option>
-            </select>
-          </label>
-          <label class="modal-field">
-            <span class="modal-lbl">Tipo *</span>
-            <select name="tipo" id="em-tipo" class="modal-input">
-              <option value="perdido">perdido</option>
-              <option value="encontrado">encontrado</option>
-              <option value="adopcion">adopcion</option>
-            </select>
-          </label>
-          <label class="modal-field">
-            <span class="modal-lbl">Zona *</span>
-            <input type="text" name="zona" id="em-zona" class="modal-input" />
-          </label>
-          <label class="modal-field">
-            <span class="modal-lbl">Color</span>
-            <input type="text" name="color" id="em-color" class="modal-input" />
-          </label>
-          <label class="modal-field">
-            <span class="modal-lbl">Tamaño</span>
-            <select name="tamanio" id="em-tamanio" class="modal-input">
-              <option value="">— sin especificar —</option>
-              <option value="Pequeño">Pequeño</option>
-              <option value="Mediano">Mediano</option>
-              <option value="Grande">Grande</option>
-            </select>
-          </label>
-          <label class="modal-field">
-            <span class="modal-lbl">WhatsApp</span>
-            <input type="text" name="whatsapp" id="em-whatsapp" class="modal-input" />
-          </label>
-          <label class="modal-field modal-field--full">
-            <span class="modal-lbl">Foto principal</span>
-            <input type="file" name="foto_nueva_1" id="em-fotonueva1" accept="image/*" class="upload-input" />
-            <small class="modal-hint">Solo si quieres reemplazar la foto principal</small>
-          </label>
-          <label class="modal-field">
-            <span class="modal-lbl">Foto 2 (opcional)</span>
-            <input type="file" name="foto_nueva_2" id="em-fotonueva2" accept="image/*" class="upload-input" />
-          </label>
-          <label class="modal-field">
-            <span class="modal-lbl">Foto 3 (opcional)</span>
-            <input type="file" name="foto_nueva_3" id="em-fotonueva3" accept="image/*" class="upload-input" />
-          </label>
-          <label class="modal-field modal-field--full">
-            <span class="modal-lbl">Descripción</span>
-            <textarea name="descripcion" id="em-descripcion" class="modal-input modal-textarea" rows="3"></textarea>
-          </label>
-        </div>
-        <div class="modal-actions">
-          <button type="submit" class="btn-submit">Guardar cambios</button>
-          <button type="button" class="modal-cancel btn btn-outline">Cancelar</button>
-        </div>
-      </form>
+    <!-- ═══ MÓDULO: BANNERS ═══ -->
+    <div id="mod-banners" class="module" hidden>
+      <div class="mod-hdr">
+        <button class="btn-back" onclick="showHome()">← Inicio</button>
+        <span class="mod-title">🖼️ Banners</span>
+        <span></span>
+      </div>
+      <div class="mod-body">
+        {banners.length > 0 && (
+          <div class="card-list" style="margin-bottom:1.5rem">
+            {banners.map(b => (
+              <div id={`row-${b.id}`} class="mcard">
+                <div class="mcard-media">
+                  {b.imagen_url
+                    ? <img src={b.imagen_url} alt={b.titulo} class="mcard-img" loading="lazy" />
+                    : <div class="mcard-nofoto">🖼️</div>
+                  }
+                </div>
+                <div class="mcard-info">
+                  <span class="mcard-name">{b.titulo}</span>
+                  {b.descripcion && <span class="mcard-meta">{b.descripcion}</span>}
+                  {b.link && <span class="mcard-desc">{b.link}</span>}
+                </div>
+                <div class="mcard-actions">
+                  <button class={`btn btn-sm ${b.activo ? 'btn-verde' : 'btn-gris'}`} data-action="toggle_banner" data-id={b.id} data-activo={b.activo ? 'false' : 'true'} data-reload="1">{b.activo ? '● Activo' : '○ Inactivo'}</button>
+                  <button class="btn btn-rojo btn-icon" data-action="eliminar_banner" data-id={b.id} data-row={`row-${b.id}`} data-confirm="¿Eliminar banner?">✕</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {banners.length === 0 && <p class="empty-msg">No hay banners creados</p>}
 
-      <!-- Veterinario -->
-      <form id="modal-vet" class="modal-form" style="display:none">
-        <input type="hidden" name="action" value="editar_vet" />
-        <input type="hidden" name="id" id="ev-id" />
-        <div class="modal-grid">
-          <label class="modal-field">
-            <span class="modal-lbl">Nombre *</span>
-            <input type="text" name="nombre" id="ev-nombre" class="modal-input" required />
-          </label>
-          <label class="modal-field">
-            <span class="modal-lbl">Zona *</span>
-            <input type="text" name="zona" id="ev-zona" class="modal-input" required />
-          </label>
-          <label class="modal-field">
-            <span class="modal-lbl">WhatsApp *</span>
-            <input type="text" name="whatsapp" id="ev-whatsapp" class="modal-input" required />
-          </label>
-          <label class="modal-field">
-            <span class="modal-lbl">Servicios</span>
-            <input type="text" name="servicios" id="ev-servicios" class="modal-input" />
-          </label>
-          <label class="modal-field modal-field--full">
-            <span class="modal-lbl">Horario</span>
-            <input type="text" name="horario" id="ev-horario" class="modal-input" />
-          </label>
+        <div class="form-wrap form-wrap--bordered">
+          <h4 class="form-section-title">Nuevo banner</h4>
+          <form id="form-banner" class="nuevo-form" enctype="multipart/form-data">
+            <div class="nuevo-form-grid">
+              <label class="form-field"><span class="form-lbl">Título *</span><input type="text" name="titulo" required class="feed-input" /></label>
+              <label class="form-field"><span class="form-lbl">Descripción</span><input type="text" name="descripcion" class="feed-input" /></label>
+              <label class="form-field"><span class="form-lbl">Link</span><input type="text" name="link" class="feed-input" /></label>
+            </div>
+            <div class="banner-uploads">
+              <label class="upload-label"><span class="upload-lbl-txt">Banner Desktop (1200×400)</span><input type="file" name="banner_img" accept="image/*" class="upload-input" /></label>
+              <label class="upload-label"><span class="upload-lbl-txt">Banner Mobile (390×200)</span><input type="file" name="banner_img_mobile" accept="image/*" class="upload-input" /></label>
+            </div>
+            <div style="display:flex;align-items:center;gap:.5rem;margin-top:.375rem">
+              <input type="checkbox" name="activo" id="banner-activo" checked />
+              <label for="banner-activo" style="font-size:.8rem;color:var(--tx-muted)">Activar inmediatamente</label>
+            </div>
+            <button type="submit" class="btn-submit" style="margin-top:.75rem">+ Publicar banner</button>
+          </form>
         </div>
-        <div class="modal-actions">
-          <button type="submit" class="btn-submit">Guardar cambios</button>
-          <button type="button" class="modal-cancel btn btn-outline">Cancelar</button>
-        </div>
-      </form>
+      </div>
+    </div>
 
-      <!-- Insumo -->
-      <form id="modal-insumo" class="modal-form" style="display:none">
-        <input type="hidden" name="action" value="editar_insumo" />
-        <input type="hidden" name="id" id="ei-id" />
-        <div class="modal-grid">
-          <label class="modal-field modal-field--full">
-            <span class="modal-lbl">Nombre del insumo *</span>
-            <input type="text" name="item" id="ei-item" class="modal-input" required />
-          </label>
-          <label class="modal-field">
-            <span class="modal-lbl">Cant. recibida</span>
-            <input type="number" name="cantidad_recibida" id="ei-recibida" class="modal-input" min="0" />
-          </label>
-          <label class="modal-field">
-            <span class="modal-lbl">Cant. requerida *</span>
-            <input type="number" name="cantidad_requerida" id="ei-requerida" class="modal-input" min="1" required />
-          </label>
-          <label class="modal-field modal-field--full">
-            <span class="modal-lbl">Prioridad</span>
-            <select name="prioridad" id="ei-prioridad" class="modal-input">
-              <option value="critico">🔴 Crítico</option>
-              <option value="urgente">🟡 Urgente</option>
-              <option value="cubierto">🟢 Cubierto</option>
-            </select>
-          </label>
+    <!-- ═══ MODAL DE EDICIÓN ═══ -->
+    <div id="edit-modal" class="modal-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-heading">
+      <div class="modal-box">
+        <div class="modal-hdr">
+          <span class="modal-title" id="modal-heading">Editar registro</span>
+          <button type="button" class="modal-close" id="modal-close" aria-label="Cerrar">✕</button>
         </div>
-        <div class="modal-actions">
-          <button type="submit" class="btn-submit">Guardar cambios</button>
-          <button type="button" class="modal-cancel btn btn-outline">Cancelar</button>
-        </div>
-      </form>
 
-      <!-- Feed edit -->
-      <form id="modal-feed" class="modal-form" enctype="multipart/form-data" style="display:none">
-        <input type="hidden" name="action" value="editar_feed" />
-        <input type="hidden" name="id" id="ef-id" />
-        <div class="modal-grid">
-          <label class="modal-field">
-            <span class="modal-lbl">Tipo</span>
-            <select name="tipo" id="ef-tipo" class="modal-input">
-              <option value="info">Info</option>
-              <option value="alerta">Alerta</option>
-              <option value="rescate">Rescate</option>
-              <option value="buenas">Buenas</option>
-              <option value="voluntario">Voluntarios</option>
-            </select>
-          </label>
-          <label class="modal-field">
-            <span class="modal-lbl">Título *</span>
-            <input type="text" name="titulo" id="ef-titulo" class="modal-input" required maxlength="150" />
-          </label>
-          <label class="modal-field modal-field--full">
-            <span class="modal-lbl">Texto *</span>
-            <textarea name="cuerpo" id="ef-cuerpo" class="modal-input modal-textarea" rows="4" required></textarea>
-          </label>
-          <label class="modal-field modal-field--full">
-            <span class="modal-lbl">Imagen nueva (opcional)</span>
-            <input type="file" name="feed_img_edit" accept="image/*" class="upload-input" />
-          </label>
-        </div>
-        <div class="modal-actions">
-          <button type="submit" class="btn-submit">Guardar cambios</button>
-          <button type="button" class="modal-cancel btn btn-outline">Cancelar</button>
-        </div>
-      </form>
+        <form id="modal-mascota" class="modal-form" enctype="multipart/form-data" style="display:none">
+          <input type="hidden" name="action" value="editar_mascota" />
+          <input type="hidden" name="id" id="em-id" />
+          <div class="modal-grid">
+            <label class="modal-field"><span class="modal-lbl">Nombre</span><input type="text" name="nombre" id="em-nombre" class="modal-input" /></label>
+            <label class="modal-field"><span class="modal-lbl">Animal *</span><select name="especie" id="em-especie" class="modal-input"><option value="Perro">Perro</option><option value="Gato">Gato</option><option value="Ave">Ave</option><option value="Otro">Otro</option></select></label>
+            <label class="modal-field"><span class="modal-lbl">Tipo *</span><select name="tipo" id="em-tipo" class="modal-input"><option value="perdido">perdido</option><option value="encontrado">encontrado</option><option value="adopcion">adopcion</option></select></label>
+            <label class="modal-field"><span class="modal-lbl">Zona *</span><input type="text" name="zona" id="em-zona" class="modal-input" /></label>
+            <label class="modal-field"><span class="modal-lbl">Color</span><input type="text" name="color" id="em-color" class="modal-input" /></label>
+            <label class="modal-field"><span class="modal-lbl">Tamaño</span><select name="tamanio" id="em-tamanio" class="modal-input"><option value="">— sin especificar —</option><option value="Pequeño">Pequeño</option><option value="Mediano">Mediano</option><option value="Grande">Grande</option></select></label>
+            <label class="modal-field"><span class="modal-lbl">WhatsApp</span><input type="text" name="whatsapp" id="em-whatsapp" class="modal-input" /></label>
+            <label class="modal-field modal-field--full"><span class="modal-lbl">Foto principal</span><input type="file" name="foto_nueva_1" id="em-fotonueva1" accept="image/*" class="upload-input" /><small class="modal-hint">Solo si quieres reemplazar la foto</small></label>
+            <label class="modal-field"><span class="modal-lbl">Foto 2</span><input type="file" name="foto_nueva_2" id="em-fotonueva2" accept="image/*" class="upload-input" /></label>
+            <label class="modal-field"><span class="modal-lbl">Foto 3</span><input type="file" name="foto_nueva_3" id="em-fotonueva3" accept="image/*" class="upload-input" /></label>
+            <label class="modal-field modal-field--full"><span class="modal-lbl">Descripción</span><textarea name="descripcion" id="em-descripcion" class="modal-input modal-textarea" rows="3"></textarea></label>
+          </div>
+          <div class="modal-actions">
+            <button type="submit" class="btn-submit">Guardar cambios</button>
+            <button type="button" class="modal-cancel btn btn-outline">Cancelar</button>
+          </div>
+        </form>
 
+        <form id="modal-vet" class="modal-form" style="display:none">
+          <input type="hidden" name="action" value="editar_vet" />
+          <input type="hidden" name="id" id="ev-id" />
+          <div class="modal-grid">
+            <label class="modal-field"><span class="modal-lbl">Nombre *</span><input type="text" name="nombre" id="ev-nombre" class="modal-input" required /></label>
+            <label class="modal-field"><span class="modal-lbl">Zona *</span><input type="text" name="zona" id="ev-zona" class="modal-input" required /></label>
+            <label class="modal-field"><span class="modal-lbl">WhatsApp *</span><input type="text" name="whatsapp" id="ev-whatsapp" class="modal-input" required /></label>
+            <label class="modal-field"><span class="modal-lbl">Servicios</span><input type="text" name="servicios" id="ev-servicios" class="modal-input" /></label>
+            <label class="modal-field modal-field--full"><span class="modal-lbl">Horario</span><input type="text" name="horario" id="ev-horario" class="modal-input" /></label>
+          </div>
+          <div class="modal-actions">
+            <button type="submit" class="btn-submit">Guardar cambios</button>
+            <button type="button" class="modal-cancel btn btn-outline">Cancelar</button>
+          </div>
+        </form>
+
+        <form id="modal-insumo" class="modal-form" style="display:none">
+          <input type="hidden" name="action" value="editar_insumo" />
+          <input type="hidden" name="id" id="ei-id" />
+          <div class="modal-grid">
+            <label class="modal-field modal-field--full"><span class="modal-lbl">Nombre del insumo *</span><input type="text" name="item" id="ei-item" class="modal-input" required /></label>
+            <label class="modal-field"><span class="modal-lbl">Cant. recibida</span><input type="number" name="cantidad_recibida" id="ei-recibida" class="modal-input" min="0" /></label>
+            <label class="modal-field"><span class="modal-lbl">Cant. requerida *</span><input type="number" name="cantidad_requerida" id="ei-requerida" class="modal-input" min="1" required /></label>
+            <label class="modal-field modal-field--full"><span class="modal-lbl">Prioridad</span><select name="prioridad" id="ei-prioridad" class="modal-input"><option value="critico">🔴 Crítico</option><option value="urgente">🟡 Urgente</option><option value="cubierto">🟢 Cubierto</option></select></label>
+          </div>
+          <div class="modal-actions">
+            <button type="submit" class="btn-submit">Guardar cambios</button>
+            <button type="button" class="modal-cancel btn btn-outline">Cancelar</button>
+          </div>
+        </form>
+
+        <form id="modal-feed" class="modal-form" enctype="multipart/form-data" style="display:none">
+          <input type="hidden" name="action" value="editar_feed" />
+          <input type="hidden" name="id" id="ef-id" />
+          <div class="modal-grid">
+            <label class="modal-field"><span class="modal-lbl">Tipo</span><select name="tipo" id="ef-tipo" class="modal-input"><option value="info">Info</option><option value="alerta">Alerta</option><option value="rescate">Rescate</option><option value="buenas">Buenas</option><option value="voluntario">Voluntarios</option></select></label>
+            <label class="modal-field"><span class="modal-lbl">Título *</span><input type="text" name="titulo" id="ef-titulo" class="modal-input" required maxlength="150" /></label>
+            <label class="modal-field modal-field--full"><span class="modal-lbl">Texto *</span><textarea name="cuerpo" id="ef-cuerpo" class="modal-input modal-textarea" rows="4" required></textarea></label>
+            <label class="modal-field modal-field--full"><span class="modal-lbl">Imagen nueva (opcional)</span><input type="file" name="feed_img_edit" accept="image/*" class="upload-input" /></label>
+          </div>
+          <div class="modal-actions">
+            <button type="submit" class="btn-submit">Guardar cambios</button>
+            <button type="button" class="modal-cancel btn btn-outline">Cancelar</button>
+          </div>
+        </form>
+      </div>
     </div>
 
   </div>
-
-  </div>
-
 )}
 
 </body>
@@ -1607,779 +1368,457 @@ if (isAuth) {
 
 <style>
   :root {
-    --bg:       #0F1117;
-    --surface:  #1A1D27;
-    --border:   #2D3148;
-    --texto:    #F1F5F9;
-    --gris:     #94A3B8;
-    --verde:    #22C55E;
-    --rojo:     #EF4444;
-    --amarillo: #F59E0B;
-    --azul:     #3B82F6;
-    --naranja:  #F97316;
+    --bg:        #0C0906;
+    --surface:   #1A1210;
+    --surface2:  #221A16;
+    --border:    rgba(255,255,255,0.08);
+    --tx:        #F0E8DE;
+    --tx-muted:  rgba(240,232,222,0.50);
+    --verde:     #22C55E;
+    --rojo:      #EF4444;
+    --amarillo:  #F59E0B;
+    --azul:      #3B82F6;
+    --naranja:   #F97316;
+    --morado:    #8B5CF6;
+    --esmeralda: #10B981;
+    --marron-claro: rgba(107,58,42,0.30);
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
     background: var(--bg);
-    color: var(--texto);
+    color: var(--tx);
     font-family: 'Inter', system-ui, sans-serif;
     font-size: 13px;
     line-height: 1.5;
     min-height: 100vh;
   }
 
-  /* ── Login ────────────────────────────────────────────────────────── */
-  .login-wrap {
-    min-height: 100vh;
-    display: grid;
-    place-items: center;
-    padding: 1rem;
-  }
+  /* ── LOGIN ── */
+  .login-wrap { min-height:100vh; display:grid; place-items:center; padding:1rem; }
   .login-box {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 2rem;
-    width: min(100%, 320px);
-    display: flex;
-    flex-direction: column;
-    gap: .75rem;
+    background: var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:2rem; width:min(100%,320px); display:flex; flex-direction:column; gap:.75rem;
   }
-  .login-logo  { font-size: 2rem; text-align: center; }  /* fallback, replaced by img */
-  .login-title { font-size: 1.25rem; font-weight: 700; text-align: center; }
-  .login-sub   { font-size: .8rem; color: var(--gris); text-align: center; }
-  .login-err   { background: rgba(239,68,68,.12); color: var(--rojo); border: 1px solid rgba(239,68,68,.35); border-radius: 6px; padding: .625rem .875rem; font-size: .8rem; }
-  .login-box form { display: flex; flex-direction: column; gap: .625rem; }
+  .login-title { font-size:1.25rem; font-weight:700; text-align:center; }
+  .login-sub   { font-size:.8rem; color:var(--tx-muted); text-align:center; }
+  .login-err   { background:rgba(239,68,68,.12); color:var(--rojo); border:1px solid rgba(239,68,68,.35); border-radius:6px; padding:.625rem .875rem; font-size:.8rem; }
+  .login-box form { display:flex; flex-direction:column; gap:.625rem; }
   .login-box input {
-    background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
-    color: var(--texto); padding: .625rem .875rem; font-size: .875rem;
-    width: 100%; font-family: inherit;
+    background:var(--bg); border:1px solid var(--border); border-radius:6px;
+    color:var(--tx); padding:.625rem .875rem; font-size:.875rem; width:100%; font-family:inherit;
   }
-  .login-box input:focus { outline: none; border-color: var(--azul); }
+  .login-box input:focus { outline:none; border-color:var(--amarillo); }
   .btn-login {
-    background: var(--azul); color: #fff; border: none; border-radius: 6px;
-    padding: .625rem; font-size: .875rem; font-weight: 600; cursor: pointer;
-    font-family: inherit; transition: opacity .15s;
+    background:var(--amarillo); color:#1a1a1a; border:none; border-radius:8px;
+    padding:.75rem; font-weight:700; font-size:.875rem; cursor:pointer;
   }
-  .btn-login:hover { opacity: .85; }
+  .btn-login:hover { background:#e6b200; }
 
-  /* ── Header ───────────────────────────────────────────────────────── */
+  /* ── PANEL ── */
+  .panel { min-height:100vh; }
+
+  /* ── HEADER ── */
   .hdr {
-    display: flex; align-items: center; gap: .625rem;
-    padding: .875rem 1.5rem;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    flex-wrap: wrap;
-    position: sticky; top: 0; z-index: 100;
+    display:flex; align-items:center; gap:.75rem; padding:.75rem 1rem;
+    background:var(--surface); border-bottom:1px solid var(--border);
+    position:sticky; top:0; z-index:10;
   }
-  .hdr-title  { font-weight: 700; font-size: 1rem; flex-shrink: 0; }
-  .hdr-stats  { display: flex; gap: .375rem; flex-wrap: wrap; flex: 1; min-width: 0; }
-  .stat-pill  { font-size: .7rem; font-weight: 600; padding: .2rem .625rem; border-radius: 999px; }
-  .stat-naranja { background: rgba(249,115,22,.2);  color: #FB923C; }
-  .stat-verde   { background: rgba(34,197,94,.2);   color: #4ADE80; }
-  .stat-azul    { background: rgba(59,130,246,.2);  color: #60A5FA; }
-  .stat-gris    { background: rgba(148,163,184,.15); color: var(--gris); }
-  .logout-form  { flex-shrink: 0; }
-  .btn-logout {
-    background: transparent; border: 1px solid var(--border); color: var(--gris);
-    border-radius: 6px; padding: .3rem .75rem; cursor: pointer;
-    font-size: .75rem; font-family: inherit; transition: border-color .15s, color .15s;
+  .hdr-left { display:flex; align-items:center; gap:.5rem; }
+  .hdr-logo  { font-size:1.25rem; }
+  .hdr-title { font-weight:700; font-size:.9rem; color:var(--tx); }
+  .hdr-badges { display:flex; gap:.375rem; flex-wrap:wrap; flex:1; }
+  .hdr-badge {
+    font-size:.7rem; font-weight:600; padding:.2rem .5rem; border-radius:20px;
   }
-  .btn-logout:hover { border-color: var(--rojo); color: var(--rojo); }
-  .hdr-ver-sitio {
-    flex-shrink: 0;
-    font-size: .72rem; font-weight: 600;
-    color: #F5A623; text-decoration: none;
-    border: 1px solid #F5A623;
-    padding: .3rem .75rem; border-radius: 6px;
-    white-space: nowrap;
-    transition: background .15s, color .15s;
+  .badge-rojo  { background:rgba(239,68,68,.18); color:#f87171; }
+  .badge-verde { background:rgba(34,197,94,.18);  color:#4ade80; }
+  .badge-azul  { background:rgba(59,130,246,.18); color:#60a5fa; }
+  .badge-gris  { background:rgba(255,255,255,.10); color:var(--tx-muted); }
+  .hdr-right { display:flex; gap:.5rem; align-items:center; margin-left:auto; }
+  .btn-sitio {
+    font-size:.75rem; color:var(--amarillo); border:1px solid rgba(245,158,11,.35);
+    border-radius:6px; padding:.3rem .7rem; text-decoration:none; white-space:nowrap;
   }
-  .hdr-ver-sitio:hover { background: #F5A623; color: #3D1C02; }
+  .btn-sitio:hover { background:rgba(245,158,11,.12); }
+  .btn-salir {
+    font-size:.75rem; color:var(--tx-muted); border:1px solid var(--border);
+    background:transparent; border-radius:6px; padding:.3rem .7rem; cursor:pointer;
+    white-space:nowrap;
+  }
+  .btn-salir:hover { color:var(--rojo); border-color:rgba(239,68,68,.5); }
 
-  /* ── Tabs nav ─────────────────────────────────────────────────────── */
-  .tabs-nav {
-    display: flex; background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    overflow-x: auto; scrollbar-width: none;
-    padding: .5rem .75rem;
-    gap: .375rem;
+  /* ── TILE GRID ── */
+  #home { padding:.75rem; }
+  .tile-grid {
+    display:grid;
+    grid-template-columns:repeat(2, 1fr);
+    gap:.625rem;
+    max-width:680px;
+    margin:0 auto;
   }
-  .tabs-nav::-webkit-scrollbar { display: none; }
-  .tab {
-    background: #1f2937; border: none;
-    border-radius: 100px;
-    color: #94a3b8; padding: .5rem 1rem;
-    font-size: .8rem; font-weight: 600; cursor: pointer;
-    font-family: inherit; white-space: nowrap;
-    transition: background .15s, color .15s;
-    display: flex; align-items: center; gap: .35rem;
-    min-height: 38px; flex-shrink: 0;
+  @media (min-width:560px) {
+    .tile-grid { grid-template-columns:repeat(3,1fr); }
+    #home { padding:1rem; }
   }
-  .tab:hover { background: #374151; color: #e5e7eb; }
-  .tab.active { background: #F5A623; color: #3D1C02; }
-  .tab-badge {
-    display: inline-flex; align-items: center; justify-content: center;
-    min-width: 22px; height: 22px; border-radius: 11px;
-    font-size: 11px; font-weight: 700;
-    background: #EF4444; color: white;
-    animation: pulse-badge 2s infinite;
-  }
-  @keyframes pulse-badge {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: .8; transform: scale(1.1); }
-  }
-  .tab-badge.zero { background: #22C55E; animation: none; }
-  @media (prefers-reduced-motion: reduce) {
-    .tab-badge { animation: none; }
+  @media (min-width:800px) {
+    .tile-grid { grid-template-columns:repeat(5,1fr); gap:.75rem; }
   }
 
-  /* ── Tab panes ────────────────────────────────────────────────────── */
-  .tab-pane { display: none; padding: 1.5rem; }
-  .tab-pane.active { display: block; }
-
-  /* ── Tables ───────────────────────────────────────────────────────── */
-  .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
-  table { width: 100%; border-collapse: collapse; font-size: .85rem; }
-  th {
-    text-align: left; padding: .75rem 1rem;
-    font-size: .7rem; font-weight: 600; text-transform: uppercase;
-    letter-spacing: .05em; color: var(--gris);
-    border-bottom: 1px solid var(--border);
-    background: #0d1117; white-space: nowrap;
+  .tile {
+    min-height:120px; border-radius:16px; border:1px solid rgba(255,255,255,0.10);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:.3rem; padding:.875rem .5rem; cursor:pointer; background:rgba(255,255,255,0.05);
+    transition:transform .15s, background .15s; text-align:center; position:relative;
+    font-family:inherit;
   }
-  tr:last-child td { border-bottom: none; }
-  tr:nth-child(even) td { background: rgba(255,255,255,.02); }
-  tr:hover td { background: rgba(59,130,246,.05); }
+  .tile:active { transform:scale(.96); }
+  @media (hover:hover) { .tile:hover { transform:scale(1.03); } }
+  @media (min-width:560px) { .tile { min-height:140px; } }
 
-  .td-photo { width: 88px; padding: .875rem 1rem; }
-  .thumb {
-    width: 72px; height: 72px; object-fit: cover; border-radius: 8px;
-    display: block; cursor: zoom-in; transition: opacity .15s;
-  }
-  .thumb:hover { opacity: .85; }
-  .thumb-empty {
-    display: flex; align-items: center; justify-content: center;
-    width: 72px; height: 72px; border-radius: 8px;
-    background: #1f2937; font-size: 1.75rem; flex-shrink: 0;
-  }
-  td { padding: 1rem; border-bottom: 1px solid var(--border); vertical-align: middle; height: 88px; }
-  .td-name     { font-weight: 700; font-size: 15px; max-width: 200px; }
-  .td-zona     { max-width: 140px; color: var(--gris); font-size: .8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .td-time     { color: var(--gris); font-size: .75rem; white-space: nowrap; }
-  .td-gris     { color: var(--gris); }
-  .td-truncate { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--gris); }
-  .td-actions  { white-space: nowrap; }
-  .link-wa     { font-size: 1.1rem; text-decoration: none; }
-  .link-wa-txt { font-size: .8rem; color: #4ADE80; text-decoration: none; white-space: nowrap; }
-  .link-wa-txt:hover { text-decoration: underline; }
+  .tile-icon  { font-size:2rem; line-height:1; }
+  .tile-label { font-size:.75rem; font-weight:600; color:var(--tx); letter-spacing:.01em; }
+  .tile-count { font-size:1.5rem; font-weight:700; color:var(--tx); }
+  .tile-sub   { font-size:.65rem; color:var(--tx-muted); }
 
-  /* ── Buttons ──────────────────────────────────────────────────────── */
-  .btn {
-    border: none; border-radius: 6px;
-    padding: .5rem .875rem; font-size: .8rem; font-weight: 600;
-    cursor: pointer; font-family: inherit; transition: opacity .15s;
-    min-height: 36px; min-width: 80px;
-    display: inline-flex; align-items: center; justify-content: center;
-    text-decoration: none; white-space: nowrap;
-  }
-  .btn + .btn { margin-left: .375rem; }
-  .btn:hover    { opacity: .8; }
-  .btn:disabled { opacity: .35; cursor: not-allowed; }
-  .btn-verde    { background: var(--verde);   color: #fff; }
-  .btn-rojo     { background: var(--rojo);    color: #fff; }
-  .btn-azul     { background: var(--azul);    color: #fff; }
-  .btn-amarillo { background: var(--amarillo); color: #000; }
-  .btn-gris     { background: rgba(148,163,184,.2); color: var(--gris); }
-  .btn-outline  { background: transparent; border: 1px solid var(--border); color: var(--gris); }
-  .btn-outline:hover { border-color: var(--gris); color: var(--texto); opacity: 1; }
-  .btn-icon     { min-width: auto; padding: .5rem .625rem; }
-  .btn-sm       { padding: .3rem .625rem; min-height: 30px; min-width: 60px; font-size: .75rem; }
+  .tile-pendiente  { background:rgba(220,38,38,0.14);  border-color:rgba(220,38,38,0.25); }
+  .tile-publicadas { background:rgba(107,58,42,0.20);  border-color:rgba(107,58,42,0.40); }
+  .tile-adopcion   { background:rgba(37,99,235,0.14);  border-color:rgba(37,99,235,0.30); }
+  .tile-agregar    { background:rgba(107,58,42,0.75);  border-color:rgba(245,193,7,0.40); }
+  .tile-agregar .tile-label,
+  .tile-agregar .tile-sub { color:#F5EDE0; }
+  .tile-gemini     { background:rgba(16,185,129,0.12); border-color:rgba(16,185,129,0.30); }
+  .tile-vets       { background:rgba(22,163,74,0.12);  border-color:rgba(22,163,74,0.30); }
+  .tile-feed       { background:rgba(59,130,246,0.12); border-color:rgba(59,130,246,0.30); }
+  .tile-insumos    { background:rgba(245,158,11,0.12); border-color:rgba(245,158,11,0.30); }
+  .tile-analiticas { background:rgba(139,92,246,0.12); border-color:rgba(139,92,246,0.30); }
+  .tile-banners    { background:rgba(249,115,22,0.12); border-color:rgba(249,115,22,0.30); }
 
-  /* ── Badges ───────────────────────────────────────────────────────── */
+  /* Pulsating dot for pendientes */
+  .pulse-dot {
+    display:inline-block; width:8px; height:8px; border-radius:50%;
+    background:var(--rojo); margin-left:4px; vertical-align:middle;
+    animation:pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity:1; transform:scale(1); }
+    50%      { opacity:.4; transform:scale(.6); }
+  }
+  @media (prefers-reduced-motion:reduce) { .pulse-dot { animation:none; } }
+
+  /* Tile entrance animation */
+  .tile { animation:tileIn .3s ease both; }
+  .tile:nth-child(2) { animation-delay:.04s; }
+  .tile:nth-child(3) { animation-delay:.08s; }
+  .tile:nth-child(4) { animation-delay:.12s; }
+  .tile:nth-child(5) { animation-delay:.16s; }
+  .tile:nth-child(6) { animation-delay:.20s; }
+  .tile:nth-child(7) { animation-delay:.24s; }
+  .tile:nth-child(8) { animation-delay:.28s; }
+  .tile:nth-child(9) { animation-delay:.32s; }
+  .tile:nth-child(10){ animation-delay:.36s; }
+  @keyframes tileIn {
+    from { opacity:0; transform:translateY(10px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  @media (prefers-reduced-motion:reduce) { .tile { animation:none; } }
+
+  /* ── MODULES ── */
+  .module {
+    position:fixed; inset:0; background:var(--bg); z-index:20;
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  .module[hidden] { display:none; }
+
+  .mod-hdr {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:.75rem 1rem; background:var(--surface);
+    border-bottom:1px solid var(--border); flex-shrink:0;
+  }
+  .mod-title { font-weight:700; font-size:.95rem; }
+
+  .btn-back {
+    background:transparent; border:1px solid var(--border); border-radius:8px;
+    color:var(--tx-muted); padding:.4rem .8rem; cursor:pointer; font-size:.8rem;
+    font-family:inherit; transition:color .15s, border-color .15s;
+  }
+  .btn-back:hover { color:var(--amarillo); border-color:rgba(245,158,11,.5); }
+
+  .btn-mod-action {
+    background:var(--amarillo); color:#1a1a1a; border:none; border-radius:8px;
+    padding:.4rem .9rem; cursor:pointer; font-size:.8rem; font-weight:700; font-family:inherit;
+  }
+
+  .mod-body {
+    flex:1; overflow-y:auto; padding:1rem;
+    scrollbar-width:thin; scrollbar-color:var(--surface2) transparent;
+  }
+
+  /* ── CARDS ── */
+  .card-list { display:flex; flex-direction:column; gap:.625rem; }
+
+  .mcard {
+    display:flex; align-items:flex-start; gap:.75rem;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; padding:.75rem; transition:border-color .15s;
+  }
+  .mcard:hover { border-color:rgba(255,255,255,0.15); }
+  .mcard-reunida { opacity:.65; }
+
+  .mcard-media { flex-shrink:0; }
+  .mcard-img {
+    width:72px; height:72px; border-radius:8px; object-fit:cover;
+    display:block; background:var(--surface2);
+  }
+  .mcard-nofoto {
+    width:72px; height:72px; border-radius:8px; background:var(--surface2);
+    display:flex; align-items:center; justify-content:center; font-size:1.75rem;
+  }
+  .mcard-tipo-icon {
+    width:72px; height:72px; border-radius:8px; background:var(--surface2);
+    display:flex; align-items:center; justify-content:center; font-size:1.75rem;
+  }
+
+  .mcard-info { flex:1; min-width:0; display:flex; flex-direction:column; gap:.25rem; }
+  .mcard-name { font-weight:600; font-size:.875rem; color:var(--tx); }
+  .mcard-meta { font-size:.75rem; color:var(--tx-muted); }
+  .mcard-desc { font-size:.75rem; color:var(--tx-muted); }
+  .mcard-badges { display:flex; gap:.375rem; flex-wrap:wrap; align-items:center; }
+
+  .mcard-actions {
+    display:flex; flex-direction:column; gap:.375rem; flex-shrink:0; align-items:flex-end;
+  }
+  @media (min-width:480px) {
+    .mcard-actions { flex-direction:row; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+  }
+
+  .section-divider {
+    font-size:.8rem; font-weight:600; color:var(--verde); padding:.75rem 0 .375rem;
+    border-top:1px solid var(--border); margin-top:.75rem;
+  }
+
+  /* ── BADGES ── */
   .badge {
-    display: inline-block; font-size: .65rem; font-weight: 700;
-    padding: .15rem .45rem; border-radius: 4px; text-transform: capitalize;
+    display:inline-block; font-size:.65rem; font-weight:700;
+    padding:.1rem .45rem; border-radius:10px; text-transform:lowercase;
   }
-  .badge-rojo  { background: rgba(239,68,68,.2);  color: #FCA5A5; }
-  .badge-verde { background: rgba(34,197,94,.2);  color: #86EFAC; }
-  .badge-azul  { background: rgba(59,130,246,.2); color: #93C5FD; }
-  .badge-gris  { background: rgba(148,163,184,.1); color: var(--gris); }
-  .badge-tipo-info       { background: rgba(59,130,246,.2);  color: #93C5FD; }
-  .badge-tipo-alerta     { background: rgba(239,68,68,.2);   color: #FCA5A5; }
-  .badge-tipo-rescate    { background: rgba(245,158,11,.2);  color: #FCD34D; }
-  .badge-tipo-buenas     { background: rgba(34,197,94,.2);   color: #86EFAC; }
-  .badge-tipo-voluntario { background: rgba(139,92,246,.2);  color: #C4B5FD; }
+  .badge-rojo  { background:rgba(239,68,68,.18);  color:#f87171; }
+  .badge-verde { background:rgba(34,197,94,.18);  color:#4ade80; }
+  .badge-azul  { background:rgba(59,130,246,.18); color:#60a5fa; }
+  .badge-gris  { background:rgba(255,255,255,.10); color:var(--tx-muted); }
+  .badge-tipo-info      { background:rgba(59,130,246,.15);  color:#60a5fa; }
+  .badge-tipo-alerta    { background:rgba(239,68,68,.15);   color:#f87171; }
+  .badge-tipo-rescate   { background:rgba(107,58,42,.25);   color:#d09070; }
+  .badge-tipo-buenas    { background:rgba(34,197,94,.15);   color:#4ade80; }
+  .badge-tipo-voluntario{ background:rgba(139,92,246,.15);  color:#a78bfa; }
 
-  /* ── Sub-titles ───────────────────────────────────────────────────── */
-  .sub-title {
-    font-size: .72rem; font-weight: 700; color: var(--gris);
-    text-transform: uppercase; letter-spacing: .05em; margin-bottom: .75rem;
+  /* ── BUTTONS ── */
+  .btn {
+    display:inline-flex; align-items:center; justify-content:center;
+    border:none; border-radius:8px; padding:.4rem .75rem;
+    font-size:.75rem; font-weight:600; cursor:pointer; font-family:inherit;
+    min-height:36px; transition:opacity .15s, filter .15s; white-space:nowrap;
   }
-  .mt    { margin-top: 1.5rem; }
-  .mt-sm { margin-top: .75rem; }
-  .empty-msg { color: var(--gris); padding: 2rem; text-align: center; font-size: .875rem; }
+  .btn:disabled { opacity:.5; cursor:not-allowed; }
+  .btn-verde   { background:rgba(34,197,94,.2);  color:#4ade80;  border:1px solid rgba(34,197,94,.3); }
+  .btn-rojo    { background:rgba(239,68,68,.2);  color:#f87171;  border:1px solid rgba(239,68,68,.3); }
+  .btn-azul    { background:rgba(59,130,246,.2); color:#60a5fa;  border:1px solid rgba(59,130,246,.3); }
+  .btn-amarillo{ background:rgba(245,158,11,.2); color:#fbbf24;  border:1px solid rgba(245,158,11,.3); }
+  .btn-gris    { background:rgba(255,255,255,.08); color:var(--tx-muted); border:1px solid var(--border); }
+  .btn-wa      { background:rgba(37,211,102,.18); color:#25D366; border:1px solid rgba(37,211,102,.3); text-decoration:none; }
+  .btn-outline { background:transparent; border:1px solid var(--border); color:var(--tx-muted); }
+  .btn-outline:hover { border-color:rgba(255,255,255,.25); color:var(--tx); }
+  .btn-icon    { padding:.4rem .5rem; min-width:36px; }
+  .btn-sm      { padding:.25rem .5rem; font-size:.7rem; min-height:28px; }
 
-  /* ── Tab badge con fondo activo ────────────────────────────────────── */
-  .tab.active .tab-badge { background: rgba(61,28,2,.3); color: #3D1C02; }
-
-  /* ── Tab agregar highlight ─────────────────────────────────────────── */
-  .tab-agregar { color: #4ADE80; }
-  .tab-agregar.active { background: #4ADE80; color: #052e16; }
-
-  /* ── Nueva mascota form extras ────────────────────────────────────── */
-  .nm-hint {
-    font-size: .72rem; color: var(--gris); margin-top: -.375rem;
-    min-height: 1rem;
-  }
-  .nm-hint.valid { color: #4ADE80; }
-  .nm-hint.invalid { color: #FCA5A5; }
-  .nm-success { font-size: .8rem; font-weight: 700; color: #4ADE80; }
-  .nm-preview-img {
-    width: 140px; height: 140px; object-fit: cover;
-    border-radius: 10px; border: 2px solid #374151;
-  }
-
-  /* ── Feed form ────────────────────────────────────────────────────── */
-  .feed-form {
-    display: flex; flex-direction: column; gap: .75rem; max-width: 680px;
-    background: #111827; border: 1px solid var(--border);
-    border-radius: 12px; padding: 20px;
-  }
-  .feed-row  { display: flex; gap: .625rem; }
-  .feed-select, .feed-input, .feed-textarea {
-    background: #1f2937; border: 1px solid #374151;
-    border-radius: 8px; color: #fff;
-    padding: 12px 14px; font-size: 1rem; font-family: inherit;
-    min-height: 48px;
-  }
-  .feed-select { flex-shrink: 0; }
-  .feed-input  { flex: 1; }
-  .feed-textarea { resize: vertical; width: 100%; }
-  .feed-select:focus, .feed-input:focus, .feed-textarea:focus { outline: none; border-color: #F5A623; }
-  .feed-select option { background: #1f2937; }
-
-  /* Label encima de cada campo */
-  .form-field { display: flex; flex-direction: column; gap: .3rem; flex: 1; min-width: 160px; }
-  .form-field .form-lbl {
-    font-size: .7rem; font-weight: 700; color: #94A3B8;
-    text-transform: uppercase; letter-spacing: .05em;
-  }
-  .form-field .feed-input,
-  .form-field .feed-select { width: 100%; }
-
-  /* "Ver ficha" link en celdas */
-  .ficha-link {
-    display: block; margin-top: 3px;
-    color: #F5A623; font-size: .72rem; font-weight: 600; text-decoration: none;
-  }
-  .ficha-link:hover { text-decoration: underline; }
-
-  /* Botón submit amarillo */
   .btn-submit {
-    background: #F5A623; color: #3D1C02; font-weight: 700;
-    border: none; border-radius: 10px;
-    padding: .625rem 1rem; font-size: .9375rem; font-family: inherit;
-    cursor: pointer; min-height: 44px; transition: opacity .15s;
+    background:var(--amarillo); color:#1a1a1a; border:none; border-radius:8px;
+    padding:.625rem 1.25rem; font-weight:700; font-size:.8rem; cursor:pointer;
+    font-family:inherit; min-height:40px;
   }
-  .btn-submit:hover { opacity: .85; }
+  .btn-submit:hover { background:#e6b200; }
+  .btn-submit:disabled { opacity:.5; cursor:not-allowed; }
 
-  /* ── Insumos ──────────────────────────────────────────────────────── */
-  .insumos-list { display: flex; flex-direction: column; gap: .25rem; max-width: 520px; }
-  .insumo-row {
-    display: flex; align-items: center; gap: .75rem;
-    padding: .5rem .25rem; border-bottom: 1px solid var(--border);
-  }
-  .prio-dot    { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .prio-critico  { background: var(--rojo); }
-  .prio-urgente  { background: var(--amarillo); }
-  .prio-cubierto { background: var(--verde); }
-  .insumo-name     { flex: 1; font-weight: 500; font-size: .85rem; }
-  .insumo-progress { font-size: .75rem; color: var(--gris); white-space: nowrap; }
-  .insumo-form     { display: flex; align-items: center; gap: .375rem; }
-  .insumo-input {
-    width: 64px; background: var(--surface); border: 1px solid var(--border);
-    border-radius: 4px; color: var(--texto); padding: .3rem .5rem;
-    font-family: inherit; font-size: .8rem; text-align: center;
-  }
-  .insumo-input:focus { outline: none; border-color: var(--azul); }
-
-  /* ── Banners ─────────────────────────────────────────────────────── */
-  .btn-gris { background: rgba(148,163,184,.2); color: var(--gris); }
-  .banner-uploads { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: .5rem; }
-  .upload-label { display: flex; flex-direction: column; gap: .25rem; flex: 1; min-width: 200px; }
-  .upload-lbl-txt { font-size: .72rem; font-weight: 600; color: var(--gris); }
-  .upload-input {
-    background: var(--surface); border: 1px dashed var(--border);
-    border-radius: 6px; color: var(--gris);
-    padding: .5rem; font-size: .8rem; font-family: inherit; cursor: pointer;
-    width: 100%;
-  }
-  .upload-input:hover { border-color: var(--azul); }
-
-  /* ── Nuevo forms ─────────────────────────────────────────────────── */
-  .nuevo-section {
-    background: #111827; border: 1px solid var(--border);
-    border-radius: 12px; padding: 20px; max-width: 680px;
-  }
-  .form-section-title {
-    font-size: 1rem; font-weight: 700; color: #F5A623; margin-bottom: 1rem;
-  }
-  .nuevo-form { display: flex; flex-direction: column; gap: .625rem; }
-  .nuevo-form-grid { display: flex; flex-wrap: wrap; gap: .625rem; }
-  .nuevo-form-grid .feed-input { flex: 1; min-width: 140px; }
-  .insumo-lbl {
-    font-size: .72rem; font-weight: 600; color: var(--gris);
-    white-space: nowrap; align-self: center;
-  }
-  .insumo-input-lg { width: 100px; }
-
-  /* ── Panel wrapper ────────────────────────────────────────────────── */
-  .panel { max-width: 1200px; margin: 0 auto; }
-
-  /* ── Responsive — Mobile-first cards ─────────────────────────────── */
-  @media (max-width: 767px) {
-    .tab-pane { padding: 1rem; }
-    .hdr { padding: .625rem 1rem; gap: .5rem; }
-    .tabs-nav { padding: .375rem .5rem; }
-    .nuevo-section { max-width: 100%; }
-    .feed-form { max-width: 100%; }
-
-    /* ── Table → Card layout ────────────────────────────────────────── */
-    .table-wrap { border: none; overflow: visible; border-radius: 0; }
-    table { display: flex; flex-direction: column; gap: 10px; width: 100%; }
-    thead { display: none; }
-    tbody { display: contents; }
-
-    tr {
-      display: flex;
-      flex-wrap: wrap;
-      align-content: flex-start;
-      gap: 6px;
-      padding: 14px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      height: auto !important;
-    }
-    /* Reset alternating/hover tints inside cards */
-    tr:nth-child(even) td { background: transparent; }
-    tr:hover td { background: transparent; }
-
-    td {
-      height: auto !important;
-      border: none;
-      padding: 0;
-      display: flex;
-      align-items: center;
-    }
-
-    /* Photo — fixed 88px column */
-    .td-photo { width: 88px; flex-shrink: 0; align-self: flex-start; padding: 0; }
-    .thumb { width: 80px !important; height: 80px !important; }
-    .thumb-empty { width: 80px !important; height: 80px !important; font-size: 1.75rem; }
-
-    /* Name — fills space next to photo */
-    .td-name {
-      width: calc(100% - 100px);
-      flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 2px;
-      font-size: .9375rem;
-      max-width: none;
-      padding-bottom: 2px;
-      height: auto;
-    }
-
-    /* Especie chip */
-    .td-especie {
-      font-size: .75rem;
-      background: rgba(148,163,184,.12);
-      border-radius: 6px;
-      padding: 3px 8px;
-      color: var(--gris);
-      height: auto;
-    }
-
-    /* Tipo badge cell */
-    .td-tipo { height: auto; }
-
-    /* Zona — full width */
-    .td-zona {
-      width: 100%;
-      flex-shrink: 0;
-      max-width: 100%;
-      overflow: visible;
-      white-space: normal;
-      font-size: .8125rem;
-      padding: 2px 0;
-    }
-
-    /* WA */
-    .td-wa { font-size: 1rem; height: auto; }
-
-    /* Time — hide on mobile */
-    .td-time { display: none !important; }
-    .td-urgente { display: none !important; }
-
-    /* Actions — full-width stacked buttons */
-    .td-actions {
-      width: 100%;
-      flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      padding-top: 10px;
-      white-space: normal;
-    }
-    .td-actions .btn {
-      width: 100%;
-      min-height: 48px;
-      font-size: .9rem;
-      border-radius: 10px;
-      justify-content: center;
-    }
-    .td-actions .btn + .btn { margin-left: 0; }
-
-    /* ── Modal mobile ───────────────────────────────────────────────── */
-    .modal-overlay { padding: .5rem; align-items: flex-end; }
-    .modal-box {
-      width: 95vw;
-      max-width: 95vw;
-      max-height: 85dvh;
-      border-radius: 16px 16px 10px 10px;
-    }
-    .modal-grid { grid-template-columns: 1fr; }
-    .modal-field--full { grid-column: 1; }
-    .modal-actions {
-      position: sticky;
-      bottom: 0;
-      background: #1a1d27;
-      padding: .75rem 0 .25rem;
-      flex-direction: column;
-      gap: .5rem;
-      margin-top: .25rem;
-    }
-    .modal-actions .btn-submit,
-    .modal-actions .btn { width: 100%; min-height: 48px; font-size: .9375rem; }
-
-    /* ── Submit buttons en forms ───────────────────────────────────── */
-    .btn-submit { width: 100%; }
-    .insumo-search-input { font-size: 1rem; }
-  }
-
-  @media (max-width: 480px) {
-    .hdr { gap: .375rem; }
-    .feed-row { flex-direction: column; }
-  }
-
-  /* ── Admin search bar ────────────────────────────────────── */
-  .admin-search-bar { margin-bottom: .75rem; }
-  .admin-search-input {
-    width: 100%; padding: 10px 14px;
-    background: #1f2937; border: 1px solid #374151;
-    color: #fff; border-radius: 8px; font-size: .875rem;
-    font-family: inherit; outline: none; transition: border-color .15s;
-  }
-  .admin-search-input:focus { border-color: #F5A623; }
-  .admin-search-input::placeholder { color: #6B7280; }
-
-  /* ── Urgente (días sin resolver) ─────────────────────────── */
-  .td-urgente { color: #EF4444 !important; font-weight: 700; }
-
-  /* ── Edit Modal ──────────────────────────────────────────── */
-  .modal-overlay {
-    position: fixed; inset: 0; z-index: 200;
-    background: rgba(0,0,0,.65); backdrop-filter: blur(3px);
-    display: flex; align-items: center; justify-content: center;
-    padding: 1rem;
-    animation: fadeIn .15s ease;
-  }
-  @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-  .modal-box {
-    background: #1a1d27; border: 1px solid #2d3148; border-radius: 12px;
-    padding: 20px; width: min(100%, 560px); max-height: 90dvh;
-    overflow-y: auto; display: flex; flex-direction: column; gap: .75rem;
-    animation: slideUp .18s ease;
-  }
-  @keyframes slideUp { from { transform: translateY(10px); opacity: 0 } to { transform: none; opacity: 1 } }
-  .modal-hdr {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: .75rem;
-  }
-  .modal-title {
-    font-size: .975rem; font-weight: 700; color: #F5A623;
-  }
-  .modal-close {
-    background: transparent; border: none; color: var(--gris);
-    font-size: 1.1rem; cursor: pointer; padding: .25rem .375rem; line-height: 1;
-    border-radius: 4px; transition: color .15s, background .15s;
-  }
-  .modal-close:hover { color: var(--texto); background: rgba(255,255,255,.06); }
-  .modal-form { display: flex; flex-direction: column; gap: .75rem; }
-  .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .625rem; }
-  .modal-field { display: flex; flex-direction: column; gap: .3rem; }
-  .modal-field--full { grid-column: 1 / -1; }
-  .modal-lbl {
-    font-size: .68rem; font-weight: 700; color: #94A3B8;
-    text-transform: uppercase; letter-spacing: .05em;
-  }
-  .modal-input {
-    background: #0f1117; border: 1px solid #374151; border-radius: 8px;
-    color: #fff; padding: 12px 14px; font-size: 1rem;
-    font-family: inherit; width: 100%; transition: border-color .15s;
-    min-height: 48px;
-  }
-  .modal-input:focus { outline: none; border-color: #F5A623; }
-  .modal-input option { background: #0f1117; }
-  .modal-textarea { resize: vertical; min-height: 76px; }
-  .modal-hint { font-size: .7rem; color: #94A3B8; margin-top: 2px; }
-  .modal-actions { display: flex; gap: .5rem; margin-top: .125rem; }
-
-  @media (max-width: 480px) {
-    .modal-grid { grid-template-columns: 1fr; }
-    .modal-field--full { grid-column: 1; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .modal-overlay, .modal-box { animation: none; }
-  }
-
-  /* ── Analytics tab ──────────────────────────────────────────── */
-  .analytics-wrap {
-    display: flex;
-    flex-direction: column;
-    gap: 28px;
-    padding: 4px 0 32px;
-    max-width: 900px;
-  }
-
-  /* KPIs */
-  .an-kpi-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-  }
-  @media (max-width: 600px) { .an-kpi-row { grid-template-columns: 1fr; } }
-
-  .an-kpi {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 20px 20px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .an-kpi-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--gris);
-  }
-  .an-kpi-num {
-    font-size: 38px;
-    font-weight: 700;
-    line-height: 1;
-    color: var(--texto);
-    letter-spacing: -0.02em;
-  }
-  .an-kpi-sub {
-    font-size: 11px;
-    color: var(--gris);
-  }
-
-  /* Sections */
-  .an-section {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .an-section-title {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--gris);
-    margin-bottom: 2px;
-  }
-
-  .an-two-col {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-  }
-  @media (max-width: 640px) { .an-two-col { grid-template-columns: 1fr; } }
-
-  /* Bars */
-  .an-bars { display: flex; flex-direction: column; gap: 8px; }
-  .an-bar-row {
-    display: grid;
-    grid-template-columns: 76px 1fr 40px 44px;
-    align-items: center;
-    gap: 8px;
-  }
-  .an-bar-label {
-    font-size: 12px;
-    color: var(--texto);
-    font-weight: 500;
-    text-transform: capitalize;
-  }
-  .an-bar-track {
-    height: 6px;
-    background: var(--border);
-    border-radius: 4px;
-    overflow: hidden;
-  }
-  .an-bar-track--sm { height: 4px; }
-  .an-bar-fill {
-    height: 100%;
-    border-radius: 4px;
-  }
-  .an-bar-pct {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--texto);
-    text-align: right;
-  }
-  .an-bar-count { font-size: 11px; color: var(--gris); }
-
-  /* List (OS / Browser) */
-  .an-list { display: flex; flex-direction: column; gap: 8px; }
-  .an-list-row {
-    display: grid;
-    grid-template-columns: 90px 1fr 36px;
-    align-items: center;
-    gap: 8px;
-  }
-  .an-list-name { font-size: 12px; color: var(--texto); font-weight: 500; }
-  .an-list-count { font-size: 11px; color: var(--gris); text-align: right; }
-
-  /* Analytics table */
-  .an-table { width: 100%; }
-  .an-table th { color: var(--gris); font-size: 11px; }
-  .an-th-r { text-align: right; }
-  .an-td-url {
-    color: var(--texto);
-    font-size: 12px;
-    font-family: 'Consolas', 'Fira Mono', monospace;
-    max-width: 260px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .an-td-num {
-    color: var(--texto);
-    font-weight: 600;
-    text-align: right;
-    padding-right: 16px;
-    white-space: nowrap;
-    font-size: 12px;
-  }
-  .an-td-bar { width: 120px; }
-
-  .an-empty {
-    font-size: 12px;
-    color: var(--gris);
-    font-style: italic;
-    padding: 4px 0;
-  }
-
-  /* Cloudflare section */
-  .an-cf-section {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 18px 20px;
-  }
-  .cf-embed-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
   .btn-cf-link {
-    background: #F6821F;
-    color: #fff;
-    padding: 9px 18px;
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: 700;
-    font-size: 13px;
-    display: inline-block;
-    transition: opacity 0.15s;
-    flex-shrink: 0;
+    display:inline-flex; align-items:center;
+    background:rgba(249,115,22,.15); color:#fb923c; border:1px solid rgba(249,115,22,.3);
+    border-radius:8px; padding:.5rem 1rem; font-size:.8rem; text-decoration:none;
   }
-  .btn-cf-link:hover { opacity: 0.88; }
-  .an-cf-note {
-    font-size: 11.5px;
-    color: var(--gris);
-    margin-top: 10px;
-  }
+  .btn-cf-link:hover { background:rgba(249,115,22,.25); }
 
-  /* ── Gemini Vision tab ───────────────────────────────────────── */
-  .gemini-actions {
-    display: flex;
-    gap: .5rem;
-    margin-bottom: 1rem;
-    flex-wrap: wrap;
+  /* ── FORMS ── */
+  .form-wrap { max-width:680px; }
+  .form-wrap--bordered {
+    border:1px solid var(--border); border-radius:12px; padding:1.25rem;
+    background:var(--surface);
   }
+  .form-section-title { font-size:.875rem; font-weight:700; margin-bottom:1rem; color:var(--tx); }
+  .form-hint { color:var(--tx-muted); font-size:.8rem; margin-bottom:1rem; }
+
+  .nuevo-form { display:flex; flex-direction:column; gap:.75rem; }
+  .nuevo-form-grid { display:flex; gap:.75rem; flex-wrap:wrap; }
+  .form-field { display:flex; flex-direction:column; gap:.3rem; flex:1; min-width:140px; }
+  .form-lbl   { font-size:.75rem; color:var(--tx-muted); font-weight:500; }
+  .feed-input, .feed-select, .feed-textarea {
+    background:var(--surface2); border:1px solid var(--border); border-radius:8px;
+    color:var(--tx); padding:.5rem .75rem; font-size:.8rem; font-family:inherit; width:100%;
+  }
+  .feed-input:focus, .feed-select:focus, .feed-textarea:focus {
+    outline:none; border-color:rgba(245,158,11,.5);
+  }
+  .feed-textarea { resize:vertical; min-height:80px; }
+  .upload-input { font-size:.75rem; color:var(--tx-muted); }
+
+  .nm-hint { font-size:.7rem; margin-top:-.375rem; }
+  .nm-hint.valid   { color:var(--verde); }
+  .nm-hint.invalid { color:var(--rojo); }
+  .nm-success { font-size:.8rem; color:var(--verde); }
+  .nm-preview-img { max-width:200px; border-radius:8px; border:1px solid var(--border); }
+
+  /* ── SEARCH ── */
+  .search-bar { margin-bottom:.75rem; }
+  .search-input {
+    background:var(--surface); border:1px solid var(--border); border-radius:8px;
+    color:var(--tx); padding:.5rem .875rem; font-size:.8rem; font-family:inherit; width:100%;
+  }
+  .search-input:focus { outline:none; border-color:rgba(245,158,11,.5); }
+
+  /* ── INSUMOS ── */
+  .insumos-list { display:flex; flex-direction:column; gap:.5rem; }
+  .insumo-row {
+    display:flex; align-items:center; gap:.625rem; flex-wrap:wrap;
+    background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:.625rem .875rem;
+  }
+  .prio-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .prio-critico { background:#EF4444; }
+  .prio-urgente  { background:#F59E0B; }
+  .prio-cubierto { background:#22C55E; }
+  .insumo-name { flex:1; font-size:.8rem; font-weight:500; min-width:100px; }
+  .insumo-form { display:flex; align-items:center; gap:.375rem; flex-wrap:wrap; }
+  .insumo-lbl  { font-size:.7rem; color:var(--tx-muted); }
+  .insumo-input { background:var(--surface2); border:1px solid var(--border); border-radius:6px; color:var(--tx); padding:.3rem .5rem; font-size:.75rem; width:60px; text-align:center; }
+
+  /* ── ANALYTICS ── */
+  .an-kpi-row { display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1.25rem; }
+  .an-kpi {
+    flex:1; min-width:120px; background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; padding:1rem; display:flex; flex-direction:column; gap:.2rem;
+  }
+  .an-kpi-label { font-size:.7rem; color:var(--tx-muted); font-weight:500; }
+  .an-kpi-num   { font-size:1.75rem; font-weight:700; color:var(--tx); }
+  .an-kpi-sub   { font-size:.65rem; color:var(--tx-muted); }
+  .an-section { margin-bottom:1.25rem; }
+  .an-section-title { font-size:.8rem; font-weight:700; color:var(--tx-muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:.625rem; }
+  .an-two-col { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  @media (max-width:440px) { .an-two-col { grid-template-columns:1fr; } }
+  .an-bars, .an-list { display:flex; flex-direction:column; gap:.5rem; }
+  .an-bar-row, .an-list-row { display:flex; align-items:center; gap:.5rem; }
+  .an-bar-label, .an-list-name { font-size:.75rem; width:80px; flex-shrink:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .an-bar-track { flex:1; height:8px; background:var(--surface2); border-radius:4px; overflow:hidden; }
+  .an-bar-track--sm { height:6px; }
+  .an-bar-fill  { height:100%; border-radius:4px; transition:width .3s ease; }
+  .an-bar-pct   { font-size:.7rem; color:var(--tx-muted); width:32px; text-align:right; }
+  .an-bar-count, .an-list-count { font-size:.7rem; color:var(--tx-muted); width:40px; text-align:right; }
+  .an-empty { font-size:.75rem; color:var(--tx-muted); }
+
+  /* ── GEMINI ── */
+  .gemini-actions { display:flex; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap; }
   .gem-action {
-    flex: 1;
-    min-width: 90px;
-    padding: .5rem .75rem;
-    background: #1f2937;
-    color: #9ca3af;
-    border: 1px solid #374151;
-    border-radius: 8px;
-    font-family: 'Inter', sans-serif;
-    font-size: .8125rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background .15s, color .15s, border-color .15s;
-    white-space: nowrap;
+    flex:1; padding:.5rem 1rem; border-radius:8px; border:1px solid var(--border);
+    background:var(--surface2); color:var(--tx-muted); cursor:pointer;
+    font-family:inherit; font-size:.8rem; font-weight:500; transition:.15s;
   }
-  .gem-action:hover { background: #374151; color: #e5e7eb; }
-  .gem-action.active {
-    background: #F5A623;
-    color: #1a1a1a;
-    border-color: #F5A623;
-  }
+  .gem-action.active { background:rgba(245,158,11,.18); color:var(--amarillo); border-color:rgba(245,158,11,.4); }
   .gemini-preview {
-    height: 200px;
-    background: #1f2937;
-    border: 2px dashed #374151;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    overflow: hidden;
-    transition: border-color .15s;
+    width:100%; aspect-ratio:4/3; max-height:280px; background:var(--surface2);
+    border:2px dashed var(--border); border-radius:10px; display:flex;
+    align-items:center; justify-content:center; cursor:pointer; overflow:hidden;
+    position:relative;
   }
-  .gemini-preview:hover { border-color: #F5A623; }
-  .gemini-preview:focus-visible { outline: 2px solid #F5A623; outline-offset: 2px; }
-  .gemini-placeholder { color: #9ca3af; font-size: .875rem; text-align: center; pointer-events: none; }
+  .gemini-placeholder { font-size:.875rem; color:var(--tx-muted); }
+
+  /* ── BANNER UPLOADS ── */
+  .banner-uploads { display:flex; gap:.75rem; flex-wrap:wrap; margin-top:.75rem; }
+  .upload-label { display:flex; flex-direction:column; gap:.375rem; flex:1; min-width:200px; }
+  .upload-lbl-txt { font-size:.75rem; color:var(--tx-muted); font-weight:500; }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:50;
+    display:flex; align-items:flex-start; justify-content:center;
+    padding:.75rem; overflow-y:auto;
+  }
+  .modal-box {
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    width:min(100%,560px); margin:auto; max-height:calc(100vh - 1.5rem); overflow-y:auto;
+  }
+  .modal-hdr {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:1rem 1.25rem; border-bottom:1px solid var(--border); position:sticky; top:0;
+    background:var(--surface); z-index:1;
+  }
+  .modal-title { font-weight:700; font-size:.9rem; }
+  .modal-close {
+    background:transparent; border:1px solid var(--border); border-radius:6px;
+    color:var(--tx-muted); padding:.25rem .5rem; cursor:pointer; font-size:.875rem;
+  }
+  .modal-form  { display:none; flex-direction:column; padding:1.25rem; gap:1rem; }
+  .modal-grid  { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:.75rem; }
+  .modal-field { display:flex; flex-direction:column; gap:.3rem; }
+  .modal-field--full { grid-column:1/-1; }
+  .modal-lbl   { font-size:.75rem; color:var(--tx-muted); font-weight:500; }
+  .modal-hint  { font-size:.7rem; color:var(--tx-muted); }
+  .modal-input {
+    background:var(--bg); border:1px solid var(--border); border-radius:8px;
+    color:var(--tx); padding:.5rem .75rem; font-size:.8rem; font-family:inherit; width:100%;
+  }
+  .modal-input:focus { outline:none; border-color:rgba(245,158,11,.5); }
+  .modal-textarea { resize:vertical; min-height:80px; }
+  .modal-actions { display:flex; gap:.625rem; flex-wrap:wrap; padding:0 1.25rem 1.25rem; }
+  .modal-cancel { flex:1; }
+
+  /* ── EMPTY ── */
+  .empty-msg { color:var(--tx-muted); font-size:.875rem; padding:1rem 0; }
 </style>
 
 <script>
-  // ── Tab switching
-  document.querySelectorAll('.tab').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.tab').forEach(function(b) {
-        b.classList.remove('active')
-        b.setAttribute('aria-selected', 'false')
-      })
-      document.querySelectorAll('.tab-pane').forEach(function(p) {
-        p.classList.remove('active')
-      })
-      btn.classList.add('active')
-      btn.setAttribute('aria-selected', 'true')
-      var pane = document.getElementById('tab-' + btn.dataset.tab)
-      if (pane) pane.classList.add('active')
+  // ── Navigation
+  function showHome() {
+    document.getElementById('home').removeAttribute('hidden')
+    document.querySelectorAll('.module').forEach(function(m) { m.setAttribute('hidden','') })
+    history.replaceState(null,'','/admin')
+    window.scrollTo(0,0)
+  }
+
+  function showModule(id) {
+    document.getElementById('home').setAttribute('hidden','')
+    document.querySelectorAll('.module').forEach(function(m) { m.setAttribute('hidden','') })
+    var mod = document.getElementById('mod-' + id)
+    if (mod) {
+      mod.removeAttribute('hidden')
+      mod.querySelector('.mod-body').scrollTop = 0
+    }
+    history.replaceState(null,'','/admin#' + id)
+    window.scrollTo(0,0)
+  }
+
+  // ── Handle initial hash
+  ;(function() {
+    var hash = location.hash.replace('#','')
+    var validMods = ['pendientes','publicadas','adopcion','agregar','gemini','vets','feed','insumos','analiticas','banners']
+    if (hash && validMods.includes(hash)) showModule(hash)
+  })()
+
+  // ── Card search filter
+  function filterCards(inputId, cardClass) {
+    var inp = document.getElementById(inputId)
+    if (!inp) return
+    var q = inp.value.toLowerCase()
+    document.querySelectorAll('.' + cardClass).forEach(function(card) {
+      card.style.display = card.textContent.toLowerCase().includes(q) ? '' : 'none'
     })
-  })
+  }
 
   // ── Generic fetch action
   async function doAction(params, rowId, confirmMsg) {
@@ -2387,34 +1826,24 @@ if (isAuth) {
     var fd = new FormData()
     Object.keys(params).forEach(function(k) { fd.append(k, String(params[k])) })
     try {
-      var r = await fetch('/admin', { method: 'POST', body: fd })
+      var r = await fetch('/admin', { method:'POST', body:fd })
       var j = await r.json()
       if (!j.ok) { alert('Error: ' + (j.error || 'desconocido')); return false }
       if (rowId) {
         var el = document.getElementById(rowId)
-        if (el) {
-          el.style.transition = 'opacity .2s'
-          el.style.opacity = '0'
-          setTimeout(function() { el.remove() }, 200)
-        }
+        if (el) { el.style.transition='opacity .2s'; el.style.opacity='0'; setTimeout(function() { el.remove() }, 200) }
       }
       return true
-    } catch(e) {
-      alert('Error de red')
-      return false
-    }
+    } catch(e) { alert('Error de red'); return false }
   }
 
   // ── Data-attribute buttons
   document.querySelectorAll('[data-action]').forEach(function(btn) {
     btn.addEventListener('click', async function() {
-      var action = btn.dataset.action
-      var id     = btn.dataset.id
-      var row    = btn.dataset.row
-      var conf   = btn.dataset.confirm
+      var action = btn.dataset.action; var id = btn.dataset.id; var row = btn.dataset.row; var conf = btn.dataset.confirm
       if (!action || !id) return
       btn.disabled = true
-      var params = { action: action, id: id }
+      var params = { action:action, id:id }
       if (btn.dataset.activo !== undefined) params.activo = btn.dataset.activo
       var ok = await doAction(params, row, conf || null)
       if (ok && btn.dataset.reload) { location.reload() }
@@ -2427,135 +1856,84 @@ if (isAuth) {
   if (formFeed) {
     formFeed.addEventListener('submit', async function(e) {
       e.preventDefault()
-      var fd  = new FormData(formFeed)
-      fd.append('action', 'feed')
+      var fd = new FormData(formFeed); fd.append('action','feed')
       var btn = formFeed.querySelector('button[type="submit"]')
       if (btn) btn.disabled = true
       try {
-        var r = await fetch('/admin', { method: 'POST', body: fd })
-        var j = await r.json()
-        if (!j.ok) {
-          alert('Error: ' + (j.error || 'desconocido'))
-          if (btn) btn.disabled = false
-        } else {
-          formFeed.reset()
-          if (btn) btn.disabled = false
-          var msg = document.createElement('p')
-          msg.textContent = '✓ Publicado'
-          msg.style.cssText = 'color:#22C55E;font-size:.8rem;margin-top:.375rem;'
-          formFeed.appendChild(msg)
-          setTimeout(function() { msg.remove() }, 2500)
+        var r = await fetch('/admin', {method:'POST',body:fd}); var j = await r.json()
+        if (!j.ok) { alert('Error: '+(j.error||'desconocido')); if (btn) btn.disabled=false }
+        else {
+          formFeed.reset(); if (btn) btn.disabled=false
+          var msg = document.createElement('p'); msg.textContent='✓ Publicado'
+          msg.style.cssText='color:#22C55E;font-size:.8rem;margin-top:.375rem;'
+          formFeed.appendChild(msg); setTimeout(function() { msg.remove() }, 2500)
         }
-      } catch(e) {
-        alert('Error de red')
-        if (btn) btn.disabled = false
-      }
+      } catch(e) { alert('Error de red'); if (btn) btn.disabled=false }
     })
   }
 
-  // ── Insumo forms (editar cantidad_recibida Y cantidad_requerida)
+  // ── Insumo forms
   document.querySelectorAll('.insumo-form').forEach(function(form) {
     form.addEventListener('submit', async function(e) {
       e.preventDefault()
-      var id       = form.dataset.id
-      var inputRec = form.querySelector('input[name="cantidad_recibida"]')
-      var inputReq = form.querySelector('input[name="cantidad_requerida"]')
-      var cantRec  = inputRec ? inputRec.value : '0'
-      var cantReq  = inputReq ? inputReq.value : '1'
-      var btn      = form.querySelector('button')
-      if (btn) btn.disabled = true
-      var ok = await doAction({ action: 'insumo', id: id, cantidad_recibida: cantRec, cantidad_requerida: cantReq }, null, null)
-      if (btn) btn.disabled = false
+      var id=form.dataset.id; var inputRec=form.querySelector('input[name="cantidad_recibida"]'); var inputReq=form.querySelector('input[name="cantidad_requerida"]')
+      var cantRec=inputRec?inputRec.value:'0'; var cantReq=inputReq?inputReq.value:'1'
+      var btn=form.querySelector('button'); if (btn) btn.disabled=true
+      var ok = await doAction({action:'insumo',id:id,cantidad_recibida:cantRec,cantidad_requerida:cantReq},null,null)
+      if (btn) btn.disabled=false
     })
   })
 
-  // ── Banner form (multipart con archivo)
+  // ── Banner form
   var formBanner = document.getElementById('form-banner')
   if (formBanner) {
     formBanner.addEventListener('submit', async function(e) {
       e.preventDefault()
-      var fd  = new FormData(formBanner)
-      fd.append('action', 'banner')
-      var btn = formBanner.querySelector('button[type="submit"]')
-      if (btn) btn.disabled = true
+      var fd=new FormData(formBanner); fd.append('action','banner')
+      var btn=formBanner.querySelector('button[type="submit"]'); if (btn) btn.disabled=true
       try {
-        var r = await fetch('/admin', { method: 'POST', body: fd })
-        var j = await r.json()
-        if (!j.ok) { alert('Error: ' + (j.error || 'desconocido')); if (btn) btn.disabled = false }
+        var r=await fetch('/admin',{method:'POST',body:fd}); var j=await r.json()
+        if (!j.ok) { alert('Error: '+(j.error||'desconocido')); if (btn) btn.disabled=false }
         else { window.location.reload() }
-      } catch(e) { alert('Error de red'); if (btn) btn.disabled = false }
+      } catch(e) { alert('Error de red'); if (btn) btn.disabled=false }
     })
   }
 
   // ── Nueva mascota form
   var formNuevaMascota = document.getElementById('form-nueva-mascota')
   if (formNuevaMascota) {
-    // WA live validator
-    var nmWa = document.getElementById('nm-wa')
-    var nmHint = document.getElementById('nm-wa-hint')
+    var nmWa=document.getElementById('nm-wa'); var nmHint=document.getElementById('nm-wa-hint')
     if (nmWa && nmHint) {
       nmWa.addEventListener('input', function() {
-        var val = nmWa.value.replace(/\D/g, '')
-        if (val.length === 0) {
-          nmHint.textContent = ''
-          nmHint.className = 'nm-hint'
-        } else if (/^04[0-9]{9}$/.test(val)) {
-          nmHint.textContent = '✓ Formato válido'
-          nmHint.className = 'nm-hint valid'
-        } else {
-          nmHint.textContent = 'Debe ser 04XXXXXXXXX (11 dígitos)'
-          nmHint.className = 'nm-hint invalid'
-        }
+        var val=nmWa.value.replace(/\D/g,'')
+        if (!val.length) { nmHint.textContent=''; nmHint.className='nm-hint' }
+        else if (/^04[0-9]{9}$/.test(val)) { nmHint.textContent='✓ Formato válido'; nmHint.className='nm-hint valid' }
+        else { nmHint.textContent='Debe ser 04XXXXXXXXX (11 dígitos)'; nmHint.className='nm-hint invalid' }
       })
     }
-    // Photo preview
-    var nmFoto = document.getElementById('nm-foto')
-    var nmPreviewWrap = document.getElementById('nm-preview-wrap')
-    var nmPreview = document.getElementById('nm-preview')
+    var nmFoto=document.getElementById('nm-foto'); var nmPreviewWrap=document.getElementById('nm-preview-wrap'); var nmPreview=document.getElementById('nm-preview')
     if (nmFoto && nmPreviewWrap && nmPreview) {
       nmFoto.addEventListener('change', function() {
-        var file = nmFoto.files && nmFoto.files[0]
-        if (file) {
-          var reader = new FileReader()
-          reader.onload = function(e) {
-            nmPreview.src = e.target.result
-            nmPreviewWrap.style.display = 'block'
-          }
-          reader.readAsDataURL(file)
-        } else {
-          nmPreviewWrap.style.display = 'none'
-        }
+        var file=nmFoto.files&&nmFoto.files[0]
+        if (file) { var reader=new FileReader(); reader.onload=function(e) { nmPreview.src=e.target.result; nmPreviewWrap.style.display='block' }; reader.readAsDataURL(file) }
+        else nmPreviewWrap.style.display='none'
       })
     }
-    // Submit
     formNuevaMascota.addEventListener('submit', async function(e) {
       e.preventDefault()
-      var fd  = new FormData(formNuevaMascota)
-      fd.append('action', 'nueva_mascota')
-      var btn = document.getElementById('nm-submit')
-      var msg = document.getElementById('nm-msg')
-      if (btn) { btn.disabled = true; btn.textContent = 'Guardando…' }
-      if (msg) msg.textContent = ''
+      var fd=new FormData(formNuevaMascota); fd.append('action','nueva_mascota')
+      var btn=document.getElementById('nm-submit'); var msg=document.getElementById('nm-msg')
+      if (btn) { btn.disabled=true; btn.textContent='Guardando…' }; if (msg) msg.textContent=''
       try {
-        var r = await fetch('/admin', { method: 'POST', body: fd })
-        var j = await r.json()
-        if (!j.ok) {
-          alert('Error: ' + (j.error || 'desconocido'))
-          if (btn) { btn.disabled = false; btn.textContent = 'Crear mascota' }
-        } else {
-          formNuevaMascota.reset()
-          if (nmPreviewWrap) nmPreviewWrap.style.display = 'none'
-          if (nmHint) { nmHint.textContent = ''; nmHint.className = 'nm-hint' }
-          if (btn) { btn.disabled = false; btn.textContent = 'Crear mascota' }
-          if (msg) {
-            msg.textContent = '✓ Mascota creada'
-            setTimeout(function() { if (msg) msg.textContent = '' }, 3000)
-          }
+        var r=await fetch('/admin',{method:'POST',body:fd}); var j=await r.json()
+        if (!j.ok) { alert('Error: '+(j.error||'desconocido')); if (btn) { btn.disabled=false; btn.textContent='Crear mascota' } }
+        else {
+          formNuevaMascota.reset(); if (nmPreviewWrap) nmPreviewWrap.style.display='none'
+          if (nmHint) { nmHint.textContent=''; nmHint.className='nm-hint' }
+          if (btn) { btn.disabled=false; btn.textContent='Crear mascota' }
+          if (msg) { msg.textContent='✓ Mascota creada'; setTimeout(function() { if (msg) msg.textContent='' }, 3000) }
         }
-      } catch(err) {
-        alert('Error de red')
-        if (btn) { btn.disabled = false; btn.textContent = 'Crear mascota' }
-      }
+      } catch(err) { alert('Error de red'); if (btn) { btn.disabled=false; btn.textContent='Crear mascota' } }
     })
   }
 
@@ -2564,16 +1942,13 @@ if (isAuth) {
   if (formNuevoInsumo) {
     formNuevoInsumo.addEventListener('submit', async function(e) {
       e.preventDefault()
-      var fd  = new FormData(formNuevoInsumo)
-      fd.append('action', 'nuevo_insumo')
-      var btn = formNuevoInsumo.querySelector('button[type="submit"]')
-      if (btn) btn.disabled = true
+      var fd=new FormData(formNuevoInsumo); fd.append('action','nuevo_insumo')
+      var btn=formNuevoInsumo.querySelector('button[type="submit"]'); if (btn) btn.disabled=true
       try {
-        var r = await fetch('/admin', { method: 'POST', body: fd })
-        var j = await r.json()
-        if (!j.ok) { alert('Error: ' + (j.error || 'desconocido')); if (btn) btn.disabled = false }
+        var r=await fetch('/admin',{method:'POST',body:fd}); var j=await r.json()
+        if (!j.ok) { alert('Error: '+(j.error||'desconocido')); if (btn) btn.disabled=false }
         else { window.location.reload() }
-      } catch(e) { alert('Error de red'); if (btn) btn.disabled = false }
+      } catch(e) { alert('Error de red'); if (btn) btn.disabled=false }
     })
   }
 
@@ -2582,127 +1957,104 @@ if (isAuth) {
   if (formNuevoVet) {
     formNuevoVet.addEventListener('submit', async function(e) {
       e.preventDefault()
-      var fd  = new FormData(formNuevoVet)
-      fd.append('action', 'nuevo_vet')
-      var btn = formNuevoVet.querySelector('button[type="submit"]')
-      if (btn) btn.disabled = true
+      var fd=new FormData(formNuevoVet); fd.append('action','nuevo_vet')
+      var btn=formNuevoVet.querySelector('button[type="submit"]'); if (btn) btn.disabled=true
       try {
-        var r = await fetch('/admin', { method: 'POST', body: fd })
-        var j = await r.json()
-        if (!j.ok) { alert('Error: ' + (j.error || 'desconocido')); if (btn) btn.disabled = false }
+        var r=await fetch('/admin',{method:'POST',body:fd}); var j=await r.json()
+        if (!j.ok) { alert('Error: '+(j.error||'desconocido')); if (btn) btn.disabled=false }
         else { window.location.reload() }
-      } catch(e) { alert('Error de red'); if (btn) btn.disabled = false }
+      } catch(e) { alert('Error de red'); if (btn) btn.disabled=false }
     })
   }
 
-  // ── Edit Modal ────────────────────────────────────────────
-  var modal        = document.getElementById('edit-modal')
-  var modalClose   = document.getElementById('modal-close')
-  var formMascota  = document.getElementById('modal-mascota')
-  var formVet      = document.getElementById('modal-vet')
-  var formInsumo   = document.getElementById('modal-insumo')
-  var formFeedEdit = document.getElementById('modal-feed')
+  // ── Edit Modal
+  var modal=document.getElementById('edit-modal')
+  var modalClose=document.getElementById('modal-close')
+  var formMascota=document.getElementById('modal-mascota')
+  var formVet=document.getElementById('modal-vet')
+  var formInsumo=document.getElementById('modal-insumo')
+  var formFeedEdit=document.getElementById('modal-feed')
 
   function openModal(type) {
-    [formMascota, formVet, formInsumo, formFeedEdit].forEach(function(f) { if (f) f.style.display = 'none' })
-    if      (type === 'mascota' && formMascota)  formMascota.style.display  = 'flex'
-    else if (type === 'vet'     && formVet)      formVet.style.display      = 'flex'
-    else if (type === 'insumo'  && formInsumo)   formInsumo.style.display   = 'flex'
-    else if (type === 'feed'    && formFeedEdit) formFeedEdit.style.display  = 'flex'
-    modal.style.display = 'flex'
-    var first = modal.querySelector('.modal-input, button')
-    if (first) first.focus()
+    [formMascota,formVet,formInsumo,formFeedEdit].forEach(function(f){if(f)f.style.display='none'})
+    if      (type==='mascota'&&formMascota)  formMascota.style.display='flex'
+    else if (type==='vet'&&formVet)          formVet.style.display='flex'
+    else if (type==='insumo'&&formInsumo)    formInsumo.style.display='flex'
+    else if (type==='feed'&&formFeedEdit)    formFeedEdit.style.display='flex'
+    modal.style.display='flex'
+    var first=modal.querySelector('.modal-input,button'); if (first) first.focus()
   }
 
   function closeModal() {
-    modal.style.display = 'none'
-    ;[formMascota, formVet, formInsumo, formFeedEdit].forEach(function(f) { if (f) f.style.display = 'none' })
+    modal.style.display='none'
+    ;[formMascota,formVet,formInsumo,formFeedEdit].forEach(function(f){if(f)f.style.display='none'})
   }
 
   if (modalClose) modalClose.addEventListener('click', closeModal)
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && modal && modal.style.display !== 'none') closeModal()
-  })
-  document.querySelectorAll('.modal-cancel').forEach(function(b) {
-    b.addEventListener('click', closeModal)
-  })
+  document.addEventListener('keydown', function(e) { if (e.key==='Escape'&&modal&&modal.style.display!=='none') closeModal() })
+  document.querySelectorAll('.modal-cancel').forEach(function(b) { b.addEventListener('click', closeModal) })
 
-  // Abrir modal de mascota
   document.querySelectorAll('.btn-edit-mascota').forEach(function(btn) {
     btn.addEventListener('click', function() {
-      document.getElementById('em-id').value          = btn.dataset.id        || ''
-      document.getElementById('em-nombre').value      = btn.dataset.nombre    || ''
-      document.getElementById('em-zona').value        = btn.dataset.zona      || ''
-      document.getElementById('em-color').value       = btn.dataset.color     || ''
-      document.getElementById('em-whatsapp').value    = btn.dataset.whatsapp  || ''
-
-      document.getElementById('em-descripcion').value = btn.dataset.descripcion || ''
-      var selEsp = document.getElementById('em-especie')
-      var selTip = document.getElementById('em-tipo')
-      var selTam = document.getElementById('em-tamanio')
-      for (var i = 0; i < selEsp.options.length; i++) {
-        if (selEsp.options[i].value === btn.dataset.especie) { selEsp.selectedIndex = i; break }
-      }
-      for (var j = 0; j < selTip.options.length; j++) {
-        if (selTip.options[j].value === btn.dataset.tipo) { selTip.selectedIndex = j; break }
-      }
-      for (var k = 0; k < selTam.options.length; k++) {
-        if (selTam.options[k].value === btn.dataset.tamanio) { selTam.selectedIndex = k; break }
-      }
+      document.getElementById('em-id').value=btn.dataset.id||''
+      document.getElementById('em-nombre').value=btn.dataset.nombre||''
+      document.getElementById('em-zona').value=btn.dataset.zona||''
+      document.getElementById('em-color').value=btn.dataset.color||''
+      document.getElementById('em-whatsapp').value=btn.dataset.whatsapp||''
+      document.getElementById('em-descripcion').value=btn.dataset.descripcion||''
+      var selEsp=document.getElementById('em-especie'); var selTip=document.getElementById('em-tipo'); var selTam=document.getElementById('em-tamanio')
+      for (var i=0;i<selEsp.options.length;i++) { if (selEsp.options[i].value===btn.dataset.especie) { selEsp.selectedIndex=i; break } }
+      for (var j=0;j<selTip.options.length;j++) { if (selTip.options[j].value===btn.dataset.tipo)   { selTip.selectedIndex=j; break } }
+      for (var k=0;k<selTam.options.length;k++) { if (selTam.options[k].value===btn.dataset.tamanio){ selTam.selectedIndex=k; break } }
       openModal('mascota')
     })
   })
 
-  // Abrir modal de vet
   document.querySelectorAll('.btn-edit-vet').forEach(function(btn) {
     btn.addEventListener('click', function() {
-      document.getElementById('ev-id').value        = btn.dataset.id        || ''
-      document.getElementById('ev-nombre').value    = btn.dataset.nombre    || ''
-      document.getElementById('ev-zona').value      = btn.dataset.zona      || ''
-      document.getElementById('ev-whatsapp').value  = btn.dataset.whatsapp  || ''
-      document.getElementById('ev-servicios').value = btn.dataset.servicios || ''
-      document.getElementById('ev-horario').value   = btn.dataset.horario   || ''
+      document.getElementById('ev-id').value=btn.dataset.id||''
+      document.getElementById('ev-nombre').value=btn.dataset.nombre||''
+      document.getElementById('ev-zona').value=btn.dataset.zona||''
+      document.getElementById('ev-whatsapp').value=btn.dataset.whatsapp||''
+      document.getElementById('ev-servicios').value=btn.dataset.servicios||''
+      document.getElementById('ev-horario').value=btn.dataset.horario||''
       openModal('vet')
     })
   })
 
-  // Abrir modal de insumo
   document.querySelectorAll('.btn-edit-insumo').forEach(function(btn) {
     btn.addEventListener('click', function() {
-      document.getElementById('ei-id').value        = btn.dataset.id                 || ''
-      document.getElementById('ei-item').value      = btn.dataset.item               || ''
-      document.getElementById('ei-recibida').value  = btn.dataset.cantidad_recibida  || '0'
-      document.getElementById('ei-requerida').value = btn.dataset.cantidad_requerida || '1'
-      var selPrio = document.getElementById('ei-prioridad')
-      for (var i = 0; i < selPrio.options.length; i++) {
-        if (selPrio.options[i].value === btn.dataset.prioridad) { selPrio.selectedIndex = i; break }
-      }
+      document.getElementById('ei-id').value=btn.dataset.id||''
+      document.getElementById('ei-item').value=btn.dataset.item||''
+      document.getElementById('ei-recibida').value=btn.dataset.cantidad_recibida||'0'
+      document.getElementById('ei-requerida').value=btn.dataset.cantidad_requerida||'1'
+      var selPrio=document.getElementById('ei-prioridad')
+      for (var i=0;i<selPrio.options.length;i++) { if (selPrio.options[i].value===btn.dataset.prioridad) { selPrio.selectedIndex=i; break } }
       openModal('insumo')
     })
   })
 
-  // Submit handler genérico para los tres formularios del modal
+  document.querySelectorAll('.btn-edit-feed').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.getElementById('ef-id').value=btn.dataset.id||''
+      document.getElementById('ef-titulo').value=btn.dataset.titulo||''
+      document.getElementById('ef-cuerpo').value=btn.dataset.cuerpo||''
+      var selTipo=document.getElementById('ef-tipo')
+      for (var i=0;i<selTipo.options.length;i++) { if (selTipo.options[i].value===btn.dataset.tipo) { selTipo.selectedIndex=i; break } }
+      openModal('feed')
+    })
+  })
+
   function handleModalForm(form) {
     if (!form) return
     form.addEventListener('submit', async function(e) {
       e.preventDefault()
-      var fd  = new FormData(form)
-      var btn = form.querySelector('button[type="submit"]')
-      if (btn) btn.disabled = true
+      var fd=new FormData(form); var btn=form.querySelector('button[type="submit"]'); if (btn) btn.disabled=true
       try {
-        var r = await fetch('/admin', { method: 'POST', body: fd })
-        var j = await r.json()
-        if (!j.ok) {
-          alert('Error: ' + (j.error || 'desconocido'))
-          if (btn) btn.disabled = false
-        } else {
-          closeModal()
-          window.location.reload()
-        }
-      } catch(err) {
-        alert('Error de red')
-        if (btn) btn.disabled = false
-      }
+        var r=await fetch('/admin',{method:'POST',body:fd}); var j=await r.json()
+        if (!j.ok) { alert('Error: '+(j.error||'desconocido')); if (btn) btn.disabled=false }
+        else { window.location.reload() }
+      } catch(err) { alert('Error de red'); if (btn) btn.disabled=false }
     })
   }
   handleModalForm(formMascota)
@@ -2710,167 +2062,79 @@ if (isAuth) {
   handleModalForm(formInsumo)
   handleModalForm(formFeedEdit)
 
-  // Abrir modal de feed
-  document.querySelectorAll('.btn-edit-feed').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      document.getElementById('ef-id').value    = btn.dataset.id     || ''
-      document.getElementById('ef-titulo').value = btn.dataset.titulo || ''
-      document.getElementById('ef-cuerpo').value = btn.dataset.cuerpo || ''
-      var selTipo = document.getElementById('ef-tipo')
-      for (var i = 0; i < selTipo.options.length; i++) {
-        if (selTipo.options[i].value === btn.dataset.tipo) { selTipo.selectedIndex = i; break }
-      }
-      openModal('feed')
-    })
-  })
-
-  // ── Search filters (tiempo real, sin reload)
-  function setupSearch(inputId, tbodyId, rowClass) {
-    var inp = document.getElementById(inputId)
-    if (!inp) return
-    inp.addEventListener('input', function() {
-      var q = this.value.toLowerCase()
-      document.querySelectorAll('#' + tbodyId + ' tr.' + rowClass).forEach(function(row) {
-        row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none'
-      })
-    })
-  }
-  setupSearch('searchPendientes', 'tablaPendientes', 'pendiente-row')
-  setupSearch('searchPublicadas', 'tablaPublicadas', 'mascota-row')
-  setupSearch('searchVets',       'tablaVets',       'vet-row')
-
-  // ── Gemini Vision tab
+  // ── Gemini Vision
   ;(function() {
-    var geminiImg    = document.getElementById('geminiImg')
-    if (!geminiImg) return
-    var btnSel       = document.getElementById('btnSeleccionar')
-    var btnExtraer   = document.getElementById('btnExtraer')
-    var preview      = document.getElementById('geminiPreview')
-    var previewImg   = document.getElementById('geminiPreviewImg')
-    var placeholder  = document.getElementById('geminiPlaceholder')
-    var geminiMsg    = document.getElementById('geminiMsg')
-    var formMascota  = document.getElementById('geminiFormMascota')
-    var formFeed     = document.getElementById('geminiFormFeed')
-    var formInsumo   = document.getElementById('geminiFormInsumo')
-    var currentAction = 'mascota'
+    var geminiImg=document.getElementById('geminiImg'); if (!geminiImg) return
+    var btnSel=document.getElementById('btnSeleccionar')
+    var btnExtraer=document.getElementById('btnExtraer')
+    var preview=document.getElementById('geminiPreview')
+    var previewImg=document.getElementById('geminiPreviewImg')
+    var placeholder=document.getElementById('geminiPlaceholder')
+    var geminiMsg=document.getElementById('geminiMsg')
+    var formMasc=document.getElementById('geminiFormMascota')
+    var formFeedG=document.getElementById('geminiFormFeed')
+    var formInsG=document.getElementById('geminiFormInsumo')
+    var currentAction='mascota'
 
-    function hideAllForms() {
-      formMascota.style.display = 'none'
-      formFeed.style.display    = 'none'
-      formInsumo.style.display  = 'none'
-    }
+    function hideAllForms() { formMasc.style.display='none'; formFeedG.style.display='none'; formInsG.style.display='none' }
 
     document.querySelectorAll('.gem-action').forEach(function(btn) {
       btn.addEventListener('click', function() {
         document.querySelectorAll('.gem-action').forEach(function(b) { b.classList.remove('active') })
-        btn.classList.add('active')
-        currentAction = btn.dataset.action
-        hideAllForms()
-        geminiMsg.style.display = 'none'
+        btn.classList.add('active'); currentAction=btn.dataset.action; hideAllForms()
+        geminiMsg.style.display='none'
       })
     })
 
     function showMsg(text, ok) {
-      geminiMsg.style.display     = 'block'
-      geminiMsg.textContent       = text
-      geminiMsg.style.background  = ok ? '#064e3b' : '#1f2937'
-      geminiMsg.style.borderColor = ok ? '#16a34a' : '#374151'
+      geminiMsg.style.display='block'; geminiMsg.textContent=text
+      geminiMsg.style.background=ok?'#064e3b':'#1f2937'
+      geminiMsg.style.borderColor=ok?'#16a34a':'#374151'
     }
 
     function loadPreview(file) {
-      var reader = new FileReader()
-      reader.onload = function(e) {
-        previewImg.src            = e.target.result
-        previewImg.style.display  = 'block'
-        placeholder.style.display = 'none'
-        btnExtraer.disabled       = false
-      }
-      reader.readAsDataURL(file)
+      var reader=new FileReader(); reader.onload=function(e) { previewImg.src=e.target.result; previewImg.style.display='block'; placeholder.style.display='none'; btnExtraer.disabled=false }; reader.readAsDataURL(file)
     }
 
     btnSel.addEventListener('click', function() { geminiImg.click() })
     preview.addEventListener('click', function() { geminiImg.click() })
-    preview.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); geminiImg.click() }
-    })
-    geminiImg.addEventListener('change', function() {
-      if (this.files[0]) loadPreview(this.files[0])
-    })
+    preview.addEventListener('keydown', function(e) { if (e.key==='Enter'||e.key===' ') { e.preventDefault(); geminiImg.click() } })
+    geminiImg.addEventListener('change', function() { if (this.files[0]) loadPreview(this.files[0]) })
 
-    function setVal(id, val) { if (val) { var el = document.getElementById(id); if (el) el.value = val } }
+    function setVal(id, val) { if (val) { var el=document.getElementById(id); if (el) el.value=val } }
     function setSelect(id, val) {
-      if (!val) return
-      var sel = document.getElementById(id)
-      if (!sel) return
-      for (var i = 0; i < sel.options.length; i++) {
-        if (sel.options[i].value === val) { sel.selectedIndex = i; break }
-      }
-    }
-    function fillMascota(data) {
-      setVal('g-nombre', data.nombre)
-      setSelect('g-especie', data.especie)
-      setVal('g-color', data.color)
-      setVal('g-zona', data.zona)
-      setVal('g-descripcion', data.descripcion)
-      setVal('g-senias', data.senias)
-      setVal('g-contacto-nombre', data.contacto_nombre)
-      setVal('g-whatsapp', data.whatsapp)
-      setSelect('g-tipo', data.tipo)
-    }
-    function fillFeed(data) {
-      setSelect('gf-tipo', data.tipo)
-      setVal('gf-titulo', data.titulo)
-      setVal('gf-cuerpo', data.cuerpo)
-    }
-    function fillInsumo(data) {
-      setVal('gi-item', data.item)
-      if (data.cantidad_requerida) { var elReq = document.getElementById('gi-cantidad-req'); if (elReq) elReq.value = data.cantidad_requerida }
-      if (data.cantidad_recibida !== undefined) { var elRec = document.getElementById('gi-cantidad-rec'); if (elRec) elRec.value = data.cantidad_recibida }
-      setSelect('gi-prioridad', data.prioridad)
+      if (!val) return; var sel=document.getElementById(id); if (!sel) return
+      for (var i=0;i<sel.options.length;i++) { if (sel.options[i].value===val) { sel.selectedIndex=i; break } }
     }
 
     btnExtraer.addEventListener('click', async function() {
-      var file = geminiImg.files[0]
-      if (!file) return
-      btnExtraer.disabled = true
-      showMsg('⏳ Analizando imagen con Gemini Vision...', false)
-
-      var reader = new FileReader()
-      reader.onload = async function(e) {
-        var base64 = e.target.result.split(',')[1]
-        var mime   = file.type || 'image/jpeg'
+      var file=geminiImg.files[0]; if (!file) return
+      btnExtraer.disabled=true; showMsg('⏳ Analizando imagen con Gemini Vision...', false)
+      var reader=new FileReader()
+      reader.onload=async function(e) {
+        var base64=e.target.result.split(',')[1]; var mime=file.type||'image/jpeg'
         try {
-          var r = await fetch('/api/gemini-extract', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ base64: base64, mime: mime, action: currentAction })
-          })
-          var data = await r.json()
-          if (!r.ok || data.error) {
-            showMsg('❌ ' + (data.error || 'Error al extraer datos'), false)
-            btnExtraer.disabled = false
-            return
-          }
+          var r=await fetch('/api/gemini-extract',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64:base64,mime:mime,action:currentAction})})
+          var data=await r.json()
+          if (!r.ok||data.error) { showMsg('❌ '+(data.error||'Error al extraer datos'),false); btnExtraer.disabled=false; return }
           hideAllForms()
-          if (currentAction === 'mascota') {
-            fillMascota(data)
-            formMascota.style.display = 'block'
-            formMascota.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          } else if (currentAction === 'feed') {
-            fillFeed(data)
-            formFeed.style.display = 'block'
-            formFeed.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          } else if (currentAction === 'insumo') {
-            fillInsumo(data)
-            formInsumo.style.display = 'block'
-            formInsumo.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          if (currentAction==='mascota') {
+            setVal('g-nombre',data.nombre); setSelect('g-especie',data.especie); setVal('g-color',data.color)
+            setVal('g-zona',data.zona); setVal('g-descripcion',data.descripcion); setVal('g-senias',data.senias)
+            setVal('g-contacto-nombre',data.contacto_nombre); setVal('g-whatsapp',data.whatsapp); setSelect('g-tipo',data.tipo)
+            formMasc.style.display='block'; formMasc.scrollIntoView({behavior:'smooth',block:'start'})
+          } else if (currentAction==='feed') {
+            setSelect('gf-tipo',data.tipo); setVal('gf-titulo',data.titulo); setVal('gf-cuerpo',data.cuerpo)
+            formFeedG.style.display='block'; formFeedG.scrollIntoView({behavior:'smooth',block:'start'})
+          } else if (currentAction==='insumo') {
+            setVal('gi-item',data.item)
+            if (data.cantidad_requerida) { var elReq=document.getElementById('gi-cantidad-req'); if (elReq) elReq.value=data.cantidad_requerida }
+            if (data.cantidad_recibida!==undefined) { var elRec=document.getElementById('gi-cantidad-rec'); if (elRec) elRec.value=data.cantidad_recibida }
+            setSelect('gi-prioridad',data.prioridad)
+            formInsG.style.display='block'; formInsG.scrollIntoView({behavior:'smooth',block:'start'})
           }
-          showMsg('✓ Datos extraídos. Revisa y edita antes de guardar.', true)
-          btnExtraer.disabled = false
-        } catch(err) {
-          showMsg('❌ Error de red: ' + err.message, false)
-          btnExtraer.disabled = false
-        }
+          showMsg('✓ Datos extraídos. Revisa y edita antes de guardar.', true); btnExtraer.disabled=false
+        } catch(err) { showMsg('❌ Error de red: '+err.message, false); btnExtraer.disabled=false }
       }
       reader.readAsDataURL(file)
     })
