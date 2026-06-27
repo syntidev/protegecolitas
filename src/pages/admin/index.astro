@@ -131,7 +131,8 @@ if (Astro.request.method === 'POST') {
         imagen_url = ud.publicUrl
       }
     }
-    const { error } = await supabaseAdmin.from('feed').insert({ tipo, titulo, cuerpo, imagen_url, published_at: new Date().toISOString() })
+    const slug = titulo.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-').slice(0, 80) + '-' + Date.now().toString(36)
+    const { error } = await supabaseAdmin.from('feed').insert({ tipo, titulo, cuerpo, imagen_url, slug, published_at: new Date().toISOString() })
     return J(!error, error?.message)
   }
   if (action === 'eliminar_feed') {

@@ -23,7 +23,7 @@ const [
   supabaseAdmin.from('mascotas').select('id, nombre, especie, zona, foto_url, whatsapp, created_at').eq('status', 'publicado').eq('tipo', 'encontrado').order('created_at', { ascending: false }).limit(6),
   supabaseAdmin.from('necesidades').select('*').order('prioridad', { ascending: true }).limit(4),
   supabaseAdmin.from('vets').select('id, nombre, zona, whatsapp, servicios').limit(4),
-  supabaseAdmin.from('feed').select('id, tipo, titulo, cuerpo, published_at, imagen_url').order('published_at', { ascending: false }).limit(5),
+  supabaseAdmin.from('feed').select('id, tipo, titulo, cuerpo, published_at, imagen_url, slug').order('published_at', { ascending: false }).limit(5),
   supabaseAdmin.from('banners').select('*').eq('activo', true).order('created_at', { ascending: false }).limit(1),
 ])
 
@@ -348,7 +348,10 @@ function feedDate(iso: string | null): { day: string; mon: string } {
     .feed-row {
       display: flex; gap: 16px; padding: 16px 0;
       border-bottom: 1px solid var(--border); align-items: flex-start;
+      text-decoration: none; color: inherit; cursor: pointer;
+      transition: background 0.15s;
     }
+    .feed-row:hover .feed-titulo { color: var(--amarillo); }
     .feed-row:last-child { border-bottom: none; }
     .feed-date {
       flex-shrink: 0; text-align: center; min-width: 36px;
@@ -718,7 +721,7 @@ function feedDate(iso: string | null): { day: string; mon: string } {
             {feedItems.map(item => {
               const { day, mon } = feedDate(item.published_at)
               return (
-                <div class="feed-row">
+                <a href={`/noticia/${item.slug ?? item.id}`} class="feed-row">
                   <div class="feed-date" aria-hidden="true">
                     <div class="feed-day">{day}</div>
                     <div class="feed-mon">{mon}</div>
@@ -730,7 +733,7 @@ function feedDate(iso: string | null): { day: string; mon: string } {
                     <div class="feed-titulo">{item.titulo}</div>
                     <div class="feed-cuerpo">{item.cuerpo}</div>
                   </div>
-                </div>
+                </a>
               )
             })}
           </div>

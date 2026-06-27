@@ -4,7 +4,7 @@ import { supabaseAdmin } from '../lib/supabase'
 
 const { data: notas } = await supabaseAdmin
   .from('feed')
-  .select('id, titulo, cuerpo, tipo, published_at, imagen_url')
+  .select('id, titulo, cuerpo, tipo, published_at, imagen_url, slug')
   .order('published_at', { ascending: false })
   .neq('tipo', 'voluntario')
 
@@ -41,10 +41,10 @@ const TIPO_META: Record<string, { label: string; color: string; bg: string; bord
         {notas.map(nota => {
           const meta = TIPO_META[nota.tipo] ?? TIPO_META['info']
           const hasImg = !!nota.imagen_url
-          const notaUrl = `https://protegecolitas.org/noticia/${nota.id}`
+          const notaUrl = `https://protegecolitas.org/noticia/${nota.slug ?? nota.id}`
           return (
             <a
-              href={`/noticia/${nota.id}`}
+              href={`/noticia/${nota.slug ?? nota.id}`}
               class={`nota-card ${hasImg ? 'nota-card--img' : 'nota-card--text'}`}
               style={!hasImg ? `border-top: 3px solid ${meta.color}` : ''}
             >

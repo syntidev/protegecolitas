@@ -2,13 +2,13 @@
 import Base from '../../layouts/Base.astro'
 import { supabaseAdmin } from '../../lib/supabase'
 
-const { id } = Astro.params
-if (!id) return Astro.redirect('/noticias')
+const { slug } = Astro.params
+if (!slug) return Astro.redirect('/noticias')
 
 const { data: n } = await supabaseAdmin
   .from('feed')
-  .select('id, tipo, titulo, cuerpo, imagen_url, published_at')
-  .eq('id', id)
+  .select('id, tipo, titulo, cuerpo, imagen_url, published_at, slug')
+  .eq('slug', slug)
   .maybeSingle()
 
 if (!n) return Astro.redirect('/noticias')
@@ -27,7 +27,7 @@ const fechaStr = n.published_at
   ? new Date(n.published_at).toLocaleDateString('es-VE', { day: 'numeric', month: 'long', year: 'numeric' })
   : ''
 
-const pageUrl = `https://protegecolitas.org/noticia/${n.id}`
+const pageUrl = `https://protegecolitas.org/noticia/${n.slug}`
 const ogImage = n.imagen_url ?? 'https://protegecolitas.org/banner_mobile.png'
 ---
 <Base
