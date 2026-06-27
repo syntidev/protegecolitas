@@ -106,6 +106,10 @@ if (Astro.request.method === 'POST') {
     const { error } = await supabaseAdmin.from('mascotas').delete().eq('id', getId())
     return J(!error, error?.message)
   }
+  if (action === 'adoptar_mascota') {
+    const { error } = await supabaseAdmin.from('mascotas').update({ tipo: 'adopcion' }).eq('id', getId())
+    return J(!error, error?.message)
+  }
   if (action === 'aprobar_vet') {
     const { error } = await supabaseAdmin.from('vets').update({ aprobado: true }).eq('id', getId())
     return J(!error, error?.message)
@@ -580,6 +584,7 @@ if (isAuth) {
                     </td>
                     <td class="td-actions">
                       <button class="btn btn-azul" data-action="reunir" data-id={m.id} data-row={`row-${m.id}`}>✓ Reunida</button>
+                      <button class="btn btn-verde btn-icon" data-action="adoptar_mascota" data-id={m.id} data-confirm="¿Marcar como EN ADOPCIÓN? Pasará a la sección /adoptar" data-reload="true" title="Marcar en adopción">🏠</button>
                       <button class="btn btn-outline btn-icon btn-edit-mascota"
                         data-id={m.id}
                         data-nombre={m.nombre ?? ''}
@@ -1983,7 +1988,8 @@ if (isAuth) {
       var params = { action: action, id: id }
       if (btn.dataset.activo !== undefined) params.activo = btn.dataset.activo
       var ok = await doAction(params, row, conf || null)
-      if (!ok) btn.disabled = false
+      if (ok && btn.dataset.reload) { location.reload() }
+      else if (!ok) btn.disabled = false
     })
   })
 

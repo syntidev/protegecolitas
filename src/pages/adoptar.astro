@@ -5,36 +5,32 @@ import { supabaseAdmin } from '../lib/supabase'
 const PAGE_SIZE = 12
 const page   = Math.max(1, parseInt(Astro.url.searchParams.get('page') ?? '1', 10))
 const offset = (page - 1) * PAGE_SIZE
-
-const especie = Astro.url.searchParams.get('especie') ?? ''
-const zona    = Astro.url.searchParams.get('zona') ?? ''
 const q       = Astro.url.searchParams.get('q') ?? ''
+const especie = Astro.url.searchParams.get('especie') ?? ''
 
 let query = supabaseAdmin
   .from('mascotas')
-  .select('id, nombre, especie, descripcion, color, zona, tipo, foto_url, whatsapp, created_at')
+  .select('id, nombre, especie, color, tamanio, zona, descripcion, senias, contacto_nombre, whatsapp, foto_url, foto_url_2, foto_url_3, created_at', { count: 'exact' })
   .eq('status', 'publicado')
-  .neq('tipo', 'adopcion')
+  .eq('tipo', 'adopcion')
   .order('created_at', { ascending: false })
   .range(offset, offset + PAGE_SIZE - 1)
 
 if (especie) query = query.eq('especie', especie)
-if (zona)    query = query.ilike('zona', `%${zona}%`)
 if (q) {
   const safe = q.replace(/[,()\.:*\\]/g, ' ').trim().slice(0, 100)
-  query = query.or(`nombre.ilike.%${safe}%,descripcion.ilike.%${safe}%,zona.ilike.%${safe}%`)
+  query = query.or(`nombre.ilike.%${safe}%,zona.ilike.%${safe}%,descripcion.ilike.%${safe}%`)
 }
 
 let countQuery = supabaseAdmin
   .from('mascotas')
   .select('*', { count: 'exact', head: true })
   .eq('status', 'publicado')
-  .neq('tipo', 'adopcion')
+  .eq('tipo', 'adopcion')
 if (especie) countQuery = countQuery.eq('especie', especie)
-if (zona)    countQuery = countQuery.ilike('zona', `%${zona}%`)
 if (q) {
   const safe = q.replace(/[,()\.:*\\]/g, ' ').trim().slice(0, 100)
-  countQuery = countQuery.or(`nombre.ilike.%${safe}%,descripcion.ilike.%${safe}%,zona.ilike.%${safe}%`)
+  countQuery = countQuery.or(`nombre.ilike.%${safe}%,zona.ilike.%${safe}%,descripcion.ilike.%${safe}%`)
 }
 
 const [{ data: mascotas, error }, { count }] = await Promise.all([query, countQuery])
@@ -44,44 +40,51 @@ const ESPECIES = ['Perro', 'Gato', 'Ave', 'Otro'] as const
 
 function chipUrl(esp: string) {
   const p = new URLSearchParams()
-  if (esp)  p.set('especie', esp)
-  if (zona) p.set('zona', zona)
-  if (q)    p.set('q', q)
+  if (esp) p.set('especie', esp)
+  if (q)   p.set('q', q)
   const s = p.toString()
-  return `/mascotas${s ? '?' + s : ''}`
+  return `/adoptar${s ? '?' + s : ''}`
 }
 
 function pageUrl(p: number) {
   const params = new URLSearchParams()
   if (especie) params.set('especie', especie)
-  if (zona)    params.set('zona', zona)
   if (q)       params.set('q', q)
   if (p > 1)   params.set('page', String(p))
   const s = params.toString()
-  return `/mascotas${s ? '?' + s : ''}`
+  return `/adoptar${s ? '?' + s : ''}`
 }
 
-function waHref(whatsapp: string | null, nombre: string | null): string | null {
+function waAdoptHref(whatsapp: string | null, nombre: string | null): string | null {
   if (!whatsapp) return null
   const num = `58${whatsapp.slice(1)}`
-  const text = encodeURIComponent(`Hola, vi el reporte de ${nombre ?? 'una mascota'} en protegecolitas.org`)
+  const text = encodeURIComponent(
+    `Hola, vi a ${nombre ?? 'esta mascota'} en protegecolitas.org/adoptar y me gustaría adoptarlo. ¿Podría darme más información?`
+  )
   return `https://wa.me/${num}?text=${text}`
 }
 ---
-<Base title="Mascotas — Protege Colitas">
+
+<Base
+  title="Adoptar — Protege Colitas"
+  ogTitle="Adopta una mascota — Protege Colitas"
+  ogDescription="Mascotas rescatadas que buscan un hogar permanente tras el terremoto en Venezuela."
+  ogImage="https://protegecolitas.org/banner_mobile.png"
+  ogUrl="https://protegecolitas.org/adoptar"
+>
   <div class="page">
     <div class="page-inner">
 
       <!-- Hero -->
       <div class="page-hero">
-        <h1 class="page-title">¿La has <em>visto?</em></h1>
-        <p class="page-sub">Mascotas perdidas y encontradas tras el sismo.</p>
+        <h1 class="page-title">Búscame un <em>hogar</em></h1>
+        <p class="page-sub">Mascotas rescatadas que necesitan una familia permanente.</p>
+        <p class="page-count" aria-live="polite">{count ?? 0} mascotas esperando hogar</p>
       </div>
 
       <!-- Búsqueda -->
-      <form class="search-form" action="/mascotas" method="GET">
+      <form class="search-form" action="/adoptar" method="GET">
         {especie && <input type="hidden" name="especie" value={especie} />}
-        {zona && <input type="hidden" name="zona" value={zona} />}
         <div class="search-wrap">
           <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
@@ -93,11 +96,12 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
             class="search-input"
             placeholder="Nombre, zona, color…"
             autocomplete="off"
+            aria-label="Buscar mascota en adopción"
           />
         </div>
         <button type="submit" class="btn-search">Buscar</button>
-        {(q || especie || zona) && (
-          <a href="/mascotas" class="btn-clear">✕ Limpiar</a>
+        {(q || especie) && (
+          <a href="/adoptar" class="btn-clear">✕ Limpiar</a>
         )}
       </form>
 
@@ -109,47 +113,48 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
         ))}
       </div>
 
-      <!-- Error de carga -->
+      <!-- Error -->
       {error && (
         <div class="state-error" role="alert">
-          <p>No pudimos cargar los reportes. Intenta de nuevo.</p>
+          <p>No pudimos cargar las mascotas. Intenta de nuevo.</p>
         </div>
       )}
 
-      <!-- Grid de mascotas -->
+      <!-- Grid -->
       {!error && mascotas && mascotas.length > 0 ? (
-        <div class="mascotas-grid">
-          {mascotas.map((m) => {
-            const wa = waHref(m.whatsapp, m.nombre)
-            const isPerdido = m.tipo !== 'encontrado'
+        <div class="adoptar-grid" role="list">
+          {mascotas.map(m => {
+            const waHref = waAdoptHref(m.whatsapp, m.nombre)
             return (
-              <div class="pet-card">
+              <div class="adopt-card" role="listitem">
+
+                <!-- Stretch link covers full card -->
                 <a
                   href={`/mascota/${m.id}`}
-                  class="pet-card-link"
-                  aria-label={`Ver ficha de ${m.nombre ?? 'mascota'}`}
+                  class="card-link"
+                  aria-label={`Ver ficha de ${m.nombre ?? 'mascota en adopción'}`}
                 ></a>
 
-                <div class="pet-photo">
+                <!-- Photo -->
+                <div class="card-photo">
                   {m.foto_url
-                    ? <img src={m.foto_url} alt={m.nombre ?? 'Mascota'} loading="lazy" class="pet-img" />
+                    ? <img src={m.foto_url} alt={m.nombre ?? 'Mascota en adopción'} loading="lazy" class="pet-img" />
                     : <div class="pet-no-photo" aria-hidden="true">🐾</div>
                   }
 
-                  <div class={`badge-estado ${isPerdido ? 'badge-perdido' : 'badge-encontrado'}`}>
-                    {isPerdido && <span class="badge-dot"></span>}
-                    {isPerdido ? 'BUSCANDO' : 'ENCONTRADO'}
-                  </div>
+                  <!-- EN ADOPCIÓN badge -->
+                  <span class="badge-adopcion" aria-hidden="true">🏠 EN ADOPCIÓN</span>
 
-                  {wa && (
+                  <!-- WA FAB -->
+                  {waHref && (
                     <a
-                      href={wa}
+                      href={waHref}
                       class="pet-fab-wa"
                       target="_blank"
-                      rel="noopener"
+                      rel="noopener noreferrer"
                       aria-label={`Contactar sobre ${m.nombre ?? 'mascota'} por WhatsApp`}
                     >
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
                         <path d="M12 0C5.373 0 0 5.373 0 12c0 2.119.553 4.107 1.516 5.836L.057 23.447a.5.5 0 00.611.612l5.638-1.471A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.891 0-3.666-.5-5.197-1.373l-.371-.22-3.847 1.003 1.022-3.737-.242-.384A9.942 9.942 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
                       </svg>
@@ -157,22 +162,65 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
                   )}
                 </div>
 
-                <p class="pet-name">{m.nombre ?? 'Sin nombre'}</p>
-                <p class="pet-meta">{m.especie}{m.zona ? ` · ${m.zona}` : ''}</p>
+                <!-- Card body -->
+                <div class="card-body">
+                  <p class="pet-name">{m.nombre ?? 'Sin nombre'}</p>
+                  <p class="pet-meta">{m.especie}{m.zona ? ` · ${m.zona}` : ''}</p>
+
+                  {(m.color || m.tamanio) && (
+                    <div class="tags-row">
+                      {m.color   && <span class="tag">{m.color}</span>}
+                      {m.tamanio && <span class="tag">{m.tamanio}</span>}
+                    </div>
+                  )}
+
+                  {m.descripcion && (
+                    <p class="pet-desc">{m.descripcion}</p>
+                  )}
+
+                  {m.senias && (
+                    <p class="pet-senias">"{m.senias}"</p>
+                  )}
+
+                  {m.contacto_nombre && (
+                    <p class="pet-contacto">Contacto: {m.contacto_nombre}</p>
+                  )}
+
+                  {m.whatsapp && (
+                    <p class="pet-wa-txt">📞 {m.whatsapp}</p>
+                  )}
+
+                  {waHref && (
+                    <a
+                      href={waHref}
+                      class="btn-adopt"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Quiero adoptar a ${m.nombre ?? 'esta mascota'}`}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                        <path d="M12 0C5.373 0 0 5.373 0 12c0 2.119.553 4.107 1.516 5.836L.057 23.447a.5.5 0 00.611.612l5.638-1.471A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.891 0-3.666-.5-5.197-1.373l-.371-.22-3.847 1.003 1.022-3.737-.242-.384A9.942 9.942 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+                      </svg>
+                      🏠 Quiero adoptarlo
+                    </a>
+                  )}
+                </div>
               </div>
             )
           })}
         </div>
       ) : !error ? (
         <div class="state-empty">
-          <div class="empty-icon">🐾</div>
-          <p class="empty-msg">No hay reportes publicados aún.</p>
-          <a href="/reportar" class="btn-reportar">Sé el primero en reportar</a>
+          <div class="empty-icon">🏠</div>
+          <p class="empty-msg">No hay mascotas en adopción por ahora. Vuelve pronto.</p>
+          <a href="/mascotas" class="btn-volver">Ver mascotas perdidas →</a>
         </div>
       ) : null}
 
+      <!-- Paginación -->
       {totalPages > 1 && (
-        <nav class="pagination" aria-label="Páginas de mascotas">
+        <nav class="pagination" aria-label="Páginas de mascotas en adopción">
           {page > 1
             ? <a href={pageUrl(page - 1)} class="page-btn">← Anterior</a>
             : <span class="page-btn page-btn--disabled" aria-disabled="true">← Anterior</span>
@@ -190,23 +238,24 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
 </Base>
 
 <style>
-/* ─── Local token fallbacks (mirrors global.css) ─── */
+/* ─── Tokens ─── */
 :root {
-  --card:        rgba(255,255,255,0.75);
-  --card-blur:   blur(16px) saturate(180%);
-  --card-border: 1px solid rgba(255,255,255,0.9);
-  --card-shadow: 0 8px 32px rgba(61,28,2,0.10);
+  --card:        rgba(255,255,255,0.78);
+  --card-blur:   blur(18px) saturate(180%);
+  --card-border: 1px solid rgba(255,255,255,0.92);
+  --card-shadow: 0 4px 20px rgba(61,28,2,0.09);
   --radius:      18px;
   --radius-sm:   10px;
-  --transition:  0.2s ease;
+  --transition:  0.18s ease;
   --gris:        #6B7280;
+  --verde-adopt: #16A34A;
 }
 
 /* ─── Page ─── */
 .page {
   min-height: 100dvh;
   padding: 0 0 80px;
-  background: linear-gradient(150deg, #fef9f0 0%, #fdf4e3 55%, #f9ede0 100%);
+  background: linear-gradient(150deg, #f0fdf4 0%, #fdf4e3 55%, #f9ede0 100%);
 }
 .page-inner {
   max-width: 1100px;
@@ -215,9 +264,8 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
 }
 
 /* ─── Hero ─── */
-.page-hero {
-  padding: 32px 0 24px;
-}
+.page-hero { padding: 32px 0 24px; }
+
 .page-title {
   font-family: 'Syne', sans-serif;
   font-weight: 800;
@@ -227,14 +275,22 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
   margin: 0 0 8px;
   text-wrap: balance;
 }
-.page-title em { font-style: normal; color: var(--amarillo); }
+.page-title em { font-style: normal; color: var(--verde-adopt); }
+
 .page-sub {
   font-size: 16px;
   color: var(--gris-txt);
+  margin: 0 0 8px;
+}
+.page-count {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--verde-adopt);
   margin: 0;
 }
 
-/* ─── Search ─── */
+/* ─── Search (same as mascotas.astro) ─── */
 .search-form {
   display: flex;
   gap: 8px;
@@ -251,7 +307,6 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
   left: 13px;
   color: var(--gris);
   pointer-events: none;
-  flex-shrink: 0;
 }
 .search-input {
   width: 100%;
@@ -269,21 +324,13 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
   -webkit-appearance: none;
 }
 .search-input:focus {
-  border-color: var(--amarillo);
-  box-shadow: 0 0 0 3px rgba(245,193,7,0.18);
+  border-color: var(--verde-adopt);
+  box-shadow: 0 0 0 3px rgba(22,163,74,0.15);
 }
-.btn-clear {
-      display: inline-flex; align-items: center; padding: 0 16px;
-      height: 44px; border-radius: 10px; font-size: 14px; font-weight: 600;
-      background: transparent; border: 1.5px solid #E5E7EB;
-      color: #6B7280; text-decoration: none; white-space: nowrap;
-      transition: all 0.15s;
-    }
-    .btn-clear:hover { background: #F3F4F6; color: #3D1C02; border-color: #3D1C02; }
-    .btn-search {
+.btn-search {
   height: 48px;
   padding: 0 20px;
-  background: var(--marron);
+  background: var(--verde-adopt);
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);
@@ -297,6 +344,14 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
   transition: opacity var(--transition);
 }
 .btn-search:hover { opacity: 0.88; }
+.btn-clear {
+  display: inline-flex; align-items: center; padding: 0 16px;
+  height: 44px; border-radius: 10px; font-size: 14px; font-weight: 600;
+  background: transparent; border: 1.5px solid #E5E7EB;
+  color: #6B7280; text-decoration: none; white-space: nowrap;
+  transition: all 0.15s;
+}
+.btn-clear:hover { background: #F3F4F6; color: var(--marron); border-color: var(--marron); }
 
 /* ─── Chips ─── */
 .chips-row {
@@ -323,14 +378,11 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
   transition: background var(--transition), border-color var(--transition);
   white-space: nowrap;
 }
-.chip:hover {
-  background: rgba(255,255,255,0.92);
-  border-color: rgba(255,255,255,1);
-}
+.chip:hover { background: rgba(255,255,255,0.92); }
 .chip-active {
-  background: var(--amarillo);
-  border-color: var(--amarillo);
-  color: var(--marron);
+  background: var(--verde-adopt);
+  border-color: var(--verde-adopt);
+  color: #fff;
   font-weight: 700;
 }
 
@@ -342,28 +394,23 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
   border: 1px solid rgba(220,38,38,0.22);
   margin-bottom: 20px;
 }
-.state-error p {
-  font-size: 15px;
-  color: var(--rojo);
-  font-weight: 600;
-  margin: 0;
-}
+.state-error p { font-size: 15px; color: var(--rojo); font-weight: 600; margin: 0; }
 
 /* ─── Grid ─── */
-.mascotas-grid {
+.adoptar-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
 }
 @media (min-width: 640px) {
-  .mascotas-grid { grid-template-columns: repeat(3, 1fr); }
+  .adoptar-grid { grid-template-columns: repeat(3, 1fr); }
 }
 @media (min-width: 1024px) {
-  .mascotas-grid { grid-template-columns: repeat(4, 1fr); }
+  .adoptar-grid { grid-template-columns: repeat(4, 1fr); }
 }
 
 /* ─── Card ─── */
-.pet-card {
+.adopt-card {
   position: relative;
   background: var(--card);
   backdrop-filter: var(--card-blur);
@@ -372,15 +419,17 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
   border-radius: var(--radius);
   box-shadow: var(--card-shadow);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
   transition: transform var(--transition), box-shadow var(--transition);
 }
-.pet-card:hover {
+.adopt-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 16px 40px rgba(61,28,2,0.16);
+  box-shadow: 0 12px 36px rgba(22,163,74,0.14);
 }
 
-/* Stretch link covers full card at z-index 1 */
-.pet-card-link {
+/* Stretch link — z-index 1 */
+.card-link {
   position: absolute;
   inset: 0;
   z-index: 1;
@@ -388,18 +437,21 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
 }
 
 /* ─── Photo ─── */
-.pet-photo {
+.card-photo {
   position: relative;
-  aspect-ratio: 4/3;
+  aspect-ratio: 1/1;
   overflow: hidden;
-  background: var(--gris-bg, #F9F6F0);
+  background: #f0fdf4;
+  flex-shrink: 0;
 }
 .pet-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+  transition: transform .3s ease;
 }
+.adopt-card:hover .pet-img { transform: scale(1.04); }
 .pet-no-photo {
   width: 100%;
   height: 100%;
@@ -409,38 +461,23 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
   font-size: 40px;
 }
 
-/* ─── Badges ─── */
-.badge-estado {
+/* ─── EN ADOPCIÓN badge ─── */
+.badge-adopcion {
   position: absolute;
   top: 10px;
   left: 10px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
   font-family: 'Inter', sans-serif;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  padding: 4px 9px;
-  border-radius: 7px;
-  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--verde-adopt);
+  color: #fff;
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-}
-.badge-perdido   { background: var(--rojo);  color: #fff; }
-.badge-encontrado { background: var(--verde); color: #fff; }
-
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1;   transform: scale(1);   }
-  50%       { opacity: 0.4; transform: scale(1.5); }
-}
-.badge-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.9);
-  flex-shrink: 0;
-  animation: pulse-dot 1.4s ease-in-out infinite;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 /* ─── WA FAB ─── */
@@ -448,8 +485,8 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
   position: absolute;
   top: 10px;
   right: 10px;
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   background: #25D366;
   color: #fff;
@@ -464,13 +501,20 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
 }
 .pet-fab-wa:hover { transform: scale(1.1); opacity: 0.95; }
 
-/* ─── Card text ─── */
+/* ─── Card body ─── */
+.card-body {
+  padding: 10px 11px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+
 .pet-name {
   font-family: 'Fredoka', sans-serif;
   font-weight: 600;
   font-size: 15px;
   color: var(--marron);
-  padding: 10px 12px 4px;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -478,16 +522,95 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
 }
 .pet-meta {
   font-family: 'Inter', sans-serif;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--gris);
-  padding: 0 12px 12px;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* ─── Empty state ─── */
+.tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.tag {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: rgba(22,163,74,0.1);
+  color: var(--verde-adopt);
+  white-space: nowrap;
+}
+
+.pet-desc {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--gris);
+  margin: 0;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-wrap: pretty;
+}
+.pet-senias {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-style: italic;
+  color: var(--gris);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pet-contacto {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--gris);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pet-wa-txt {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--verde-adopt);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─── Adopt button (z-index above stretch link) ─── */
+.btn-adopt {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: auto;
+  min-height: 40px;
+  border-radius: 8px;
+  background: var(--verde-adopt);
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: opacity var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-adopt:hover { opacity: 0.88; }
+
+/* ─── Empty ─── */
 .state-empty {
   background: var(--card);
   backdrop-filter: var(--card-blur);
@@ -500,25 +623,17 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
   align-items: center;
   padding: 64px 24px;
   text-align: center;
+  gap: 16px;
 }
-.empty-icon {
-  font-size: 56px;
-  margin-bottom: 16px;
-  line-height: 1;
-}
-.empty-msg {
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--marron);
-  margin: 0 0 20px;
-}
-.btn-reportar {
+.empty-icon { font-size: 52px; line-height: 1; }
+.empty-msg { font-size: 17px; font-weight: 700; color: var(--marron); margin: 0; }
+.btn-volver {
   display: inline-flex;
   align-items: center;
   padding: 13px 28px;
   border-radius: var(--radius-sm);
-  background: var(--amarillo);
-  color: var(--marron);
+  background: var(--marron);
+  color: #fff;
   font-family: 'Inter', sans-serif;
   font-size: 15px;
   font-weight: 700;
@@ -526,23 +641,22 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
   min-height: 48px;
   transition: opacity var(--transition);
 }
-.btn-reportar:hover { opacity: 0.85; }
+.btn-volver:hover { opacity: 0.85; }
 
-/* ─── Paginación ─── */
+/* ─── Pagination ─── */
 .pagination {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
   margin-top: 32px;
-  padding-bottom: 16px;
   flex-wrap: wrap;
 }
 .page-btn {
   display: inline-flex;
   align-items: center;
   padding: 10px 20px;
-  background: var(--marron);
+  background: var(--verde-adopt);
   color: #fff;
   border-radius: 10px;
   font-family: 'Inter', sans-serif;
@@ -555,8 +669,8 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
 }
 .page-btn:hover { opacity: 0.85; }
 .page-btn--disabled {
-  background: rgba(61,28,2,0.12);
-  color: rgba(61,28,2,0.35);
+  background: rgba(22,163,74,0.15);
+  color: rgba(22,163,74,0.5);
   cursor: not-allowed;
   pointer-events: none;
 }
@@ -567,42 +681,11 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
   color: var(--marron);
 }
 
-/* ─── Accessibility ─── */
+/* ─── Reduced motion ─── */
 @media (prefers-reduced-motion: reduce) {
-  .pet-card,
-  .pet-fab-wa,
-  .btn-reportar { transition: none; }
-  .badge-dot    { animation: none; }
+  .adopt-card, .pet-fab-wa, .btn-adopt, .btn-volver { transition: none; }
+  .adopt-card:hover { transform: none; }
+  .pet-img { transition: none; }
+  .adopt-card:hover .pet-img { transform: none; }
 }
 </style>
-
-<script>
-(function () {
-  document.querySelectorAll('.btn-share').forEach(function (btn) {
-    btn.addEventListener('click', async function () {
-      var path = btn.dataset.url || window.location.pathname;
-      var url = window.location.origin + path;
-      var nombre = btn.dataset.nombre || 'Mascota';
-      var zona = btn.dataset.zona || '';
-
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: nombre + ' — Protege Colitas',
-            text: '¿La has visto? ' + (zona ? 'Vista en ' + zona + '. ' : '') + 'Ayuda a reunir a esta mascota con su familia.',
-            url: url,
-          });
-          return;
-        } catch (_) { /* usuario canceló */ }
-      }
-
-      try {
-        await navigator.clipboard.writeText(url);
-        var orig = btn.textContent;
-        btn.textContent = '✓ ¡Enlace copiado!';
-        setTimeout(function () { btn.textContent = orig; }, 2000);
-      } catch (_) { /* clipboard no disponible */ }
-    });
-  });
-})();
-</script>
