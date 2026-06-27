@@ -2115,36 +2115,68 @@ if (isAuth) {
       for (var i=0;i<sel.options.length;i++) { if (sel.options[i].value===val) { sel.selectedIndex=i; break } }
     }
 
-    btnExtraer.addEventListener('click', async function() {
-      var file=geminiImg.files[0]; if (!file) return
-      btnExtraer.disabled=true; showMsg('⏳ Analizando imagen con Gemini Vision...', false)
-      var reader=new FileReader()
-      reader.onload=async function(e) {
-        var base64=e.target.result.split(',')[1]; var mime=file.type||'image/jpeg'
-        try {
-          var r=await fetch('/api/gemini-extract',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64:base64,mime:mime,action:currentAction})})
-          var data=await r.json()
-          if (!r.ok||data.error) { showMsg('❌ '+(data.error||'Error al extraer datos'),false); btnExtraer.disabled=false; return }
-          hideAllForms()
-          if (currentAction==='mascota') {
-            setVal('g-nombre',data.nombre); setSelect('g-especie',data.especie); setVal('g-color',data.color)
-            setVal('g-zona',data.zona); setVal('g-descripcion',data.descripcion); setVal('g-senias',data.senias)
-            setVal('g-contacto-nombre',data.contacto_nombre); setVal('g-whatsapp',data.whatsapp); setSelect('g-tipo',data.tipo)
-            formMasc.style.display='block'; formMasc.scrollIntoView({behavior:'smooth',block:'start'})
-          } else if (currentAction==='feed') {
-            setSelect('gf-tipo',data.tipo); setVal('gf-titulo',data.titulo); setVal('gf-cuerpo',data.cuerpo)
-            formFeedG.style.display='block'; formFeedG.scrollIntoView({behavior:'smooth',block:'start'})
-          } else if (currentAction==='insumo') {
-            setVal('gi-item',data.item)
-            if (data.cantidad_requerida) { var elReq=document.getElementById('gi-cantidad-req'); if (elReq) elReq.value=data.cantidad_requerida }
-            if (data.cantidad_recibida!==undefined) { var elRec=document.getElementById('gi-cantidad-rec'); if (elRec) elRec.value=data.cantidad_recibida }
-            setSelect('gi-prioridad',data.prioridad)
-            formInsG.style.display='block'; formInsG.scrollIntoView({behavior:'smooth',block:'start'})
+    // Convierte CUALQUIER imagen (incl. HEIC del iPhone) a JPEG vía canvas.
+    // Gemini no acepta HEIC; además reducimos a máx 1600px para aligerar el envío.
+    function toJpegBase64(f) {
+      return new Promise(function(resolve, reject) {
+        var url = URL.createObjectURL(f)
+        var img = new Image()
+        img.onload = function() {
+          URL.revokeObjectURL(url)
+          var MAX = 1600
+          var w = img.naturalWidth || img.width
+          var h = img.naturalHeight || img.height
+          if (!w || !h) { reject(new Error('Imagen sin dimensiones')); return }
+          if (w > MAX || h > MAX) {
+            if (w >= h) { h = Math.round(h * MAX / w); w = MAX }
+            else        { w = Math.round(w * MAX / h); h = MAX }
           }
-          showMsg('✓ Datos extraídos. Revisa y edita antes de guardar.', true); btnExtraer.disabled=false
-        } catch(err) { showMsg('❌ Error de red: '+err.message, false); btnExtraer.disabled=false }
-      }
-      reader.readAsDataURL(file)
+          var canvas = document.createElement('canvas')
+          canvas.width = w; canvas.height = h
+          var ctx = canvas.getContext('2d')
+          ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h) // fondo blanco (JPEG no tiene alfa)
+          ctx.drawImage(img, 0, 0, w, h)
+          var dataUrl = canvas.toDataURL('image/jpeg', 0.85)
+          resolve(dataUrl.split(',')[1])
+        }
+        img.onerror = function() {
+          URL.revokeObjectURL(url)
+          reject(new Error('No se pudo leer la imagen. Probá con otra foto.'))
+        }
+        img.src = url
+      })
+    }
+
+    btnExtraer.addEventListener('click', async function() {
+      var file = geminiImg.files[0]; if (!file) return
+      btnExtraer.disabled = true; showMsg('⏳ Analizando imagen con Gemini Vision...', false)
+      try {
+        var base64 = await toJpegBase64(file)
+        var r = await fetch('/api/gemini-extract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ base64: base64, mime: 'image/jpeg', action: currentAction })
+        })
+        var data = await r.json()
+        if (!r.ok || data.error) { showMsg('❌ ' + (data.error || 'Error al extraer datos'), false); btnExtraer.disabled = false; return }
+        hideAllForms()
+        if (currentAction === 'mascota') {
+          setVal('g-nombre', data.nombre); setSelect('g-especie', data.especie); setVal('g-color', data.color)
+          setVal('g-zona', data.zona); setVal('g-descripcion', data.descripcion); setVal('g-senias', data.senias)
+          setVal('g-contacto-nombre', data.contacto_nombre); setVal('g-whatsapp', data.whatsapp); setSelect('g-tipo', data.tipo)
+          formMasc.style.display = 'block'; formMasc.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        } else if (currentAction === 'feed') {
+          setSelect('gf-tipo', data.tipo); setVal('gf-titulo', data.titulo); setVal('gf-cuerpo', data.cuerpo)
+          formFeedG.style.display = 'block'; formFeedG.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        } else if (currentAction === 'insumo') {
+          setVal('gi-item', data.item)
+          if (data.cantidad_requerida) { var elReq = document.getElementById('gi-cantidad-req'); if (elReq) elReq.value = data.cantidad_requerida }
+          if (data.cantidad_recibida !== undefined) { var elRec = document.getElementById('gi-cantidad-rec'); if (elRec) elRec.value = data.cantidad_recibida }
+          setSelect('gi-prioridad', data.prioridad)
+          formInsG.style.display = 'block'; formInsG.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+        showMsg('✓ Datos extraídos. Revisa y edita antes de guardar.', true); btnExtraer.disabled = false
+      } catch (err) { showMsg('❌ ' + (err.message || 'Error al procesar la imagen'), false); btnExtraer.disabled = false }
     })
   })()
 </script>
