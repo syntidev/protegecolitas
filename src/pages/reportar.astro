@@ -894,13 +894,18 @@ import Base from '../layouts/Base.astro'
     const files = Array.from(photoInput.files || []);
     for (const file of files) {
       if (compressedFiles.length >= 3) break;
-      if (!file.type.startsWith('image/')) continue;
-      const dataUrl = await compressImage(file, 900, 0.82);
-      compressedFiles.push({ file, dataUrl });
+      // Aceptar imágenes incl. HEIC del iPhone (a veces llega con type vacío)
+      if (file.type && !file.type.startsWith('image/')) continue;
+      try {
+        const dataUrl = await compressImage(file, 900, 0.82);
+        compressedFiles.push({ file, dataUrl });
+        clearError('foto');
+      } catch (err) {
+        setError('foto', (err && err.message) || 'No se pudo procesar la imagen');
+      }
     }
     renderPreviews();
     photoInput.value = '';
-    clearError('foto');
   });
 
   function renderPreviews() {
@@ -929,23 +934,28 @@ import Base from '../layouts/Base.astro'
   }
 
   function compressImage(file, maxPx, quality) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const img = new Image();
         img.onload = () => {
-          let w = img.width, h = img.height;
+          let w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+          if (!w || !h) { reject(new Error('Imagen inválida')); return; }
           if (w > maxPx || h > maxPx) {
             if (w >= h) { h = Math.round(h * maxPx / w); w = maxPx; }
             else { w = Math.round(w * maxPx / h); h = maxPx; }
           }
           const canvas = document.createElement('canvas');
           canvas.width = w; canvas.height = h;
-          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h); // fondo blanco (JPEG sin alfa)
+          ctx.drawImage(img, 0, 0, w, h);
           resolve(canvas.toDataURL('image/jpeg', quality));
         };
+        img.onerror = () => reject(new Error('No se pudo leer la imagen. Probá con otra foto.'));
         img.src = e.target.result;
       };
+      reader.onerror = () => reject(new Error('No se pudo leer el archivo.'));
       reader.readAsDataURL(file);
     });
   }

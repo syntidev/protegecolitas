@@ -1811,6 +1811,54 @@ if (isAuth) {
   ;(window as any).showModule = showModule
   ;(window as any).showHome = showHome
 
+  // ── Conversión de imágenes a JPEG (cliente) ──
+  // iPhone entrega HEIC y ni Supabase ni los navegadores lo muestran. Convertimos
+  // CUALQUIER imagen (HEIC/HEIF/PNG/WebP) a JPEG vía canvas antes de subir, en
+  // TODOS los formularios del admin. Reduce además a máx 1600px.
+  function imageToJpegBlob(file, maxPx, quality) {
+    return new Promise(function(resolve, reject) {
+      var url = URL.createObjectURL(file)
+      var img = new Image()
+      img.onload = function() {
+        URL.revokeObjectURL(url)
+        var w = img.naturalWidth || img.width, h = img.naturalHeight || img.height
+        if (!w || !h) { reject(new Error('Imagen sin dimensiones')); return }
+        if (w > maxPx || h > maxPx) {
+          if (w >= h) { h = Math.round(h * maxPx / w); w = maxPx }
+          else        { w = Math.round(w * maxPx / h); h = maxPx }
+        }
+        var canvas = document.createElement('canvas')
+        canvas.width = w; canvas.height = h
+        var ctx = canvas.getContext('2d')
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h)
+        ctx.drawImage(img, 0, 0, w, h)
+        canvas.toBlob(function(blob) {
+          if (blob) resolve(blob); else reject(new Error('No se pudo convertir la imagen'))
+        }, 'image/jpeg', quality)
+      }
+      img.onerror = function() { URL.revokeObjectURL(url); reject(new Error('No se pudo leer la imagen')) }
+      img.src = url
+    })
+  }
+
+  // Devuelve un FormData del formulario con cada <input type=file> de imagen
+  // reemplazado por su versión JPEG. Si la conversión falla, deja el original.
+  async function buildFormDataWithJpeg(form) {
+    var fd = new FormData(form)
+    var inputs = form.querySelectorAll('input[type="file"]')
+    for (var i = 0; i < inputs.length; i++) {
+      var input = inputs[i]
+      var f = input.files && input.files[0]
+      if (!input.name || !f) continue
+      if (f.type && f.type.indexOf('image/') !== 0) continue
+      try {
+        var jpeg = await imageToJpegBlob(f, 1600, 0.85)
+        fd.set(input.name, jpeg, 'foto.jpg')
+      } catch (e) { /* conversión falló → se queda el archivo original */ }
+    }
+    return fd
+  }
+
   // ── Handle initial hash
   ;(function() {
     var hash = location.hash.replace('#','')
@@ -1864,7 +1912,7 @@ if (isAuth) {
   if (formFeed) {
     formFeed.addEventListener('submit', async function(e) {
       e.preventDefault()
-      var fd = new FormData(formFeed); fd.append('action','feed')
+      var fd = await buildFormDataWithJpeg(formFeed); fd.append('action','feed')
       var btn = formFeed.querySelector('button[type="submit"]')
       if (btn) btn.disabled = true
       try {
@@ -1897,7 +1945,7 @@ if (isAuth) {
   if (formBanner) {
     formBanner.addEventListener('submit', async function(e) {
       e.preventDefault()
-      var fd=new FormData(formBanner); fd.append('action','banner')
+      var fd=await buildFormDataWithJpeg(formBanner); fd.append('action','banner')
       var btn=formBanner.querySelector('button[type="submit"]'); if (btn) btn.disabled=true
       try {
         var r=await fetch('/admin',{method:'POST',body:fd}); var j=await r.json()
@@ -1929,7 +1977,7 @@ if (isAuth) {
     }
     formNuevaMascota.addEventListener('submit', async function(e) {
       e.preventDefault()
-      var fd=new FormData(formNuevaMascota); fd.append('action','nueva_mascota')
+      var fd=await buildFormDataWithJpeg(formNuevaMascota); fd.append('action','nueva_mascota')
       var btn=document.getElementById('nm-submit'); var msg=document.getElementById('nm-msg')
       if (btn) { btn.disabled=true; btn.textContent='Guardando…' }; if (msg) msg.textContent=''
       try {
@@ -2057,7 +2105,7 @@ if (isAuth) {
     if (!form) return
     form.addEventListener('submit', async function(e) {
       e.preventDefault()
-      var fd=new FormData(form); var btn=form.querySelector('button[type="submit"]'); if (btn) btn.disabled=true
+      var fd=await buildFormDataWithJpeg(form); var btn=form.querySelector('button[type="submit"]'); if (btn) btn.disabled=true
       try {
         var r=await fetch('/admin',{method:'POST',body:fd}); var j=await r.json()
         if (!j.ok) { alert('Error: '+(j.error||'desconocido')); if (btn) btn.disabled=false }
