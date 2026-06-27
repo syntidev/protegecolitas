@@ -154,7 +154,10 @@ const mapsHref = (m.latitud && m.longitud)
         <button
           class="btn-share"
           id="btnCompartir"
+          type="button"
+          data-url={`https://protegecolitas.org/mascota/${m.id}`}
           data-nombre={m.nombre ?? 'Mascota'}
+          data-zona={m.zona ?? ''}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
           <span id="compartirLabel">Compartir este reporte</span>
@@ -167,6 +170,36 @@ const mapsHref = (m.latitud && m.longitud)
     </div><!-- /content-card -->
 
   </div><!-- /detail-page -->
+
+  <!-- Menú de compartir propio — funciona en TODOS los navegadores (no depende de navigator.share) -->
+  <dialog id="share-dialog" class="share-dialog" aria-label="Compartir mascota">
+    <div class="share-sheet">
+      <p class="share-sheet-title">Compartir este reporte</p>
+      <div class="share-options">
+        <a id="sh-wa" class="share-opt share-link" target="_blank" rel="noopener noreferrer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="#25D366" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.119.553 4.107 1.516 5.836L.057 23.447a.5.5 0 00.611.612l5.638-1.471A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/></svg>
+          WhatsApp
+        </a>
+        <a id="sh-tg" class="share-opt share-link" target="_blank" rel="noopener noreferrer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="#229ED9" aria-hidden="true"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+          Telegram
+        </a>
+        <a id="sh-fb" class="share-opt share-link" target="_blank" rel="noopener noreferrer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="#1877F2" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+          Facebook
+        </a>
+        <a id="sh-tw" class="share-opt share-link" target="_blank" rel="noopener noreferrer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#000" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          X
+        </a>
+        <button id="sh-copy" type="button" class="share-opt share-opt--full">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          <span id="sh-copy-label">Copiar enlace</span>
+        </button>
+      </div>
+      <button id="sh-close" type="button" class="share-close">Cerrar</button>
+    </div>
+  </dialog>
 </Base>
 
 <style>
@@ -421,70 +454,168 @@ const mapsHref = (m.latitud && m.longitud)
   margin: 0;
 }
 
+/* ─── Share dialog (menú propio, funciona en todos los navegadores) ─── */
+.share-dialog {
+  border: none; padding: 0; background: transparent;
+  width: min(100%, 440px); margin: auto auto 0;
+}
+.share-dialog::backdrop {
+  background: rgba(61,28,2,0.45);
+  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+}
+.share-sheet {
+  background: #fff; border-radius: 20px 20px 0 0;
+  padding: 18px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -10px 44px rgba(61,28,2,0.28);
+}
+@media (min-width: 560px) {
+  .share-dialog { margin: auto; }
+  .share-sheet  { border-radius: 20px; }
+}
+.share-sheet-title {
+  font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 16px;
+  color: var(--marron); margin: 0 0 14px; text-align: center;
+}
+.share-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.share-opt {
+  display: flex; align-items: center; gap: 10px;
+  min-height: 52px; padding: 0 14px; border-radius: 12px;
+  border: 1px solid var(--border, #E8DDD0); background: #fff;
+  font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600;
+  color: var(--marron); text-decoration: none; cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.share-opt:hover, .share-opt:active { background: var(--crema, #FDF8F0); border-color: var(--amarillo); }
+.share-opt--full { grid-column: 1 / -1; justify-content: center; }
+.share-close {
+  width: 100%; min-height: 48px; border: none; border-radius: 12px;
+  background: var(--marron); color: #fff;
+  font-family: 'Inter', sans-serif; font-weight: 700; font-size: 15px;
+  cursor: pointer; transition: opacity 0.15s;
+}
+.share-close:hover { opacity: 0.88; }
+
 @media (prefers-reduced-motion: reduce) {
   .btn-wa, .btn-share, .thumb-mini { transition: none; }
 }
 </style>
 
 <script>
-// ── Galería: miniaturas + lightbox
-(function () {
-  const principal = document.getElementById('foto-principal') as HTMLImageElement | null
-  if (!principal) return
+  // Astro procesa este <script> como módulo ES (scope propio, defer). SIN IIFE:
+  // dos IIFEs adyacentes sin ';' se concatenaban -> "(...)() is not a function".
 
-  // Lightbox al hacer click en foto principal
-  principal.addEventListener('click', function () {
-    const overlay = document.createElement('div')
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out'
-    overlay.setAttribute('role', 'dialog')
-    overlay.setAttribute('aria-label', 'Vista ampliada de la foto')
-    const img = document.createElement('img')
-    img.src = this.src
-    img.style.cssText = 'max-width:95vw;max-height:95vh;object-fit:contain;border-radius:8px'
-    overlay.appendChild(img)
-    const close = () => overlay.remove()
-    overlay.addEventListener('click', close)
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey) } }
-    document.addEventListener('keydown', onKey)
-    document.body.appendChild(overlay)
-  })
+  // ── Galería: miniaturas + lightbox ──
+  const principal = document.getElementById('foto-principal') as HTMLImageElement | null;
+  if (principal) {
+    principal.addEventListener('click', () => {
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out';
+      overlay.setAttribute('role', 'dialog');
+      overlay.setAttribute('aria-label', 'Vista ampliada de la foto');
+      const img = document.createElement('img');
+      img.src = principal.src;
+      img.style.cssText = 'max-width:95vw;max-height:95vh;object-fit:contain;border-radius:8px';
+      overlay.appendChild(img);
+      const close = () => overlay.remove();
+      overlay.addEventListener('click', close);
+      const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); } };
+      document.addEventListener('keydown', onKey);
+      document.body.appendChild(overlay);
+    });
 
-  // Miniaturas: swap sin abrir pestaña
-  document.querySelectorAll<HTMLImageElement>('.thumb-mini').forEach(thumb => {
-    thumb.addEventListener('click', function () {
-      principal.src = this.src
-      document.querySelectorAll('.thumb-mini').forEach(t => t.classList.remove('thumb-mini--active'))
-      this.classList.add('thumb-mini--active')
-    })
-  })
-})()
+    document.querySelectorAll<HTMLImageElement>('.thumb-mini').forEach((thumb) => {
+      thumb.addEventListener('click', () => {
+        principal.src = thumb.src;
+        document.querySelectorAll('.thumb-mini').forEach((t) => t.classList.remove('thumb-mini--active'));
+        thumb.classList.add('thumb-mini--active');
+      });
+    });
+  }
 
-// ── Compartir
-(function () {
-  const btn = document.getElementById('btnCompartir')
-  const label = document.getElementById('compartirLabel')
-  if (!btn || !label) return
+  // ── Compartir: menú propio que funciona en TODOS los navegadores ──
+  const dlg = document.getElementById('share-dialog') as HTMLDialogElement | null;
+  let shareUrl = '';
 
-  btn.addEventListener('click', async () => {
-    const url = window.location.href
-    const nombre = (btn as HTMLButtonElement).dataset.nombre || 'Mascota'
+  const setHref = (id: string, href: string) => {
+    const el = document.getElementById(id) as HTMLAnchorElement | null;
+    if (el) el.href = href;
+  };
 
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `${nombre} — Protege Colitas`,
-          text: '¿La has visto? Ayudá a reunir a esta mascota con su familia.',
-          url,
-        })
-        return
-      } catch { /* usuario canceló */ }
-    }
+  const openShare = (data: { url: string; text: string }) => {
+    shareUrl = data.url;
+    const u = encodeURIComponent(data.url);
+    const txt = encodeURIComponent(data.text);
+    const both = encodeURIComponent(data.text + ' ' + data.url);
+    setHref('sh-wa', 'https://wa.me/?text=' + both);
+    setHref('sh-tg', 'https://t.me/share/url?url=' + u + '&text=' + txt);
+    setHref('sh-fb', 'https://www.facebook.com/sharer/sharer.php?u=' + u);
+    setHref('sh-tw', 'https://twitter.com/intent/tweet?text=' + txt + '&url=' + u);
+    if (!dlg) { window.prompt('Copia y comparte este enlace:', data.url); return; }
+    if (typeof dlg.showModal === 'function') { try { dlg.showModal(); return; } catch (_) {} }
+    dlg.setAttribute('open', '');
+  };
 
+  const closeShare = () => {
+    if (!dlg) return;
+    if (typeof dlg.close === 'function' && dlg.open) dlg.close();
+    else dlg.removeAttribute('open');
+  };
+
+  const copiado = () => {
+    const lbl = document.getElementById('sh-copy-label');
+    if (!lbl) return;
+    const prev = lbl.textContent;
+    lbl.textContent = '✓ ¡Enlace copiado!';
+    setTimeout(() => { lbl.textContent = prev; }, 1800);
+  };
+
+  const legacyCopy = (url: string) => {
     try {
-      await navigator.clipboard.writeText(url)
-      label.textContent = '¡Enlace copiado!'
-      setTimeout(() => { label.textContent = 'Compartir este reporte' }, 2000)
-    } catch { /* clipboard no disponible */ }
-  })
-})()
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '-1000px';
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, url.length);
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      copiado();
+    } catch (_) {
+      window.prompt('Copia este enlace:', url);
+    }
+  };
+
+  const copyLink = (url: string) => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(copiado, () => legacyCopy(url));
+    } else {
+      legacyCopy(url);
+    }
+  };
+
+  document.addEventListener('click', (e) => {
+    const t = e.target as HTMLElement;
+    const shareBtn = t.closest('#btnCompartir');
+    if (shareBtn) {
+      e.preventDefault();
+      const nombre = shareBtn.getAttribute('data-nombre') || 'esta mascota';
+      const zona = shareBtn.getAttribute('data-zona') || '';
+      openShare({
+        url: shareBtn.getAttribute('data-url') || window.location.href,
+        text: '¿La has visto? ' + (zona ? 'Vista en ' + zona + '. ' : '') + 'Ayuda a reunir a ' + nombre + ' con su familia.'
+      });
+      return;
+    }
+    if (t.closest('#sh-copy')) { e.preventDefault(); copyLink(shareUrl); return; }
+    if (t.closest('#sh-close')) { closeShare(); return; }
+    if (t.closest('.share-link')) { closeShare(); return; }
+  });
+
+  if (dlg) {
+    dlg.addEventListener('click', (e) => { if (e.target === dlg) closeShare(); });
+    dlg.addEventListener('cancel', () => closeShare());
+  }
 </script>
