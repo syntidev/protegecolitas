@@ -699,17 +699,19 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
 </style>
 
 <script>
-(function () {
-  var dlg = document.getElementById('share-dialog');
-  var shareUrl = '';
+  // Astro procesa este <script> como módulo ES: tiene scope propio y se ejecuta
+  // con `defer` (el DOM ya está listo). SIN IIFE: el wrapper autoejecutable es lo
+  // que el bundler rompía → "(intermediate value)... is not a function".
+  const dlg = document.getElementById('share-dialog');
+  let shareUrl = '';
 
-  function setHref(id, href) { var el = document.getElementById(id); if (el) el.href = href; }
+  const setHref = (id, href) => { const el = document.getElementById(id); if (el) el.href = href; };
 
-  function openShare(data) {
+  const openShare = (data) => {
     shareUrl = data.url;
-    var u   = encodeURIComponent(data.url);
-    var txt = encodeURIComponent(data.text);
-    var both = encodeURIComponent(data.text + ' ' + data.url);
+    const u = encodeURIComponent(data.url);
+    const txt = encodeURIComponent(data.text);
+    const both = encodeURIComponent(data.text + ' ' + data.url);
     setHref('sh-wa', 'https://wa.me/?text=' + both);
     setHref('sh-tg', 'https://t.me/share/url?url=' + u + '&text=' + txt);
     setHref('sh-fb', 'https://www.facebook.com/sharer/sharer.php?u=' + u);
@@ -717,33 +719,25 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
     if (!dlg) { window.prompt('Copia y comparte este enlace:', data.url); return; }
     if (typeof dlg.showModal === 'function') { try { dlg.showModal(); return; } catch (_) {} }
     dlg.setAttribute('open', '');
-  }
+  };
 
-  function closeShare() {
+  const closeShare = () => {
     if (!dlg) return;
     if (typeof dlg.close === 'function' && dlg.open) dlg.close();
     else dlg.removeAttribute('open');
-  }
+  };
 
-  function copiado() {
-    var lbl = document.getElementById('sh-copy-label');
+  const copiado = () => {
+    const lbl = document.getElementById('sh-copy-label');
     if (!lbl) return;
-    var prev = lbl.textContent;
+    const prev = lbl.textContent;
     lbl.textContent = '✓ ¡Enlace copiado!';
-    setTimeout(function () { lbl.textContent = prev; }, 1800);
-  }
+    setTimeout(() => { lbl.textContent = prev; }, 1800);
+  };
 
-  function copyLink(url) {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(url).then(copiado, function () { legacyCopy(url); });
-    } else {
-      legacyCopy(url);
-    }
-  }
-
-  function legacyCopy(url) {
+  const legacyCopy = (url) => {
     try {
-      var ta = document.createElement('textarea');
+      const ta = document.createElement('textarea');
       ta.value = url;
       ta.setAttribute('readonly', '');
       ta.style.position = 'fixed';
@@ -757,17 +751,25 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
     } catch (_) {
       window.prompt('Copia este enlace:', url);
     }
-  }
+  };
 
-  // ─── Un solo listener delegado en document: imposible que "no se ate" ───
-  document.addEventListener('click', function (e) {
+  const copyLink = (url) => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(copiado, () => legacyCopy(url));
+    } else {
+      legacyCopy(url);
+    }
+  };
+
+  // Un solo listener delegado en document: imposible que "no se ate"
+  document.addEventListener('click', (e) => {
     // 1) Botón compartir de una card
-    var shareBtn = e.target.closest('.btn-share');
+    const shareBtn = e.target.closest('.btn-share');
     if (shareBtn) {
       e.preventDefault();
       e.stopPropagation();
-      var nombre = shareBtn.getAttribute('data-nombre') || 'esta mascota';
-      var zona   = shareBtn.getAttribute('data-zona') || '';
+      const nombre = shareBtn.getAttribute('data-nombre') || 'esta mascota';
+      const zona = shareBtn.getAttribute('data-zona') || '';
       openShare({
         url: shareBtn.getAttribute('data-url') || (location.origin + location.pathname),
         text: '¿La has visto? ' + (zona ? 'Vista en ' + zona + '. ' : '') + 'Ayuda a reunir a ' + nombre + ' con su familia.'
@@ -781,17 +783,16 @@ function waHref(whatsapp: string | null, nombre: string | null): string | null {
     // 4) Eligió un canal → cerrar el menú (el enlace abre en nueva pestaña)
     if (e.target.closest('.share-link')) { closeShare(); return; }
     // 5) Click en la card (ignora links/botones) → ir al detalle
-    var card = e.target.closest('.pet-card');
+    const card = e.target.closest('.pet-card');
     if (card && !e.target.closest('a, button')) {
-      var href = card.getAttribute('data-href');
+      const href = card.getAttribute('data-href');
       if (href) window.location.href = href;
     }
   });
 
-  // Cerrar al tocar el fondo oscuro del dialog
+  // Cerrar al tocar el fondo oscuro del dialog o con la tecla Esc
   if (dlg) {
-    dlg.addEventListener('click', function (e) { if (e.target === dlg) closeShare(); });
-    dlg.addEventListener('cancel', function () { closeShare(); }); // tecla Esc
+    dlg.addEventListener('click', (e) => { if (e.target === dlg) closeShare(); });
+    dlg.addEventListener('cancel', () => closeShare());
   }
-})();
 </script>
