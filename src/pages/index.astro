@@ -458,32 +458,22 @@ function feedDate(iso: string | null): { day: string; mon: string } {
     .bottom-nav {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 40;
       background: var(--marron); height: 60px;
-      display: flex; align-items: stretch;
+      display: flex; align-items: stretch; flex-wrap: nowrap;
+      overflow-x: auto; scrollbar-width: none;
       border-top: 1px solid rgba(255,255,255,.1);
     }
+    .bottom-nav::-webkit-scrollbar { display: none; }
     .nav-tab {
-      flex: 1; display: flex; flex-direction: column;
+      flex: 0 0 auto; min-width: 64px; display: flex; flex-direction: column;
       align-items: center; justify-content: center; gap: 3px;
       text-decoration: none; color: rgba(255,255,255,.55);
       font-size: 10px; font-weight: 600; transition: color .15s;
-      -webkit-tap-highlight-color: transparent;
+      -webkit-tap-highlight-color: transparent; padding: 6px 4px 8px;
     }
     .nav-tab:hover, .nav-tab.active { color: #fff; }
     .nav-tab svg { flex-shrink: 0; }
-    .nav-tab-center {
-      flex: 1; display: flex; align-items: center; justify-content: center;
-      position: relative;
-    }
-    .nav-tab-center-btn {
-      position: absolute; bottom: 10px;
-      width: 52px; height: 52px; border-radius: 50%;
-      background: var(--amarillo); color: var(--marron);
-      display: flex; align-items: center; justify-content: center;
-      text-decoration: none; box-shadow: 0 2px 12px rgba(0,0,0,.25);
-      transition: transform .15s;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .nav-tab-center-btn:active { transform: scale(.92); }
+    .nav-tab-reportar { color: var(--amarillo); font-weight: 700; }
+    .nav-tab-reportar:hover, .nav-tab-reportar.active { color: var(--amarillo); opacity: .85; }
 
     /* ── MAIN PADDING FOR BOTTOM NAV ── */
     main { padding-bottom: 72px; }
@@ -543,6 +533,7 @@ function feedDate(iso: string | null): { day: string; mon: string } {
       <input type="search" name="q" placeholder="Buscar mascota por nombre o zona…" aria-label="Buscar mascota" />
     </form>
     <nav class="header-nav-links">
+      <a href="/" aria-current="page">Inicio</a>
       <a href="/mascotas">Mascotas</a>
       <a href="/adoptar">Adoptar</a>
       <a href="/veterinarios">Vets</a>
@@ -845,28 +836,39 @@ function feedDate(iso: string | null): { day: string; mon: string } {
     </div>
   </footer>
 
-  <!-- BOTTOM NAV (mobile) -->
+  <!-- BOTTOM NAV (mobile) — scroll horizontal con los 8 enlaces -->
   <nav class="bottom-nav" aria-label="Navegación principal">
-    <a href="/" class="nav-tab active" aria-current="page" aria-label="Inicio">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <a href="/" class="nav-tab active" aria-current="page">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       Inicio
     </a>
-    <a href="/mascotas" class="nav-tab" aria-label="Mascotas">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <a href="/mascotas" class="nav-tab">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       Mascotas
     </a>
-    <div class="nav-tab-center">
-      <a href="/reportar" class="nav-tab-center-btn" aria-label="Reportar mascota">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      </a>
-    </div>
-    <a href="/veterinarios" class="nav-tab" aria-label="Veterinarios">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+    <a href="/adoptar" class="nav-tab">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      Adoptar
+    </a>
+    <a href="/veterinarios" class="nav-tab">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
       Vets
     </a>
-    <a href="/insumos" class="nav-tab" aria-label="Insumos">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    <a href="/insumos" class="nav-tab">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
       Insumos
+    </a>
+    <a href="/noticias" class="nav-tab">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="7" y1="8" x2="17" y2="8"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="13" y2="16"/></svg>
+      Noticias
+    </a>
+    <a href="/acopio" class="nav-tab">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+      Acopio
+    </a>
+    <a href="/reportar" class="nav-tab nav-tab-reportar">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Reportar
     </a>
   </nav>
 
