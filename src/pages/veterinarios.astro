@@ -5,6 +5,7 @@ import { supabaseAdmin } from '../lib/supabase'
 const { data: vets } = await supabaseAdmin
   .from('vets')
   .select('id, nombre, zona, servicios, horario, whatsapp, gratuito')
+  .eq('aprobado', true)
   .order('created_at', { ascending: false })
 
 const total = vets?.length ?? 0

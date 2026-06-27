@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro'
 import { supabaseAdmin } from '../../lib/supabase'
 
 const ESPECIES = ['Perro', 'Gato', 'Ave', 'Otro'] as const
-const TIPOS   = ['perdido', 'encontrado'] as const
+const TIPOS   = ['perdido', 'encontrado', 'adopcion'] as const
 const WS_REGEX = /^04[0-9]{2}[0-9]{7}$/
 const RATE_LIMIT_MS = 5 * 60 * 1000
 
@@ -62,6 +62,8 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   const tipo      = fd.get('tipo')?.toString().trim() || null
   const latitudRaw  = fd.get('latitud')?.toString()
   const longitudRaw = fd.get('longitud')?.toString()
+  const contacto_nombre = fd.get('contacto_nombre')?.toString().trim() || null
+  const senias = fd.get('senias')?.toString().trim() || null
 
   if (!especie || !ESPECIES.includes(especie as typeof ESPECIES[number])) {
     return json({ error: `Especie inválida. Valores permitidos: ${ESPECIES.join(', ')}` }, 400)
@@ -76,7 +78,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   }
 
   if (!tipo || !TIPOS.includes(tipo as typeof TIPOS[number])) {
-    return json({ error: 'Tipo requerido. Valores permitidos: perdido, encontrado' }, 400)
+    return json({ error: 'Tipo requerido. Valores permitidos: perdido, encontrado, adopcion' }, 400)
   }
 
   const { data, error } = await supabaseAdmin
@@ -90,6 +92,8 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
       zona,
       whatsapp,
       tipo,
+      contacto_nombre,
+      senias,
       status: 'pendiente',
       latitud: latitudRaw ? parseFloat(latitudRaw) : null,
       longitud: longitudRaw ? parseFloat(longitudRaw) : null,

@@ -250,6 +250,7 @@ if (Astro.request.method === 'POST') {
       tipo:       form.get('tipo')?.toString()               || null,
       zona:       form.get('zona')?.toString().trim()        ?? '',
       color:      form.get('color')?.toString().trim()       || null,
+      tamanio:    form.get('tamanio')?.toString()            || null,
       descripcion:form.get('descripcion')?.toString().trim() || null,
       whatsapp:   form.get('whatsapp')?.toString().trim()    ?? '',
       ...fotoUpdate,
@@ -548,6 +549,7 @@ if (isAuth) {
                         data-tipo={m.tipo ?? 'perdido'}
                         data-zona={m.zona}
                         data-color={m.color ?? ''}
+                        data-tamanio={m.tamanio ?? ''}
                         data-descripcion={m.descripcion ?? ''}
                         data-whatsapp={m.whatsapp ?? ''}
                         data-fotourl={m.foto_url ?? ''}
@@ -625,6 +627,7 @@ if (isAuth) {
                         data-tipo={m.tipo ?? 'perdido'}
                         data-zona={m.zona}
                         data-color={m.color ?? ''}
+                        data-tamanio={m.tamanio ?? ''}
                         data-descripcion={m.descripcion ?? ''}
                         data-whatsapp={m.whatsapp ?? ''}
                         data-fotourl={m.foto_url ?? ''}
@@ -1339,6 +1342,7 @@ if (isAuth) {
             <select name="tipo" id="em-tipo" class="modal-input">
               <option value="perdido">perdido</option>
               <option value="encontrado">encontrado</option>
+              <option value="adopcion">adopcion</option>
             </select>
           </label>
           <label class="modal-field">
@@ -1348,6 +1352,15 @@ if (isAuth) {
           <label class="modal-field">
             <span class="modal-lbl">Color</span>
             <input type="text" name="color" id="em-color" class="modal-input" />
+          </label>
+          <label class="modal-field">
+            <span class="modal-lbl">Tamaño</span>
+            <select name="tamanio" id="em-tamanio" class="modal-input">
+              <option value="">— sin especificar —</option>
+              <option value="Pequeño">Pequeño</option>
+              <option value="Mediano">Mediano</option>
+              <option value="Grande">Grande</option>
+            </select>
           </label>
           <label class="modal-field">
             <span class="modal-lbl">WhatsApp</span>
@@ -2366,11 +2379,15 @@ if (isAuth) {
       document.getElementById('em-descripcion').value = btn.dataset.descripcion || ''
       var selEsp = document.getElementById('em-especie')
       var selTip = document.getElementById('em-tipo')
+      var selTam = document.getElementById('em-tamanio')
       for (var i = 0; i < selEsp.options.length; i++) {
         if (selEsp.options[i].value === btn.dataset.especie) { selEsp.selectedIndex = i; break }
       }
       for (var j = 0; j < selTip.options.length; j++) {
         if (selTip.options[j].value === btn.dataset.tipo) { selTip.selectedIndex = j; break }
+      }
+      for (var k = 0; k < selTam.options.length; k++) {
+        if (selTam.options[k].value === btn.dataset.tamanio) { selTam.selectedIndex = k; break }
       }
       openModal('mascota')
     })

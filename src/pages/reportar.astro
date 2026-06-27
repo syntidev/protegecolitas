@@ -34,6 +34,12 @@ import Base from '../layouts/Base.astro'
         <span class="card-label">Encontré una<br /><strong>mascota</strong></span>
         <span class="card-hint">La tengo o la vi en mi zona</span>
       </button>
+
+      <button class="type-card card-adopcion" data-tipo="adopcion" aria-label="Dar mascota en adopción">
+        <span class="card-icon">🏠</span>
+        <span class="card-label">Dar en<br /><strong>adopción</strong></span>
+        <span class="card-hint">Rescaté una y busco familia</span>
+      </button>
     </div>
   </div>
 </div>
@@ -389,6 +395,15 @@ import Base from '../layouts/Base.astro'
 }
 .card-perdido .card-hint { color: rgba(61,28,2,0.65); }
 .card-encontrado .card-hint { color: rgba(255,255,255,0.75); }
+.card-adopcion {
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  border: none;
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(37,99,235,0.30);
+}
+.card-adopcion .card-label { color: #FFFFFF; }
+.card-adopcion .card-label strong { color: #FFFFFF; font-weight: 700; }
+.card-adopcion .card-hint { color: rgba(255,255,255,0.75); }
 
 /* ─── Screen 2: Formulario ─── */
 .rpt-form {
@@ -839,6 +854,10 @@ import Base from '../layouts/Base.astro'
         s2Title.textContent = 'Perdí a mi mascota';
         document.querySelectorAll('.perdido-only').forEach(el => el.style.removeProperty('display'));
         document.querySelectorAll('.encontrado-only').forEach(el => el.style.display = 'none');
+      } else if (selectedTipo === 'adopcion') {
+        s2Title.textContent = 'Dar en adopción';
+        document.querySelectorAll('.perdido-only').forEach(el => el.style.removeProperty('display'));
+        document.querySelectorAll('.encontrado-only').forEach(el => el.style.display = 'none');
       } else {
         s2Title.textContent = 'Encontré una mascota';
         document.querySelectorAll('.perdido-only').forEach(el => el.style.display = 'none');
@@ -1034,7 +1053,7 @@ import Base from '../layouts/Base.astro'
     };
     if (lat && lng) { payload.latitud = lat; payload.longitud = lng; }
 
-    if (selectedTipo === 'perdido') {
+    if (selectedTipo === 'perdido' || selectedTipo === 'adopcion') {
       payload.nombre = document.getElementById('nombre').value.trim();
       const tam = document.getElementById('tamanio').value;
       if (tam) payload.tamanio = tam;
